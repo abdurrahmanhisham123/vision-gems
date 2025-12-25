@@ -78,13 +78,14 @@ import { KenyaExpenseTemplate } from './templates/KenyaExpenseTemplate';
 import { KenyaCapitalTemplate } from './templates/KenyaCapitalTemplate';
 import { PaymentDueDateTemplate } from './templates/PaymentDueDateTemplate';
 import { GeneralExpensesTemplate } from './templates/GeneralExpensesTemplate';
+import { CutPolishExpensesTemplate } from './templates/CutPolishExpensesTemplate';
 
 import { 
   Eye, Settings2, X, ArrowUp, ArrowDown, 
   GripVertical, Plus, Trash2, 
   ChevronRight, ChevronLeft, LayoutPanelLeft,
   FolderClosed, FolderOpen,
-  Gem, Wallet, DollarSign, List, ArrowLeft, CheckCircle2, ArrowRightLeft
+  Gem, Wallet, DollarSign, List, ArrowLeft, CheckCircle2, ArrowRightLeft, Scissors
 } from 'lucide-react';
 
 export const ModuleView: React.FC = () => {
@@ -240,6 +241,7 @@ export const ModuleView: React.FC = () => {
     if (templateType === 'KenyaCapital') return <KenyaCapitalTemplate {...props} />;
     if (templateType === 'PaymentDueDate') return <PaymentDueDateTemplate {...props} />;
     if (templateType === 'GeneralExpenses') return <GeneralExpensesTemplate {...props} />;
+    if (templateType === 'CutPolishExpenses') return <CutPolishExpensesTemplate {...props} />;
 
     const specializedConfig = getSpecializedRecordConfig(moduleId!, tabId!);
     if (specializedConfig) return <SpecializedRecordTemplate config={specializedConfig} {...props} />;
@@ -344,6 +346,7 @@ export const ModuleView: React.FC = () => {
                       { id: 'VisionGemsSpinel', name: 'Rich Inventory (Template 1)', desc: 'Full 41-column master inventory with multi-currency & rich details.', icon: <Gem className="text-purple-600"/> },
                       { id: 'VGExpenses', name: 'VG Style Ledger', desc: 'Consolidated financial ledger with IN/OUT/CHECKS categories.', icon: <ArrowRightLeft className="text-emerald-600"/> },
                       { id: 'GeneralExpenses', name: 'General Expenses', desc: 'Operational expense tracking with multi-currency support and location tracking.', icon: <Wallet className="text-red-600"/> },
+                      { id: 'CutPolishExpenses', name: 'Cut & Polish Expenses', desc: 'Track cutting and polishing jobs with weight-based calculations and per-carat costs.', icon: <Scissors className="text-purple-600"/> },
                       { id: 'ExpenseLog', name: 'Expense Ledger', desc: 'Financial tracking with currency conversion and vendor logging.', icon: <Wallet className="text-red-600"/> },
                       { id: 'SupplierPayable', name: 'Payable Ledger', desc: 'Track buying payments, supplier debts and settlements.', icon: <DollarSign className="text-amber-600"/> },
                       { id: 'SimpleList', name: 'Standard List', desc: 'Simple list view for reference data and basic collections.', icon: <List className="text-blue-600"/> },
