@@ -79,7 +79,8 @@ export type TemplateType =
   | 'KenyaPurchasing'
   | 'KenyaExpense'
   | 'KenyaCapital'
-  | 'PaymentDueDate';
+  | 'PaymentDueDate'
+  | 'GeneralExpenses';
 
 /**
  * Persists a template assignment for a custom-added tab.
