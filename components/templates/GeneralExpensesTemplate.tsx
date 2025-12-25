@@ -327,7 +327,52 @@ export const GeneralExpensesTemplate: React.FC<Props> = ({ moduleId, tabId, isRe
       </div>
 
       {/* Summary Stats - More Curvy */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+      {/* Mobile & Tablet: Compact 2x2 Grid */}
+      <div className="lg:hidden grid grid-cols-2 gap-3 mb-6">
+        <div className="bg-white p-3 rounded-2xl border border-stone-200 shadow-sm">
+           <div className="flex items-center gap-2 mb-2">
+              <div className="w-8 h-8 rounded-xl bg-red-50 flex items-center justify-center text-red-600 border border-red-100 shrink-0">
+                 <DollarSign size={16} />
+              </div>
+              <div className="text-[9px] font-black text-stone-400 uppercase tracking-wider truncate">Total Expenses</div>
+           </div>
+           <div className="text-lg font-black text-stone-900 truncate">LKR {stats.totalLKR.toLocaleString()}</div>
+        </div>
+        <div className="bg-white p-3 rounded-2xl border border-stone-200 shadow-sm">
+           <div className="flex items-center gap-2 mb-2">
+              <div className="w-8 h-8 rounded-xl bg-stone-50 flex items-center justify-center text-stone-500 border border-stone-100 shrink-0">
+                 <FileText size={16} />
+              </div>
+              <div className="text-[9px] font-black text-stone-400 uppercase tracking-wider truncate">Transactions</div>
+           </div>
+           <div className="text-lg font-black text-stone-900">{stats.count}</div>
+        </div>
+        <div className="bg-white p-3 rounded-2xl border border-stone-200 shadow-sm">
+           <div className="flex items-center gap-2 mb-2">
+              <div className="w-8 h-8 rounded-xl bg-blue-50 flex items-center justify-center text-blue-600 border border-blue-100 shrink-0">
+                 <Globe size={16} />
+              </div>
+              <div className="text-[9px] font-black text-stone-400 uppercase tracking-wider truncate">Foreign Currency</div>
+           </div>
+           <div className="text-lg font-black text-stone-900">{stats.foreignCount}</div>
+        </div>
+        <div className="bg-white p-3 rounded-2xl border border-stone-200 shadow-sm">
+           <div className="flex items-center gap-2 mb-2">
+              <div className="w-8 h-8 rounded-xl bg-emerald-50 flex items-center justify-center text-emerald-600 border border-emerald-100 shrink-0">
+                 <Calendar size={16} />
+              </div>
+              <div className="text-[9px] font-black text-stone-400 uppercase tracking-wider truncate">Date Range</div>
+           </div>
+           <div className="text-sm font-black text-stone-900 leading-tight">
+              {stats.minDate ? stats.minDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '-'} 
+              {stats.minDate && stats.maxDate ? ' - ' : ''}
+              {stats.maxDate ? stats.maxDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : ''}
+           </div>
+        </div>
+      </div>
+
+      {/* Desktop Only: Original Layout */}
+      <div className="hidden lg:grid grid-cols-4 gap-6 mb-8">
         <div className="bg-white p-6 rounded-3xl border border-stone-200 shadow-sm flex items-center justify-between">
            <div>
               <div className="text-[10px] font-black text-stone-400 uppercase tracking-[0.15em] mb-1">Total Expenses</div>
