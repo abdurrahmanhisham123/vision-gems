@@ -235,7 +235,7 @@ export const getTemplateForTab = (moduleId: string, tabId: string): TemplateType
   }
 
   if (moduleId === 'all-expenses' && (tabNormal === 'online.ticket' || tabNormal === 'personal ticket visa')) {
-    return 'OnlineTickets';
+    return 'TicketsVisa';
   }
 
   if (moduleId === 'in-stocks') {
@@ -259,7 +259,7 @@ export const getTemplateForTab = (moduleId: string, tabId: string): TemplateType
     if (spinelDesignTabs.includes(tabNormal)) return 'VisionGemsSpinel';
     if (tabNormal === 'cut.polish') return 'CutPolishExpenses';
     if (tabNormal === 'sl.expenses') return 'SLExpenses';
-    if (tabNormal === 'bkkticket') return 'BKKTickets';
+    if (tabNormal === 'bkkticket') return 'TicketsVisa';
     if (tabNormal === 'texpenses') return 'GeneralExpenses';
   }
 
@@ -268,6 +268,9 @@ export const getTemplateForTab = (moduleId: string, tabId: string): TemplateType
   if (moduleId === 'dada') {
     if (tabNormal === 't.expense' || tabNormal === '202412texpense') {
       return 'GeneralExpenses';
+    }
+    if (tabNormal === 'tickets.visa') {
+      return 'TicketsVisa';
     }
   }
 
@@ -287,11 +290,17 @@ export const getTemplateForTab = (moduleId: string, tabId: string): TemplateType
     if (tabNormal === 'mexpenses') {
       return 'GeneralExpenses';
     }
+    if (tabNormal === 'tickets.visa') {
+      return 'TicketsVisa';
+    }
   }
 
   if (moduleId === 'vgtz') {
     if (tabNormal === 'tz.expenses') {
       return 'GeneralExpenses';
+    }
+    if (tabNormal === 'tickets.visa') {
+      return 'TicketsVisa';
     }
   }
 
