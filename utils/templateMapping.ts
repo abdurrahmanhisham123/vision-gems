@@ -82,7 +82,8 @@ export type TemplateType =
   | 'PaymentDueDate'
   | 'GeneralExpenses'
   | 'CutPolishExpenses'
-  | 'TicketsVisa';
+  | 'TicketsVisa'
+  | 'PersonalShares';
 
 /**
  * Persists a template assignment for a custom-added tab.
@@ -189,7 +190,7 @@ export const getTemplateForTab = (moduleId: string, tabId: string): TemplateType
   }
 
   if (moduleId === 'all-expenses' && tabNormal === 'fawazwife.shares') {
-    return 'PartnerShares';
+    return 'PersonalShares';
   }
 
   if (moduleId === 'all-expenses' && tabNormal === 'audit.accounts') {
@@ -212,14 +213,18 @@ export const getTemplateForTab = (moduleId: string, tabId: string): TemplateType
     return 'AllExpensesDashboard';
   }
 
+  // --- PERSONAL SHARES TEMPLATE MAPPING (9 tabs) ---
+  if (moduleId === 'all-expenses') {
+    if (tabNormal === 'ziyam' || tabNormal === 'zahran' || tabNormal === 'dad' || tabNormal === 'zcar') {
+      return 'PersonalShares';
+    }
+    if (tabNormal === 'ramzanhaji.shares' || tabNormal === 'azeem.shares' || tabNormal === 'others.shares') {
+      return 'PersonalShares';
+    }
+  }
+
   const vgStyleTabs = [
-    'vgexpenses', 
-    'ziyam', 
-    'zahran', 
-    'dad', 
-    'ramzanhaji.shares', 
-    'azeem.shares', 
-    'others.shares'
+    'vgexpenses'
   ];
   
   if (moduleId === 'all-expenses' && vgStyleTabs.includes(tabNormal)) {
@@ -302,6 +307,9 @@ export const getTemplateForTab = (moduleId: string, tabId: string): TemplateType
     if (tabNormal === 'tickets.visa') {
       return 'TicketsVisa';
     }
+    if (tabNormal === 'azeem') {
+      return 'PersonalShares';
+    }
   }
 
   const specializedConfig = getSpecializedRecordConfig(moduleId, tabId);
@@ -359,7 +367,8 @@ export const getTemplateForTab = (moduleId: string, tabId: string): TemplateType
   }
   const isTripModule = ['kenya', 'vgtz', 'madagascar', 'dada', 'vg-ramazan'].includes(moduleId);
   if (isTripModule) {
-    if (tabLower === 'azeem') return 'PaymentTracking';
+    // Azeem in vgtz is handled above as PersonalShares
+    if (tabLower === 'azeem' && moduleId !== 'vgtz') return 'PaymentTracking';
     if (tabLower.match(/^\d+/) || tabLower.includes('sheet')) return 'ExpenseLog';
   }
   if (tabLower.includes('stock')) return 'Inventory';
