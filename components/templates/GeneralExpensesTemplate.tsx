@@ -219,7 +219,6 @@ const ExpenseDetailPanel: React.FC<{
 export const GeneralExpensesTemplate: React.FC<Props> = ({ moduleId, tabId, isReadOnly }) => {
   const [items, setItems] = useState<GeneralExpenseItem[]>(generateMockData());
   const [searchQuery, setSearchQuery] = useState('');
-  const [dateRange, setDateRange] = useState({ start: '', end: '' });
   const [currencyFilter, setCurrencyFilter] = useState<string>('all');
   
   // Modal State
@@ -251,16 +250,12 @@ export const GeneralExpensesTemplate: React.FC<Props> = ({ moduleId, tabId, isRe
         (item.code && item.code.toLowerCase().includes(searchQuery.toLowerCase())) ||
         (item.location && item.location.toLowerCase().includes(searchQuery.toLowerCase()));
       
-      const matchesDate = 
-        (!dateRange.start || item.date >= dateRange.start) &&
-        (!dateRange.end || item.date <= dateRange.end);
-      
       const matchesCurrency = 
         currencyFilter === 'all' || item.currency === currencyFilter;
         
-      return matchesSearch && matchesDate && matchesCurrency;
+      return matchesSearch && matchesCurrency;
     }).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-  }, [items, searchQuery, dateRange, currencyFilter]);
+  }, [items, searchQuery, currencyFilter]);
 
   // --- Handlers ---
   const handleDelete = (id: string, e?: React.MouseEvent) => {
@@ -390,23 +385,7 @@ export const GeneralExpensesTemplate: React.FC<Props> = ({ moduleId, tabId, isRe
             </div>
             <div className="flex gap-2 overflow-x-auto hide-scrollbar pb-1 xl:pb-0">
                <div className="flex items-center bg-stone-50 border border-stone-100 rounded-[20px] px-3 shrink-0">
-                  <Calendar size={14} className="text-stone-300" />
-                  <input 
-                     type="date" 
-                     value={dateRange.start} 
-                     onChange={e => setDateRange({...dateRange, start: e.target.value})}
-                     className="px-2 py-2.5 bg-transparent text-xs text-stone-600 font-bold focus:outline-none min-w-[120px]" 
-                  />
-                  <span className="text-stone-300 mx-1">-</span>
-                  <input 
-                     type="date" 
-                     value={dateRange.end} 
-                     onChange={e => setDateRange({...dateRange, end: e.target.value})}
-                     className="px-2 py-2.5 bg-transparent text-xs text-stone-600 font-bold focus:outline-none min-w-[120px]" 
-                  />
-               </div>
-               <div className="flex items-center bg-stone-50 border border-stone-100 rounded-[20px] px-3 shrink-0">
-                  <Globe size={14} className="text-stone-300" />
+                  <Globe size={14} className="text-stone-900" />
                   <select 
                      value={currencyFilter}
                      onChange={(e) => setCurrencyFilter(e.target.value)}
