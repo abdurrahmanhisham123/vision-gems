@@ -85,7 +85,8 @@ export type TemplateType =
   | 'TicketsVisa'
   | 'PersonalShares'
   | 'SpecificServices'
-  | 'HotelAccommodation';
+  | 'HotelAccommodation'
+  | 'ExportCharges';
 
 /**
  * Persists a template assignment for a custom-added tab.
@@ -151,13 +152,21 @@ export const getTemplateForTab = (moduleId: string, tabId: string): TemplateType
   if (moduleId === 'kenya') {
     if (tabNormal === 'instock') return 'VisionGemsSpinel';
     if (tabNormal === 'cutpolish') return 'CutPolish';
-    if (tabNormal === 'export') return 'KenyaExport';
+    if (tabNormal === 'export') return 'ExportCharges';
     if (tabNormal === 'traveling.ex') return 'TicketsVisa';
     if (tabNormal === 'bkkexpenses') return 'BKKExpenses'; 
     if (tabNormal === 'bkkhotel') return 'HotelAccommodation'; 
     if (tabNormal === 'kpurchasing') return 'KenyaPurchasing';
     if (tabNormal === 'kexpenses') return 'GeneralExpenses';
     if (tabNormal === 'capital') return 'KenyaCapital';
+  }
+
+  // --- EXPORT CHARGES MAPPING ---
+  if (moduleId === 'madagascar' && tabNormal === 'mexport') {
+    return 'ExportCharges';
+  }
+  if (moduleId === 'spinel-gallery' && tabNormal === 'bkkexport') {
+    return 'ExportCharges';
   }
 
   // --- TOP PRIORITY OVERRIDES ---
