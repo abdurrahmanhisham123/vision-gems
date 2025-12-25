@@ -28,52 +28,7 @@ interface Props {
 
 // --- Mock Data ---
 const generateMockData = (): GeneralExpenseItem[] => {
-  return [
-    { 
-      id: '1', 
-      date: '2024-11-20', 
-      code: 'EXP-001', 
-      name: 'Local Transport Co', 
-      description: 'Stone transport from warehouse', 
-      amount: 12500, 
-      currency: 'LKR',
-      location: 'Colombo'
-    },
-    { 
-      id: '2', 
-      date: '2024-11-22', 
-      code: 'EXP-002', 
-      name: 'Tanzania Logistics', 
-      description: 'Freight charges', 
-      amount: 50000, 
-      currency: 'TZS',
-      convertedAmount: 6250,
-      exchangeRate: 0.125,
-      location: 'Dar es Salaam'
-    },
-    { 
-      id: '3', 
-      date: '2024-11-25', 
-      code: 'EXP-003', 
-      name: 'Kenya Supplies', 
-      description: 'Office supplies purchase', 
-      amount: 15000, 
-      currency: 'KSH',
-      convertedAmount: 33750,
-      exchangeRate: 2.25,
-      location: 'Nairobi'
-    },
-    { 
-      id: '4', 
-      date: '2024-11-28', 
-      code: 'EXP-004', 
-      name: 'VG Services', 
-      description: 'Monthly maintenance', 
-      amount: 25000, 
-      currency: 'LKR',
-      company: 'Vision Gems'
-    },
-  ];
+  return [];
 };
 
 // --- Side Panel Component ---

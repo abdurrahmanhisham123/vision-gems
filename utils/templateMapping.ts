@@ -151,7 +151,7 @@ export const getTemplateForTab = (moduleId: string, tabId: string): TemplateType
     if (tabNormal === 'bkkexpenses') return 'BKKExpenses'; 
     if (tabNormal === 'bkkhotel') return 'BKKApartment'; 
     if (tabNormal === 'kpurchasing') return 'KenyaPurchasing';
-    if (tabNormal === 'kexpenses') return 'KenyaExpense';
+    if (tabNormal === 'kexpenses') return 'GeneralExpenses';
     if (tabNormal === 'capital') return 'KenyaCapital';
   }
 
@@ -258,6 +258,33 @@ export const getTemplateForTab = (moduleId: string, tabId: string): TemplateType
     if (tabNormal === 'cut.polish') return 'CutPolish';
     if (tabNormal === 'sl.expenses') return 'SLExpenses';
     if (tabNormal === 'bkkticket') return 'BKKTickets';
+    if (tabNormal === 'texpenses') return 'GeneralExpenses';
+  }
+
+  // --- GENERAL EXPENSES TEMPLATE MAPPING (6 tabs) ---
+  // Note: KExpenses is handled in Kenya overrides section above
+  if (moduleId === 'dada') {
+    if (tabNormal === 't.expense' || tabNormal === '202412texpense') {
+      return 'GeneralExpenses';
+    }
+  }
+
+  if (moduleId === 'vg-ramazan') {
+    if (tabNormal === 't.expenses') {
+      return 'GeneralExpenses';
+    }
+  }
+
+  if (moduleId === 'madagascar') {
+    if (tabNormal === 'mexpenses') {
+      return 'GeneralExpenses';
+    }
+  }
+
+  if (moduleId === 'vgtz') {
+    if (tabNormal === 'tz.expenses') {
+      return 'GeneralExpenses';
+    }
   }
 
   const specializedConfig = getSpecializedRecordConfig(moduleId, tabId);
