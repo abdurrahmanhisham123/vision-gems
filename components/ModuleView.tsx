@@ -81,13 +81,14 @@ import { GeneralExpensesTemplate } from './templates/GeneralExpensesTemplate';
 import { CutPolishExpensesTemplate } from './templates/CutPolishExpensesTemplate';
 import { TicketsVisaTemplate } from './templates/TicketsVisaTemplate';
 import { PersonalSharesTemplate } from './templates/PersonalSharesTemplate';
+import { SpecificServicesTemplate } from './templates/SpecificServicesTemplate';
 
 import { 
   Eye, Settings2, X, ArrowUp, ArrowDown, 
   GripVertical, Plus, Trash2, 
   ChevronRight, ChevronLeft, LayoutPanelLeft,
   FolderClosed, FolderOpen,
-  Gem, Wallet, DollarSign, List, ArrowLeft, CheckCircle2, ArrowRightLeft, Scissors, Ticket, User
+  Gem, Wallet, DollarSign, List, ArrowLeft, CheckCircle2, ArrowRightLeft, Scissors, Ticket, User, Briefcase
 } from 'lucide-react';
 
 export const ModuleView: React.FC = () => {
@@ -246,6 +247,7 @@ export const ModuleView: React.FC = () => {
     if (templateType === 'CutPolishExpenses') return <CutPolishExpensesTemplate {...props} />;
     if (templateType === 'TicketsVisa') return <TicketsVisaTemplate {...props} />;
     if (templateType === 'PersonalShares') return <PersonalSharesTemplate {...props} />;
+    if (templateType === 'SpecificServices') return <SpecificServicesTemplate {...props} />;
 
     const specializedConfig = getSpecializedRecordConfig(moduleId!, tabId!);
     if (specializedConfig) return <SpecializedRecordTemplate config={specializedConfig} {...props} />;
@@ -353,6 +355,7 @@ export const ModuleView: React.FC = () => {
                       { id: 'CutPolishExpenses', name: 'Cut & Polish Expenses', desc: 'Track cutting and polishing jobs with weight-based calculations and per-carat costs.', icon: <Scissors className="text-emerald-600"/> },
                       { id: 'TicketsVisa', name: 'Tickets & Visa', desc: 'Track flight tickets and visa expenses with route, airline, and visa type tracking.', icon: <Ticket className="text-cyan-600"/> },
                       { id: 'PersonalShares', name: 'Personal Shares', desc: 'Track personal shares and partner distributions with out/in indicators and location tracking.', icon: <User className="text-green-600"/> },
+                      { id: 'SpecificServices', name: 'Specific Services', desc: 'Track service expenses like travel, office rent, licenses, and accounting with vendor tracking.', icon: <Briefcase className="text-purple-600"/> },
                       { id: 'ExpenseLog', name: 'Expense Ledger', desc: 'Financial tracking with currency conversion and vendor logging.', icon: <Wallet className="text-red-600"/> },
                       { id: 'SupplierPayable', name: 'Payable Ledger', desc: 'Track buying payments, supplier debts and settlements.', icon: <DollarSign className="text-amber-600"/> },
                       { id: 'SimpleList', name: 'Standard List', desc: 'Simple list view for reference data and basic collections.', icon: <List className="text-blue-600"/> },

@@ -83,7 +83,8 @@ export type TemplateType =
   | 'GeneralExpenses'
   | 'CutPolishExpenses'
   | 'TicketsVisa'
-  | 'PersonalShares';
+  | 'PersonalShares'
+  | 'SpecificServices';
 
 /**
  * Persists a template assignment for a custom-added tab.
@@ -193,20 +194,15 @@ export const getTemplateForTab = (moduleId: string, tabId: string): TemplateType
     return 'PersonalShares';
   }
 
-  if (moduleId === 'all-expenses' && tabNormal === 'audit.accounts') {
-    return 'AuditAccounts';
-  }
-
-  if (moduleId === 'all-expenses' && tabNormal === 'gem.license') {
-    return 'GemLicense';
-  }
-
   if (moduleId === 'payable' && tabNormal === 'dashboard') {
     return 'PayableDashboard';
   }
 
-  if (moduleId === 'all-expenses' && tabNormal === 'classictravel') {
-    return 'ClassicTravel';
+  // --- SPECIFIC SERVICES TEMPLATE MAPPING (4 tabs) ---
+  if (moduleId === 'all-expenses') {
+    if (tabNormal === 'classictravel' || tabNormal === 'office' || tabNormal === 'gem.license' || tabNormal === 'audit.accounts') {
+      return 'SpecificServices';
+    }
   }
 
   if (moduleId === 'all-expenses' && tabNormal === 'exdashboard') {
@@ -233,10 +229,6 @@ export const getTemplateForTab = (moduleId: string, tabId: string): TemplateType
 
   if (moduleId === 'all-expenses' && tabNormal === 'cut.polish') {
     return 'CutPolishExpenses';
-  }
-
-  if (moduleId === 'all-expenses' && tabNormal === 'office') {
-    return 'OfficeExpenses';
   }
 
   if (moduleId === 'all-expenses' && (tabNormal === 'online.ticket' || tabNormal === 'personal ticket visa')) {
