@@ -82,13 +82,14 @@ import { CutPolishExpensesTemplate } from './templates/CutPolishExpensesTemplate
 import { TicketsVisaTemplate } from './templates/TicketsVisaTemplate';
 import { PersonalSharesTemplate } from './templates/PersonalSharesTemplate';
 import { SpecificServicesTemplate } from './templates/SpecificServicesTemplate';
+import { HotelAccommodationTemplate } from './templates/HotelAccommodationTemplate';
 
 import { 
   Eye, Settings2, X, ArrowUp, ArrowDown, 
   GripVertical, Plus, Trash2, 
   ChevronRight, ChevronLeft, LayoutPanelLeft,
   FolderClosed, FolderOpen,
-  Gem, Wallet, DollarSign, List, ArrowLeft, CheckCircle2, ArrowRightLeft, Scissors, Ticket, User, Briefcase
+  Gem, Wallet, DollarSign, List, ArrowLeft, CheckCircle2, ArrowRightLeft, Scissors, Ticket, User, Briefcase, Hotel
 } from 'lucide-react';
 
 export const ModuleView: React.FC = () => {
@@ -248,6 +249,7 @@ export const ModuleView: React.FC = () => {
     if (templateType === 'TicketsVisa') return <TicketsVisaTemplate {...props} />;
     if (templateType === 'PersonalShares') return <PersonalSharesTemplate {...props} />;
     if (templateType === 'SpecificServices') return <SpecificServicesTemplate {...props} />;
+    if (templateType === 'HotelAccommodation') return <HotelAccommodationTemplate {...props} />;
 
     const specializedConfig = getSpecializedRecordConfig(moduleId!, tabId!);
     if (specializedConfig) return <SpecializedRecordTemplate config={specializedConfig} {...props} />;
@@ -336,18 +338,19 @@ export const ModuleView: React.FC = () => {
       <div ref={contentRef} className="flex-1 bg-stone-50 min-h-0 overflow-y-auto custom-scrollbar">{isReadOnly && (<div className="mx-6 mt-6 mb-2 bg-stone-100 text-stone-500 border border-stone-200 px-4 py-2 rounded-lg text-xs font-bold inline-flex items-center gap-2 tracking-wide uppercase"><Eye size={14} /> View Only Access</div>)}{renderTemplate()}</div>
 
       {isAddTabOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-stone-900/60 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-2xl flex flex-col animate-in fade-in zoom-in-95 duration-200 p-8">
-             <div className="flex justify-between items-center mb-8 border-b border-stone-100 pb-6">
-                <div>
-                   <h3 className="font-bold text-2xl text-stone-900">{addTabStep === 1 ? 'Choose UI Blueprint' : 'Configure New Tab'}</h3>
-                   <p className="text-sm text-stone-500 mt-1">{addTabStep === 1 ? 'Select a layout template for your data.' : `Naming your ${selectedTemplate?.replace(/([A-Z])/g, ' $1').trim()} tab.`}</p>
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-0 md:p-4 bg-stone-900/60 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="relative bg-white rounded-t-3xl md:rounded-3xl shadow-2xl w-full h-full md:h-auto md:max-w-2xl md:max-h-[90vh] flex flex-col animate-in fade-in zoom-in-95 duration-200 p-4 md:p-8">
+             <div className="flex justify-between items-start md:items-center mb-4 md:mb-8 border-b border-stone-100 pb-4 md:pb-6 shrink-0">
+                <div className="flex-1 min-w-0 pr-2">
+                   <h3 className="font-bold text-lg md:text-2xl text-stone-900">{addTabStep === 1 ? 'Choose UI Blueprint' : 'Configure New Tab'}</h3>
+                   <p className="text-xs md:text-sm text-stone-500 mt-1">{addTabStep === 1 ? 'Select a layout template for your data.' : `Naming your ${selectedTemplate?.replace(/([A-Z])/g, ' $1').trim()} tab.`}</p>
                 </div>
-                <button onClick={() => setIsAddTabOpen(false)} className="p-2 rounded-full hover:bg-stone-100 text-stone-400"><X size={24} /></button>
+                <button onClick={() => setIsAddTabOpen(false)} className="p-2 rounded-full hover:bg-stone-100 text-stone-400 shrink-0"><X size={20} className="md:w-6 md:h-6" /></button>
              </div>
              
              {addTabStep === 1 ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="flex-1 overflow-y-auto custom-scrollbar -mx-4 md:mx-0 px-4 md:px-0">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4 pb-4">
                    {[
                       { id: 'VisionGemsSpinel', name: 'Rich Inventory (Template 1)', desc: 'Full 41-column master inventory with multi-currency & rich details.', icon: <Gem className="text-purple-600"/> },
                       { id: 'VGExpenses', name: 'VG Style Ledger', desc: 'Consolidated financial ledger with IN/OUT/CHECKS categories.', icon: <ArrowRightLeft className="text-emerald-600"/> },
@@ -355,7 +358,8 @@ export const ModuleView: React.FC = () => {
                       { id: 'CutPolishExpenses', name: 'Cut & Polish Expenses', desc: 'Track cutting and polishing jobs with weight-based calculations and per-carat costs.', icon: <Scissors className="text-emerald-600"/> },
                       { id: 'TicketsVisa', name: 'Tickets & Visa', desc: 'Track flight tickets and visa expenses with route, airline, and visa type tracking.', icon: <Ticket className="text-cyan-600"/> },
                       { id: 'PersonalShares', name: 'Personal Shares', desc: 'Track personal shares and partner distributions with out/in indicators and location tracking.', icon: <User className="text-green-600"/> },
-                      { id: 'SpecificServices', name: 'Specific Services', desc: 'Track service expenses like travel, office rent, licenses, and accounting with vendor tracking.', icon: <Briefcase className="text-purple-600"/> },
+                      { id: 'SpecificServices', name: 'Specific Services', desc: 'Track service expenses like travel, office rent, licenses, and accounting with vendor tracking.', icon: <Briefcase className="text-orange-600"/> },
+                      { id: 'HotelAccommodation', name: 'Hotel & Accommodation', desc: 'Track hotel stays and accommodations with check-in/out dates, nights calculation, and cost per night.', icon: <Hotel className="text-pink-600"/> },
                       { id: 'ExpenseLog', name: 'Expense Ledger', desc: 'Financial tracking with currency conversion and vendor logging.', icon: <Wallet className="text-red-600"/> },
                       { id: 'SupplierPayable', name: 'Payable Ledger', desc: 'Track buying payments, supplier debts and settlements.', icon: <DollarSign className="text-amber-600"/> },
                       { id: 'SimpleList', name: 'Standard List', desc: 'Simple list view for reference data and basic collections.', icon: <List className="text-blue-600"/> },
@@ -363,44 +367,45 @@ export const ModuleView: React.FC = () => {
                       <button 
                         key={tpl.id}
                         onClick={() => { setSelectedTemplate(tpl.id as any); setAddTabStep(2); }}
-                        className="flex items-start gap-4 p-5 rounded-2xl border-2 border-stone-100 hover:border-gem-purple hover:bg-purple-50/50 transition-all text-left group"
+                        className="flex items-start gap-3 md:gap-4 p-3 md:p-5 rounded-xl md:rounded-2xl border-2 border-stone-100 hover:border-gem-purple hover:bg-purple-50/50 transition-all text-left group active:scale-[0.98]"
                       >
-                         <div className="w-12 h-12 rounded-xl bg-white shadow-sm border border-stone-100 flex items-center justify-center group-hover:scale-110 transition-transform">{tpl.icon}</div>
-                         <div className="flex-1">
-                            <div className="font-bold text-stone-900 group-hover:text-gem-purple transition-colors">{tpl.name}</div>
-                            <div className="text-xs text-stone-500 mt-1 leading-relaxed">{tpl.desc}</div>
+                         <div className="w-10 h-10 md:w-12 md:h-12 rounded-lg md:rounded-xl bg-white shadow-sm border border-stone-100 flex items-center justify-center group-hover:scale-110 transition-transform shrink-0">{tpl.icon}</div>
+                         <div className="flex-1 min-w-0">
+                            <div className="font-bold text-sm md:text-base text-stone-900 group-hover:text-gem-purple transition-colors">{tpl.name}</div>
+                            <div className="text-[10px] md:text-xs text-stone-500 mt-1 leading-relaxed line-clamp-2">{tpl.desc}</div>
                          </div>
-                         <ChevronRight size={20} className="text-stone-300 group-hover:text-gem-purple mt-1" />
+                         <ChevronRight size={18} className="text-stone-300 group-hover:text-gem-purple mt-1 shrink-0 md:w-5 md:h-5" />
                       </button>
                    ))}
+                  </div>
                 </div>
              ) : (
-                <div className="space-y-8 py-4">
+                <div className="flex-1 overflow-y-auto custom-scrollbar space-y-6 md:space-y-8 py-2 md:py-4">
                    <button onClick={() => setAddTabStep(1)} className="flex items-center gap-2 text-xs font-bold text-stone-400 hover:text-stone-800 uppercase tracking-widest"><ArrowLeft size={14}/> Back to Templates</button>
                    
-                   <div className="bg-stone-50 p-6 rounded-3xl border border-stone-100 flex items-center gap-4">
-                      <div className="w-14 h-14 rounded-2xl bg-white shadow-sm flex items-center justify-center text-gem-purple"><LayoutPanelLeft size={32}/></div>
-                      <div>
-                         <div className="text-[10px] font-black text-stone-400 uppercase tracking-widest">Blueprint Selected</div>
-                         <div className="text-lg font-bold text-stone-800">{selectedTemplate?.replace(/([A-Z])/g, ' $1').trim()}</div>
+                   <div className="bg-stone-50 p-4 md:p-6 rounded-2xl md:rounded-3xl border border-stone-100 flex items-center gap-3 md:gap-4">
+                      <div className="w-12 h-12 md:w-14 md:h-14 rounded-xl md:rounded-2xl bg-white shadow-sm flex items-center justify-center text-gem-purple shrink-0"><LayoutPanelLeft size={24} className="md:w-8 md:h-8"/></div>
+                      <div className="flex-1 min-w-0">
+                         <div className="text-[9px] md:text-[10px] font-black text-stone-400 uppercase tracking-widest">Blueprint Selected</div>
+                         <div className="text-base md:text-lg font-bold text-stone-800 truncate">{selectedTemplate?.replace(/([A-Z])/g, ' $1').trim()}</div>
                       </div>
-                      <div className="ml-auto"><CheckCircle2 className="text-emerald-500" size={24}/></div>
+                      <div className="ml-auto shrink-0"><CheckCircle2 className="text-emerald-500 md:w-6 md:h-6" size={20}/></div>
                    </div>
 
                    <div>
-                      <label className="block text-xs font-black text-stone-500 uppercase tracking-widest mb-3 ml-1">New Tab Identity</label>
+                      <label className="block text-xs font-black text-stone-500 uppercase tracking-widest mb-2 md:mb-3 ml-1">New Tab Identity</label>
                       <input 
                         type="text" 
                         value={newTabName} 
                         onChange={(e) => setNewTabName(e.target.value)} 
-                        className="w-full p-5 border-2 border-stone-200 rounded-2xl bg-white text-xl font-bold text-stone-900 focus:outline-none focus:border-gem-purple focus:ring-4 focus:ring-gem-purple/5 transition-all shadow-sm" 
+                        className="w-full p-4 md:p-5 border-2 border-stone-200 rounded-xl md:rounded-2xl bg-white text-lg md:text-xl font-bold text-stone-900 focus:outline-none focus:border-gem-purple focus:ring-4 focus:ring-gem-purple/5 transition-all shadow-sm" 
                         placeholder="e.g. November Sales" 
                         autoFocus 
                         onKeyDown={(e) => { if(e.key === 'Enter') handleAddTab(); }}
                       />
                    </div>
                    
-                   <button onClick={handleAddTab} disabled={!newTabName.trim()} className="w-full py-5 bg-stone-900 text-white rounded-2xl font-black text-lg shadow-xl shadow-stone-900/20 hover:bg-stone-800 active:scale-[0.98] transition-all disabled:opacity-30">Create Dynamic Tab</button>
+                   <button onClick={handleAddTab} disabled={!newTabName.trim()} className="w-full py-4 md:py-5 bg-stone-900 text-white rounded-xl md:rounded-2xl font-black text-base md:text-lg shadow-xl shadow-stone-900/20 hover:bg-stone-800 active:scale-[0.98] transition-all disabled:opacity-30">Create Dynamic Tab</button>
                 </div>
              )}
           </div>

@@ -84,7 +84,8 @@ export type TemplateType =
   | 'CutPolishExpenses'
   | 'TicketsVisa'
   | 'PersonalShares'
-  | 'SpecificServices';
+  | 'SpecificServices'
+  | 'HotelAccommodation';
 
 /**
  * Persists a template assignment for a custom-added tab.
@@ -140,7 +141,7 @@ export const getTemplateForTab = (moduleId: string, tabId: string): TemplateType
     if (tabNormal === 'bkktickets') return 'TicketsVisa';
     if (tabNormal === 'bkkexpenses') return 'BKKExpenses';
     if (tabNormal === 'export.charge') return 'BKKExportCharge';
-    if (tabNormal === 'apartment') return 'BKKApartment';
+    if (tabNormal === 'apartment') return 'HotelAccommodation';
     if (tabNormal === 'bkkcapital') return 'BKKCapital';
     if (tabNormal === 'bkk.payment') return 'BKKPayment';
     if (tabNormal === 'bkk.statement') return 'BKKStatement';
@@ -153,7 +154,7 @@ export const getTemplateForTab = (moduleId: string, tabId: string): TemplateType
     if (tabNormal === 'export') return 'KenyaExport';
     if (tabNormal === 'traveling.ex') return 'TicketsVisa';
     if (tabNormal === 'bkkexpenses') return 'BKKExpenses'; 
-    if (tabNormal === 'bkkhotel') return 'BKKApartment'; 
+    if (tabNormal === 'bkkhotel') return 'HotelAccommodation'; 
     if (tabNormal === 'kpurchasing') return 'KenyaPurchasing';
     if (tabNormal === 'kexpenses') return 'GeneralExpenses';
     if (tabNormal === 'capital') return 'KenyaCapital';
@@ -257,6 +258,7 @@ export const getTemplateForTab = (moduleId: string, tabId: string): TemplateType
     if (tabNormal === 'cut.polish') return 'CutPolishExpenses';
     if (tabNormal === 'sl.expenses') return 'SLExpenses';
     if (tabNormal === 'bkkticket') return 'TicketsVisa';
+    if (tabNormal === 'bkkhotel') return 'HotelAccommodation';
     if (tabNormal === 'texpenses') return 'GeneralExpenses';
   }
 
