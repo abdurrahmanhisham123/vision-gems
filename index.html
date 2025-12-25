@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>Vision Gems Manager</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+      tailwind.config = {
+        darkMode: 'class',
+        theme: {
+          extend: {
+            fontFamily: {
+              sans: ['Inter', 'system-ui', 'sans-serif'],
+            },
+            colors: {
+              // Legacy support
+              primary: {
+                DEFAULT: '#6B21A8', 
+                light: '#9333EA',
+                dark: '#581C87',
+              },
+              // New Luxury Palette
+              'gem-purple': {
+                DEFAULT: '#6B21A8',
+                light: '#9333EA',
+                dark: '#581C87',
+                50: '#FAF5FF',
+                100: '#F3E8FF',
+              },
+              'gem-gold': {
+                DEFAULT: '#D97706',
+                light: '#F59E0B',
+                dark: '#B45309',
+                50: '#FFFBEB',
+                100: '#FEF3C7',
+              },
+              stone: {
+                50: '#FAFAF9',
+                100: '#F5F5F4',
+                200: '#E7E5E4',
+                300: '#D6D3D1',
+                400: '#A8A29E',
+                500: '#78716C',
+                600: '#57534E',
+                700: '#44403C',
+                800: '#292524',
+                900: '#1C1917',
+              }
+            },
+            boxShadow: {
+              'gold': '0 4px 12px rgba(217, 119, 6, 0.15)',
+              'purple': '0 4px 12px rgba(107, 33, 168, 0.15)',
+              'card': '0 1px 3px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.02)',
+              'card-hover': '0 10px 15px -3px rgba(0,0,0,0.05), 0 4px 6px -2px rgba(0,0,0,0.025)',
+              'premium': '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
+            }
+          },
+        },
+      }
+    </script>
+    <style>
+      /* Custom scrollbar for horizontal tabs */
+      .hide-scrollbar::-webkit-scrollbar {
+        display: none;
+      }
+      .hide-scrollbar {
+        -ms-overflow-style: none;
+        scrollbar-width: none;
+      }
+      .custom-scrollbar::-webkit-scrollbar {
+        width: 6px;
+      }
+      .custom-scrollbar::-webkit-scrollbar-track {
+        background: transparent;
+      }
+      .custom-scrollbar::-webkit-scrollbar-thumb {
+        background-color: #E7E5E4;
+        border-radius: 20px;
+      }
+      /* Smooth transitions */
+      .transition-all-300 {
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      }
+    </style>
+  <script type="importmap">
+{
+  "imports": {
+    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/",
+    "lucide-react": "https://aistudiocdn.com/lucide-react@^0.555.0",
+    "react/": "https://aistudiocdn.com/react@^19.2.0/",
+    "react": "https://aistudiocdn.com/react@^19.2.0",
+    "recharts": "https://aistudiocdn.com/recharts@^3.5.1",
+    "react-router-dom": "https://aistudiocdn.com/react-router-dom@^7.9.6"
+  }
+}
+</script>
+<link rel="stylesheet" href="/index.css">
+</head>
+  <body class="bg-stone-50 text-stone-900 antialiased selection:bg-gem-purple-light selection:text-white font-sans">
+    <div id="root"></div>
+  <script type="module" src="/index.tsx"></script>
+</body>
+</html>
