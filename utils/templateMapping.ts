@@ -81,7 +81,8 @@ export type TemplateType =
   | 'KenyaCapital'
   | 'PaymentDueDate'
   | 'GeneralExpenses'
-  | 'CutPolishExpenses';
+  | 'CutPolishExpenses'
+  | 'TicketsVisa';
 
 /**
  * Persists a template assignment for a custom-added tab.
@@ -134,7 +135,7 @@ export const getTemplateForTab = (moduleId: string, tabId: string): TemplateType
   if (moduleId === 'bkk') {
     if (tabNormal === 'dashboard') return 'KPIDashboard';
     if (tabNormal === 'bkk') return 'VisionGemsSpinel';
-    if (tabNormal === 'bkktickets') return 'BKKTickets';
+    if (tabNormal === 'bkktickets') return 'TicketsVisa';
     if (tabNormal === 'bkkexpenses') return 'BKKExpenses';
     if (tabNormal === 'export.charge') return 'BKKExportCharge';
     if (tabNormal === 'apartment') return 'BKKApartment';
@@ -148,7 +149,7 @@ export const getTemplateForTab = (moduleId: string, tabId: string): TemplateType
     if (tabNormal === 'instock') return 'VisionGemsSpinel';
     if (tabNormal === 'cutpolish') return 'CutPolish';
     if (tabNormal === 'export') return 'KenyaExport';
-    if (tabNormal === 'traveling.ex') return 'KenyaTraveling';
+    if (tabNormal === 'traveling.ex') return 'TicketsVisa';
     if (tabNormal === 'bkkexpenses') return 'BKKExpenses'; 
     if (tabNormal === 'bkkhotel') return 'BKKApartment'; 
     if (tabNormal === 'kpurchasing') return 'KenyaPurchasing';
@@ -226,7 +227,7 @@ export const getTemplateForTab = (moduleId: string, tabId: string): TemplateType
   }
 
   if (moduleId === 'all-expenses' && tabNormal === 'cut.polish') {
-    return 'CutPolish';
+    return 'CutPolishExpenses';
   }
 
   if (moduleId === 'all-expenses' && tabNormal === 'office') {
@@ -245,7 +246,7 @@ export const getTemplateForTab = (moduleId: string, tabId: string): TemplateType
 
   if (moduleId === 'vision-gems') {
     if (tabNormal === 'cut.polish') {
-      return 'CutPolish';
+      return 'CutPolishExpenses';
     }
     const excludedTabs = ['dashboardgems', 'z', 'stone shape', 'approval'];
     if (tabNormal === 'v g old stock') return 'VGOldStock';
@@ -256,7 +257,7 @@ export const getTemplateForTab = (moduleId: string, tabId: string): TemplateType
   if (moduleId === 'spinel-gallery') {
     const spinelDesignTabs = ['mahenge', 'spinel', 'blue.sapphire'];
     if (spinelDesignTabs.includes(tabNormal)) return 'VisionGemsSpinel';
-    if (tabNormal === 'cut.polish') return 'CutPolish';
+    if (tabNormal === 'cut.polish') return 'CutPolishExpenses';
     if (tabNormal === 'sl.expenses') return 'SLExpenses';
     if (tabNormal === 'bkkticket') return 'BKKTickets';
     if (tabNormal === 'texpenses') return 'GeneralExpenses';
@@ -271,12 +272,18 @@ export const getTemplateForTab = (moduleId: string, tabId: string): TemplateType
   }
 
   if (moduleId === 'vg-ramazan') {
+    if (tabNormal === 'cut.polish') {
+      return 'CutPolishExpenses';
+    }
     if (tabNormal === 't.expenses') {
       return 'GeneralExpenses';
     }
   }
 
   if (moduleId === 'madagascar') {
+    if (tabNormal === 'cut.polish') {
+      return 'CutPolishExpenses';
+    }
     if (tabNormal === 'mexpenses') {
       return 'GeneralExpenses';
     }
