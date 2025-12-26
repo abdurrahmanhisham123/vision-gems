@@ -139,7 +139,27 @@ export const saveExportedStone = (stone: ExtendedSpinelStone) => {
 export const getExportedStones = (tabId?: string): ExtendedSpinelStone[] => {
   try {
     const saved = localStorage.getItem(STONE_PERSISTENCE_KEY);
-    const allStones: ExtendedSpinelStone[] = saved ? JSON.parse(saved) : [];
+    let allStones: ExtendedSpinelStone[] = saved ? JSON.parse(saved) : [];
+    let needsMigration = false;
+    
+    // Migration: Infer originalCategory from location for existing stones without it
+    allStones = allStones.map(stone => {
+      if (!stone.originalCategory && stone.location) {
+        const normalizedLocation = stone.location.toLowerCase().trim();
+        // Only set originalCategory if location is a category name (not BKK or Export)
+        if (normalizedLocation !== 'bkk' && normalizedLocation !== 'export') {
+          needsMigration = true;
+          return { ...stone, originalCategory: stone.location };
+        }
+      }
+      return stone;
+    });
+    
+    // Persist migrated stones back to localStorage
+    if (needsMigration) {
+      localStorage.setItem(STONE_PERSISTENCE_KEY, JSON.stringify(allStones));
+    }
+    
     if (!tabId) return allStones;
     
     const normalizedTab = tabId.toLowerCase().trim();
@@ -159,13 +179,16 @@ export const getExportedStones = (tabId?: string): ExtendedSpinelStone[] => {
       return allStones.filter(s => s.status === 'BKK');
     }
 
-    // 4. CATEGORY VIEW: Variety tabs (e.g. Spinel) show stones pinned to them 
-    // AND they must NOT be in Export/BKK status (to avoid duplicates)
-    return allStones.filter(s => 
-      s.location.toLowerCase().trim() === normalizedTab && 
-      s.status !== 'Export' && 
-      s.status !== 'BKK'
-    );
+    // 4. CATEGORY VIEW: Variety tabs (e.g. Spinel) show stones based on originalCategory
+    // This allows stones to remain visible in their original tab regardless of status
+    return allStones.filter(s => {
+      const stoneOriginalCategory = s.originalCategory?.toLowerCase().trim();
+      const stoneLocation = s.location?.toLowerCase().trim();
+      
+      // Match by originalCategory if available, otherwise fall back to location for backward compatibility
+      return (stoneOriginalCategory === normalizedTab) || 
+             (!stoneOriginalCategory && stoneLocation === normalizedTab);
+    });
   } catch (e) {
     return [];
   }
@@ -189,51 +212,60 @@ export const getVisionGemsSpinelData = async (tabId?: string, moduleId?: string)
     return parseFloat(cleaned) || 0;
   };
 
-  const mapToStone = (item: any, idx: number, tab: string): ExtendedSpinelStone => ({
-    id: item.id || `mock-${tab}-${idx}`,
-    company: item["Company"] || 'Vision Gems',
-    codeNo: item["Code No."] || `UNKNOWN-${idx}`,
-    slCost: cleanNum(item["SL Cost"]),
-    weight: cleanNum(item["C & P Weight"]),
-    shape: item["Shape"] || 'Round',
-    variety: item["Variety"] || 'Gemstone',
-    treatment: item["N/H"] || 'N',
-    photos: item.photos || [],
-    color: item["Colour"] || '-',
-    pieces: cleanNum(item["Pieces"]) || 1,
-    dimensions: item["Dimension"] || '-',
-    certificate: item["Certificate"] || '-',
-    supplier: item["Supplier"] || '-',
-    payable: item["Payable"] || 0,
-    purchaseDate: item["Purchase Date"] || '-',
-    purchasePaymentMethod: item["Cash or Bank"] || '-', 
-    purchasePaymentStatus: item["paid /  notpaid"] || '-',
-    inventoryCategory: item["Total stones"] || '-', 
-    status: item["Status"] || 'In Stock',
-    location: tab, 
-    holder: item["Stone with"] || '-',
-    outstandingName: item["Outstanding Names"] || '-',
-    sellDate: item["Date (Selling)"] || '-',
-    buyer: item["Buyer"] || '-',
-    soldBy: item["Sold by"] || '-',
-    paymentDueDate: item["Payment Due"] || '-',
-    salesPaymentStatus: item["Paid/Not Paid"] || '-',
-    paymentReceivedDate: item["Payment paid Date"] || '-',
-    priceRMB: cleanNum(item["RMB Currency"]),
-    priceTHB: cleanNum(item["Bath Currency"]),
-    priceUSD: cleanNum(item["$ Currency"]),
-    exchangeRate: cleanNum(item["Rate"]),
-    amountLKR: cleanNum(item["RS Amount"]),
-    commission: cleanNum(item["Commission"]),
-    finalPrice: cleanNum(item["Final Amount"]),
-    profit: cleanNum(item["Profit / Loss"]),
-    margin: 0, 
-    shareAmount: 0,
-    shareProfit: 0,
-    salesPaymentMethod: '-', 
-    paymentCleared: 'No',
-    transactionAmount: 0
-  });
+  const mapToStone = (item: any, idx: number, tab: string): ExtendedSpinelStone => {
+    const normalizedTab = tab.toLowerCase().trim();
+    // Set originalCategory for category tabs (not BKK/Export/All Stones)
+    const originalCategory = (normalizedTab !== 'bkk' && normalizedTab !== 'export' && normalizedTab !== 'all stones')
+      ? tab
+      : undefined;
+    
+    return {
+      id: item.id || `mock-${tab}-${idx}`,
+      company: item["Company"] || 'Vision Gems',
+      codeNo: item["Code No."] || `UNKNOWN-${idx}`,
+      slCost: cleanNum(item["SL Cost"]),
+      weight: cleanNum(item["C & P Weight"]),
+      shape: item["Shape"] || 'Round',
+      variety: item["Variety"] || 'Gemstone',
+      treatment: item["N/H"] || 'N',
+      photos: item.photos || [],
+      color: item["Colour"] || '-',
+      pieces: cleanNum(item["Pieces"]) || 1,
+      dimensions: item["Dimension"] || '-',
+      certificate: item["Certificate"] || '-',
+      supplier: item["Supplier"] || '-',
+      payable: item["Payable"] || 0,
+      purchaseDate: item["Purchase Date"] || '-',
+      purchasePaymentMethod: item["Cash or Bank"] || '-', 
+      purchasePaymentStatus: item["paid /  notpaid"] || '-',
+      inventoryCategory: item["Total stones"] || '-', 
+      status: item["Status"] || 'In Stock',
+      location: tab,
+      originalCategory: originalCategory,
+      holder: item["Stone with"] || '-',
+      outstandingName: item["Outstanding Names"] || '-',
+      sellDate: item["Date (Selling)"] || '-',
+      buyer: item["Buyer"] || '-',
+      soldBy: item["Sold by"] || '-',
+      paymentDueDate: item["Payment Due"] || '-',
+      salesPaymentStatus: item["Paid/Not Paid"] || '-',
+      paymentReceivedDate: item["Payment paid Date"] || '-',
+      priceRMB: cleanNum(item["RMB Currency"]),
+      priceTHB: cleanNum(item["Bath Currency"]),
+      priceUSD: cleanNum(item["$ Currency"]),
+      exchangeRate: cleanNum(item["Rate"]),
+      amountLKR: cleanNum(item["RS Amount"]),
+      commission: cleanNum(item["Commission"]),
+      finalPrice: cleanNum(item["Final Amount"]),
+      profit: cleanNum(item["Profit / Loss"]),
+      margin: 0, 
+      shareAmount: 0,
+      shareProfit: 0,
+      salesPaymentMethod: '-', 
+      paymentCleared: 'No',
+      transactionAmount: 0
+    };
+  };
 
   const tabStones = getExportedStones(tabId);
 

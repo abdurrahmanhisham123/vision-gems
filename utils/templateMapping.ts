@@ -330,6 +330,9 @@ export const getTemplateForTab = (moduleId: string, tabId: string): TemplateType
   }
 
   if (moduleId === 'vision-gems') {
+    if (tabNormal === 'dashboardgems') {
+      return 'UnifiedDashboard';
+    }
     if (tabNormal === 'cut.polish') {
       return 'CutPolishExpenses';
     }
@@ -337,6 +340,54 @@ export const getTemplateForTab = (moduleId: string, tabId: string): TemplateType
     if (tabNormal === 'v g old stock') return 'VGOldStock';
     if (!excludedTabs.includes(tabNormal)) return 'VisionGemsSpinel';
     if (tabNormal === 'stone shape') return 'ReferenceData'; 
+  }
+
+  if (moduleId === 'spinel-gallery') {
+    if (tabNormal === 'dashboardgems' || tabNormal === 'dash') {
+      return 'UnifiedDashboard';
+    }
+    const spinelDesignTabs = ['mahenge', 'spinel', 'blue.sapphire'];
+    if (spinelDesignTabs.includes(tabNormal)) return 'VisionGemsSpinel';
+    if (tabNormal === 'cut.polish') return 'CutPolishExpenses';
+    if (tabNormal === 'bkkticket') return 'TicketsVisa';
+    if (tabNormal === 'bkkhotel') return 'HotelAccommodation';
+    if (tabNormal === 'texpenses') return 'GeneralExpenses';
+  }
+
+  if (moduleId === 'all-expenses' && tabNormal === 'exdashboard') {
+    return 'UnifiedDashboard';
+  }
+
+  if (moduleId === 'outstanding' && tabNormal === 'dashboard') {
+    return 'UnifiedDashboard';
+  }
+
+  if (moduleId === 'payable' && tabNormal === 'dashboard') {
+    return 'UnifiedDashboard';
+  }
+
+  if (moduleId === 'bkk' && tabNormal === 'dashboard') {
+    return 'UnifiedDashboard';
+  }
+
+  if (moduleId === 'kenya' && tabNormal === 'kdashboard') {
+    return 'UnifiedDashboard';
+  }
+
+  if (moduleId === 'vgtz' && tabNormal === 'vg.t dashboard') {
+    return 'UnifiedDashboard';
+  }
+
+  if (moduleId === 'madagascar' && tabNormal === 'mdashboard') {
+    return 'UnifiedDashboard';
+  }
+
+  if (moduleId === 'dada' && tabNormal === 'dashboard') {
+    return 'UnifiedDashboard';
+  }
+
+  if (moduleId === 'vg-ramazan' && tabNormal === 'vgrz.dashboard') {
+    return 'UnifiedDashboard';
   }
 
   if (moduleId === 'spinel-gallery') {

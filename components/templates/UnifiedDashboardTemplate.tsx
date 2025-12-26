@@ -19,7 +19,7 @@ export const UnifiedDashboardTemplate: React.FC<Props> = ({ moduleId, tabId, isR
   const [stones, setStones] = useState<ExtendedSpinelStone[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Get tabs to aggregate from current module
+  // Get tabs to aggregate from current module (only inventory tabs)
   const getTabsToAggregate = useMemo(() => {
     const module = APP_MODULES.find(m => m.id === moduleId);
     if (!module) return [];
@@ -28,15 +28,30 @@ export const UnifiedDashboardTemplate: React.FC<Props> = ({ moduleId, tabId, isR
     const excludedTabs = [
       'dashboard', 'dashboardgems', 'dashboardgems', 'dash', 'exdashboard', 
       'kdashboard', 'vg.t dashboard', 'mdashboard', 'vgrz.dashboard',
-      'z', 'stone shape', 'approval', 'v g old stock'
+      'z', 'stone shape', 'approval', 'v g old stock',
+      // Exclude expense/financial tabs
+      'cut.polish', 'cutpolish', 'cut.and.polish', 'sl.expenses', 'bkkexpenses', 
+      'bkkhotel', 'bkkticket', 'bkkexport', 'texpenses', 'tz.expenses', 'slexpenses',
+      'mexpenses', 'kexpenses', 't.expense', 't.expenses', 'purchasing', 'mpurchasing',
+      'kpurchasing', 'vgr.purchase', 'purchase', 'capital', 'mcapital', 'kcapital',
+      't.capital', 'bkkcapital', 'export', 'mexport', 't.export', 'traveling.ex',
+      'tickets.visa', 'tickets.visa', 'invoice', 'invoice bkk', 'important',
+      'copy of mahenge', 'stone shapes', 'buying.payments.paid', 'tanzania.capital',
+      'bkk.capital', 'beruwala', 'colombo', 'galle', 'kisu', 'bangkok', 'bayer ruler',
+      'bkk', 'bkk.payment', 'bkk.statement', 'export.charge', 'apartment'
     ];
 
-    return module.tabs
-      .filter(tab => {
-        const tabNormal = tab.toLowerCase().trim();
-        return !excludedTabs.includes(tabNormal);
-      })
-      .map(tab => tab.toLowerCase().trim());
+    // For inventory modules, get all tabs that aren't excluded
+    if (module.type === 'inventory' || module.type === 'mixed') {
+      return module.tabs
+        .filter(tab => {
+          const tabNormal = tab.toLowerCase().trim();
+          return !excludedTabs.includes(tabNormal);
+        })
+        .map(tab => tab.toLowerCase().trim());
+    }
+
+    return [];
   }, [moduleId]);
 
   // Fetch all stones data from all relevant tabs in the module

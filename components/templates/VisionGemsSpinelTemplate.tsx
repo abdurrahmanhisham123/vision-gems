@@ -80,6 +80,7 @@ const EMPTY_STONE: ExtendedSpinelStone = {
   inventoryCategory: 'In Stock',
   status: 'In Stock',
   location: '',
+  originalCategory: undefined,
   holder: '',
   outstandingName: '',
   sellDate: '',
@@ -494,18 +495,36 @@ export const VisionGemsSpinelTemplate: React.FC<Props> = ({ moduleId, tabId, isR
   const handleSaveStone = (updatedStone: ExtendedSpinelStone) => {
     let newLocation = updatedStone.location;
     const status = updatedStone.status;
+    
+    // Preserve originalCategory - don't overwrite it
+    let preservedOriginalCategory = updatedStone.originalCategory;
+    
+    // If stone doesn't have originalCategory, infer it from location if it's a valid category
+    if (!preservedOriginalCategory && updatedStone.location) {
+      const normalizedLocation = updatedStone.location.toLowerCase().trim();
+      if (normalizedLocation !== 'bkk' && normalizedLocation !== 'export') {
+        preservedOriginalCategory = updatedStone.location;
+      }
+    }
 
+    // Update location based on status (for display/logical purposes)
     if (status === 'Export') {
       newLocation = 'Export';
     } else if (status === 'BKK') {
       newLocation = 'BKK';
     } else if (status === 'In Stock' || status === 'Approval' || status === 'Sold') {
       if (newLocation === 'Export' || newLocation === 'BKK' || !newLocation) {
-        newLocation = updatedStone.variety || 'Spinel';
+        // If we have an originalCategory, use it; otherwise fall back to variety
+        newLocation = preservedOriginalCategory || updatedStone.variety || 'Spinel';
       }
     }
 
-    const finalStone = { ...updatedStone, location: newLocation };
+    // Preserve originalCategory in the final stone
+    const finalStone = { 
+      ...updatedStone, 
+      location: newLocation,
+      originalCategory: preservedOriginalCategory
+    };
     saveExportedStone(finalStone);
     
     loadData();
@@ -517,12 +536,20 @@ export const VisionGemsSpinelTemplate: React.FC<Props> = ({ moduleId, tabId, isR
   const handleAddNewStone = () => {
     const isBkkTab = tabId.toUpperCase() === 'BKK';
     const isExportTab = tabId.toUpperCase() === 'EXPORT';
+    const normalizedTab = tabId.toLowerCase().trim();
+    
+    // For BKK/Export tabs, don't set originalCategory (they're functional tabs)
+    // For category tabs, set originalCategory to track where stone was originally added
+    const originalCategory = (isBkkTab || isExportTab || normalizedTab === 'all stones') 
+      ? undefined 
+      : tabId;
     
     const newStone = { 
        ...EMPTY_STONE, 
        id: `new-${Date.now()}`, 
        status: isBkkTab ? 'BKK' : isExportTab ? 'Export' : 'In Stock',
        location: tabId, 
+       originalCategory: originalCategory,
        variety: tabId.includes('.') ? tabId.split('.')[0] : (tabId.toLowerCase() === 'all stones' ? 'Spinel' : tabId)
     };
     setSelectedStone(newStone);

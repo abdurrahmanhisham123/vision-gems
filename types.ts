@@ -60,6 +60,7 @@ export interface ExtendedSpinelStone {
   status: string;
   location: string; // Stones in
   holder: string; // Stone with
+  originalCategory?: string; // Original tab where stone was added (for filtering)
 
   // Section 5: Sales Information (7)
   outstandingName: string; // Outstanding Names
