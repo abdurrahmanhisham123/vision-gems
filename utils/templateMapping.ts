@@ -86,7 +86,9 @@ export type TemplateType =
   | 'PersonalShares'
   | 'SpecificServices'
   | 'HotelAccommodation'
-  | 'ExportCharges';
+  | 'ExportCharges'
+  | 'UnifiedCapitalManagement'
+  | 'UnifiedPaymentLedger';
 
 /**
  * Persists a template assignment for a custom-added tab.
@@ -158,7 +160,6 @@ export const getTemplateForTab = (moduleId: string, tabId: string): TemplateType
     if (tabNormal === 'bkkhotel') return 'HotelAccommodation'; 
     if (tabNormal === 'kpurchasing') return 'KenyaPurchasing';
     if (tabNormal === 'kexpenses') return 'GeneralExpenses';
-    if (tabNormal === 'capital') return 'KenyaCapital';
   }
 
   // --- EXPORT CHARGES MAPPING ---
@@ -167,6 +168,33 @@ export const getTemplateForTab = (moduleId: string, tabId: string): TemplateType
   }
   if (moduleId === 'spinel-gallery' && tabNormal === 'bkkexport') {
     return 'ExportCharges';
+  }
+
+  // --- UNIFIED CAPITAL MANAGEMENT MAPPING ---
+  if (moduleId === 'dada') {
+    if (tabNormal === 'capital' || tabNormal === '202412capital') {
+      return 'UnifiedCapitalManagement';
+    }
+  }
+  if (moduleId === 'kenya' && tabNormal === 'capital') {
+    return 'UnifiedCapitalManagement';
+  }
+  if (moduleId === 'vg-ramazan' && tabNormal === 't.capital') {
+    return 'UnifiedCapitalManagement';
+  }
+  if (moduleId === 'madagascar' && tabNormal === 'mcapital') {
+    return 'UnifiedCapitalManagement';
+  }
+  if (moduleId === 'spinel-gallery' && tabNormal === 'capital') {
+    return 'UnifiedCapitalManagement';
+  }
+  if (moduleId === 'vgtz' && tabNormal === 't.capital') {
+    return 'UnifiedCapitalManagement';
+  }
+  if (moduleId === 'payable') {
+    if (tabNormal === 'tanzania.capital' || tabNormal === 'bkk.capital') {
+      return 'UnifiedCapitalManagement';
+    }
   }
 
   // --- TOP PRIORITY OVERRIDES ---
