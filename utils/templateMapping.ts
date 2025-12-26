@@ -188,6 +188,26 @@ export const getTemplateForTab = (moduleId: string, tabId: string): TemplateType
     if (tabNormal === 'bkk.statement') return 'BKKStatement';
   }
 
+  // --- UNIFIED PURCHASING MAPPING (6 tabs) ---
+  if (moduleId === 'kenya' && tabNormal === 'kpurchasing') {
+    return 'UnifiedPurchasing';
+  }
+  if (moduleId === 'vgtz' && tabNormal === 'purchase') {
+    return 'UnifiedPurchasing';
+  }
+  if (moduleId === 'madagascar' && tabNormal === 'mpurchasing') {
+    return 'UnifiedPurchasing';
+  }
+  if (moduleId === 'dada' && tabNormal === 'purchase') {
+    return 'UnifiedPurchasing';
+  }
+  if (moduleId === 'vg-ramazan' && tabNormal === 'vgr.purchase') {
+    return 'UnifiedPurchasing';
+  }
+  if (moduleId === 'spinel-gallery' && tabNormal === 'purchasing') {
+    return 'UnifiedPurchasing';
+  }
+
   // --- KENYA OVERRIDES ---
   if (moduleId === 'kenya') {
     if (tabNormal === 'instock') return 'VisionGemsSpinel';
@@ -195,7 +215,6 @@ export const getTemplateForTab = (moduleId: string, tabId: string): TemplateType
     if (tabNormal === 'export') return 'ExportCharges';
     if (tabNormal === 'traveling.ex') return 'TicketsVisa';
     if (tabNormal === 'bkkhotel') return 'HotelAccommodation'; 
-    if (tabNormal === 'kpurchasing') return 'KenyaPurchasing';
     if (tabNormal === 'kexpenses') return 'GeneralExpenses';
   }
 

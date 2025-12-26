@@ -50,6 +50,63 @@ const paymentMethods = ['Cash', 'Cheque', 'Bank Transfer', 'Credit Card', 'Onlin
 const paymentStatuses: UnifiedPurchasingItem['status'][] = ['Paid', 'Not Paid', 'Partial', 'Owed'];
 const stoneVarieties = ['Spinel', 'Ruby', 'Blue Sapphire', 'Pink Sapphire', 'Yellow Sapphire', 'Garnet', 'Zircon', 'Tourmaline', 'Aquamarine', 'Emerald', 'Other'];
 
+// --- Field Component (moved outside to prevent recreation) ---
+interface FieldProps {
+  label: string;
+  value: any;
+  field: keyof UnifiedPurchasingItem;
+  isEditing: boolean;
+  onInputChange: (key: keyof UnifiedPurchasingItem, value: any) => void;
+  type?: 'text' | 'number' | 'date' | 'select';
+  highlight?: boolean;
+  isCurrency?: boolean;
+  options?: string[] | { value: string; label: string }[];
+}
+
+const Field: React.FC<FieldProps> = React.memo(({ label, value, field, isEditing, onInputChange, type = 'text', highlight = false, isCurrency = false, options }) => {
+  return (
+    <div className="flex flex-col py-2 border-b border-stone-100 last:border-0 min-h-[50px] justify-center">
+      <span className="text-[9px] font-bold text-stone-400 uppercase tracking-wider mb-0.5">{label}</span>
+      {isEditing ? (
+        type === 'select' ? (
+          <select 
+            value={value === undefined || value === null ? '' : value.toString()} 
+            onChange={(e) => onInputChange(field, e.target.value)}
+            className="w-full p-2 bg-stone-50 border border-stone-200 rounded-lg text-sm outline-none transition-all focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10"
+          >
+            {options?.map(opt => {
+              const optionValue = typeof opt === 'string' ? opt : opt.value;
+              const optionLabel = typeof opt === 'string' ? opt : opt.label;
+              return <option key={optionValue} value={optionValue}>{optionLabel}</option>;
+            })}
+          </select>
+        ) : (
+          <input 
+            type={type} 
+            value={value === undefined || value === null ? '' : value.toString()} 
+            onChange={(e) => {
+              const val = type === 'number' ? Number(e.target.value) : e.target.value;
+              onInputChange(field, val);
+            }}
+            onFocus={(e) => {
+              if (type === 'number' && (value === 0 || value === null || value === undefined)) {
+                e.target.select();
+              }
+            }}
+            className="w-full p-2 bg-stone-50 border border-stone-200 rounded-lg text-sm outline-none transition-all focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10" 
+          />
+        )
+      ) : (
+        <span className={`text-sm ${highlight ? 'font-bold text-blue-700' : 'font-medium text-stone-700'} ${isCurrency ? 'font-mono' : ''}`}>
+          {value === undefined || value === null || value === '' ? '-' : (typeof value === 'number' ? value.toLocaleString() : value)}
+        </span>
+      )}
+    </div>
+  );
+});
+
+Field.displayName = 'Field';
+
 // --- Side Panel Component ---
 const PurchasingDetailPanel: React.FC<{
   item: UnifiedPurchasingItem;
@@ -58,8 +115,7 @@ const PurchasingDetailPanel: React.FC<{
   onSave: (item: UnifiedPurchasingItem) => void;
   onDelete: (id: string) => void;
   isReadOnly?: boolean;
-  isCentered?: boolean; // For add/edit forms, center the modal
-}> = ({ item: initialItem, initialIsEditing = false, onClose, onSave, onDelete, isReadOnly, isCentered = false }) => {
+}> = ({ item: initialItem, initialIsEditing = false, onClose, onSave, onDelete, isReadOnly }) => {
   
   const [isEditing, setIsEditing] = useState(initialIsEditing);
   const [formData, setFormData] = useState<UnifiedPurchasingItem>(initialItem);
@@ -71,56 +127,48 @@ const PurchasingDetailPanel: React.FC<{
 
   useEffect(() => {
     // Auto-calculate converted amount for foreign currencies
-    if (formData.currency && formData.currency !== 'LKR' && formData.cost && formData.exchangeRate) {
-      const converted = formData.cost * formData.exchangeRate;
-      // Only update if the value actually changed to prevent unnecessary re-renders
-      if (formData.convertedAmount !== converted) {
-        setFormData(prev => ({ ...prev, convertedAmount: converted }));
+    // Use functional updates to avoid dependency on formData.convertedAmount
+    setFormData(prev => {
+      if (prev.currency && prev.currency !== 'LKR' && prev.cost && prev.exchangeRate) {
+        const converted = prev.cost * prev.exchangeRate;
+        // Only update if the value actually changed to prevent unnecessary re-renders
+        if (prev.convertedAmount !== converted) {
+          return { ...prev, convertedAmount: converted };
+        }
+        return prev;
+      } else if (prev.currency === 'LKR' && prev.convertedAmount !== undefined) {
+        return { ...prev, convertedAmount: undefined, exchangeRate: undefined };
       }
-    } else if (formData.currency === 'LKR' && formData.convertedAmount !== undefined) {
-      setFormData(prev => ({ ...prev, convertedAmount: undefined, exchangeRate: undefined }));
-    }
-  }, [formData.cost, formData.exchangeRate, formData.currency, formData.convertedAmount]);
+      return prev;
+    });
+  }, [formData.cost, formData.exchangeRate, formData.currency]);
 
   const handleInputChange = (key: keyof UnifiedPurchasingItem, value: any) => {
     setFormData(prev => ({ ...prev, [key]: value }));
   };
 
-  const handleCurrencyChange = (currency: string) => {
+  const handleCurrencyChange = useCallback((currency: string) => {
     const rate = exchangeRates[currency] || 1;
-    if (currency !== 'LKR' && formData.cost) {
-      const converted = formData.cost * rate;
-      setFormData(prev => ({ 
-        ...prev, 
-        currency, 
-        exchangeRate: rate,
-        convertedAmount: converted 
-      }));
-    } else {
-      setFormData(prev => ({ 
-        ...prev, 
-        currency, 
-        exchangeRate: undefined,
-        convertedAmount: undefined 
-      }));
-    }
-  };
+    setFormData(prev => {
+      if (currency !== 'LKR' && prev.cost) {
+        const converted = prev.cost * rate;
+        return { 
+          ...prev, 
+          currency, 
+          exchangeRate: rate,
+          convertedAmount: converted 
+        };
+      } else {
+        return { 
+          ...prev, 
+          currency, 
+          exchangeRate: undefined,
+          convertedAmount: undefined 
+        };
+      }
+    });
+  }, []);
 
-  const handleCostChange = (cost: number) => {
-    if (formData.currency && formData.currency !== 'LKR' && formData.exchangeRate) {
-      const converted = cost * formData.exchangeRate;
-      setFormData(prev => ({ ...prev, cost, convertedAmount: converted }));
-    } else {
-      setFormData(prev => ({ ...prev, cost }));
-    }
-  };
-
-  const handleExchangeRateChange = (rate: number) => {
-    if (formData.cost) {
-      const converted = formData.cost * rate;
-      setFormData(prev => ({ ...prev, exchangeRate: rate, convertedAmount: converted }));
-    }
-  };
 
   const handleSave = () => {
     if (!formData.supplierName || !formData.cost || !formData.currency) {
@@ -139,7 +187,7 @@ const PurchasingDetailPanel: React.FC<{
     return `${currency} ${amount.toLocaleString()}`;
   };
 
-  // Stable handler that uses current formData state
+  // Stable handler that uses functional state updates - memoized to prevent recreation
   const handleFieldChange = useCallback((field: keyof UnifiedPurchasingItem, value: any) => {
     if (field === 'cost') {
       setFormData(prev => {
@@ -162,72 +210,11 @@ const PurchasingDetailPanel: React.FC<{
     } else {
       setFormData(prev => ({ ...prev, [field]: value }));
     }
-  }, []);
-
-  const Field: React.FC<{ 
-    label: string, 
-    value: any, 
-    field: keyof UnifiedPurchasingItem, 
-    isEditing: boolean, 
-    onInputChange: (key: keyof UnifiedPurchasingItem, value: any) => void,
-    type?: 'text' | 'number' | 'date' | 'select', 
-    highlight?: boolean, 
-    isCurrency?: boolean,
-    options?: string[] | { value: string; label: string }[]
-  }> = ({ label, value, field, isEditing, onInputChange, type = 'text', highlight = false, isCurrency = false, options }) => {
-
-    return (
-      <div className="flex flex-col py-2 border-b border-stone-100 last:border-0 min-h-[50px] justify-center">
-        <span className="text-[9px] font-bold text-stone-400 uppercase tracking-wider mb-0.5">{label}</span>
-        {isEditing ? (
-          type === 'select' ? (
-            <select 
-              value={value === undefined || value === null ? '' : value.toString()} 
-              onChange={(e) => onInputChange(field, e.target.value)}
-              className="w-full p-2 bg-stone-50 border border-stone-200 rounded-lg text-sm outline-none transition-all focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10"
-            >
-              {options?.map(opt => {
-                const optionValue = typeof opt === 'string' ? opt : opt.value;
-                const optionLabel = typeof opt === 'string' ? opt : opt.label;
-                return <option key={optionValue} value={optionValue}>{optionLabel}</option>;
-              })}
-            </select>
-          ) : (
-            <input 
-              type={type} 
-              value={value === undefined || value === null ? '' : value.toString()} 
-              onChange={(e) => {
-                const val = type === 'number' ? Number(e.target.value) : e.target.value;
-                onInputChange(field, val);
-              }}
-              onFocus={(e) => {
-                if (type === 'number' && (value === 0 || value === null || value === undefined)) {
-                  e.target.select();
-                }
-              }}
-              className="w-full p-2 bg-stone-50 border border-stone-200 rounded-lg text-sm outline-none transition-all focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10" 
-            />
-          )
-        ) : (
-          <span className={`text-sm ${highlight ? 'font-bold text-blue-700' : 'font-medium text-stone-700'} ${isCurrency ? 'font-mono' : ''}`}>
-            {value === undefined || value === null || value === '' ? '-' : (typeof value === 'number' ? value.toLocaleString() : value)}
-          </span>
-        )}
-      </div>
-    );
-  };
+  }, [handleCurrencyChange]);
 
   return (
-    <div className={`fixed inset-0 z-[60] bg-black/20 backdrop-blur-sm animate-in fade-in duration-200 ${
-      isCentered 
-        ? 'flex items-center justify-center p-4' 
-        : 'flex items-end lg:items-center justify-end'
-    }`}>
-      <div className={`bg-white shadow-2xl flex flex-col animate-in overflow-hidden ${
-        isCentered
-          ? 'w-full max-w-2xl h-[90vh] max-h-[90vh] rounded-3xl zoom-in-95 duration-300'
-          : 'w-full lg:w-[800px] h-[90vh] lg:h-auto lg:max-h-[90vh] rounded-t-3xl lg:rounded-3xl slide-in-from-right duration-300'
-      }`}>
+    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/20 backdrop-blur-sm animate-in fade-in duration-200">
+      <div className="bg-white w-full max-w-2xl h-[90vh] max-h-[90vh] rounded-3xl shadow-2xl flex flex-col animate-in zoom-in-95 duration-300 overflow-hidden">
         <div className="p-4 md:p-6 border-b border-stone-200 flex items-center justify-between shrink-0 bg-gradient-to-r from-blue-50 to-white">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center">
@@ -705,7 +692,6 @@ export const UnifiedPurchasingTemplate: React.FC<Props> = ({ moduleId, tabId, is
             onSave={handleSave}
             onDelete={() => {}}
             isReadOnly={false}
-            isCentered={true}
          />
       )}
 
