@@ -137,6 +137,43 @@ export const getTemplateForTab = (moduleId: string, tabId: string): TemplateType
     if (tabNormal === 'export -invoice') return 'ExportInvoiceMaster';
   }
 
+  // --- UNIFIED PAYMENT LEDGER MAPPING (36 tabs) ---
+  // Company Payment Summary Tabs (7 tabs) - Module: outstanding
+  if (moduleId === 'outstanding') {
+    if (tabNormal === 'sg.payment.received' || 
+        tabNormal === 'madagascar.payment.received' || 
+        tabNormal === 'k.payment.received' || 
+        tabNormal === 'vg.r.payment.received' || 
+        tabNormal === 'vg.payment.received' || 
+        tabNormal === 'vg.t.payment.received' || 
+        tabNormal === 'payment.received') {
+      return 'UnifiedPaymentLedger';
+    }
+  }
+
+  // Individual Customer Ledger Tabs (27 tabs) - Module: outstanding
+  if (moduleId === 'outstanding') {
+    const customerLedgerTabs = [
+      'zahran', 'ruzaiksales', 'beruwalasales', 'sajithonline', 'ziyam', 
+      'infazhaji', 'nusrathali', 'binara', 'mikdarhaji', 'rameesnana', 
+      'shimar', 'ruqshan', 'faizeenhaj', 'sharikhaj', 'fazeel', 
+      'azeemcolo', 'kadarhaj.colo', 'althafhaj', 'bangkoksales', 'sadam bkk', 
+      'chinasales', 'eleven', 'andybuyer', 'flightbuyer', 'name', 
+      'name1', 'bangkok'
+    ];
+    if (customerLedgerTabs.includes(tabNormal)) {
+      return 'UnifiedPaymentLedger';
+    }
+  }
+
+  // Other Payment Tabs (2 tabs)
+  if (moduleId === 'bkk' && tabNormal === 'bkk.payment') {
+    return 'UnifiedPaymentLedger';
+  }
+  if (moduleId === 'payable' && tabNormal === 'buying.payments.paid') {
+    return 'UnifiedPaymentLedger';
+  }
+
   // --- BKK FRESH MAPPING ---
   if (moduleId === 'bkk') {
     if (tabNormal === 'dashboard') return 'KPIDashboard';
@@ -146,7 +183,6 @@ export const getTemplateForTab = (moduleId: string, tabId: string): TemplateType
     if (tabNormal === 'export.charge') return 'BKKExportCharge';
     if (tabNormal === 'apartment') return 'HotelAccommodation';
     if (tabNormal === 'bkkcapital') return 'BKKCapital';
-    if (tabNormal === 'bkk.payment') return 'BKKPayment';
     if (tabNormal === 'bkk.statement') return 'BKKStatement';
   }
 
@@ -204,28 +240,10 @@ export const getTemplateForTab = (moduleId: string, tabId: string): TemplateType
       return 'SupplierLedger';
     }
   }
-  
-  if (moduleId === 'outstanding' && tabNormal === 'payment.received') {
-    return 'PaymentReceived';
-  }
-
-  if (moduleId === 'outstanding' && tabNormal === 'bangkok') {
-    return 'BangkokLedger';
-  }
 
   if (moduleId === 'outstanding') {
     if (tabNormal === 'dashboard') return 'KPIDashboard';
     if (tabNormal === 'payment due date') return 'PaymentDueDate'; 
-    
-    const tabs = APP_MODULES.find(m => m.id === 'outstanding')?.tabs || [];
-    const zahranIdx = tabs.findIndex(t => t.toLowerCase() === 'zahran');
-    const currentIdx = tabs.findIndex(t => t.toLowerCase() === tabNormal);
-    
-    if (zahranIdx !== -1 && currentIdx >= zahranIdx) {
-      return 'ZahranLedger';
-    }
-    
-    return 'SGPaymentReceived';
   }
 
   if (moduleId === 'all-expenses' && tabNormal === 'fawazwife.shares') {
