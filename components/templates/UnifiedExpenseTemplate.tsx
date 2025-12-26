@@ -1,0 +1,1098 @@
+import React, { useState, useEffect, useMemo } from 'react';
+import { 
+  Search, Plus, Download, Printer, Filter, X as XIcon,
+  Trash2, Edit, Save, X, DollarSign, 
+  FileText, Globe, Building2, Wallet, MapPin, Tag, CreditCard, Calendar
+} from 'lucide-react';
+
+// --- Types ---
+interface UnifiedExpenseItem {
+  id: string;
+  date: string;
+  code: string;
+  vendorName: string; // Vendor/Payee Name
+  description: string;
+  amount: number;
+  currency: string; // LKR, TZS, KSH, USD, THB, etc.
+  convertedAmount?: number; // Amount in LKR if foreign currency
+  exchangeRate?: number;
+  location?: string; // Optional, configurable
+  company?: string; // Optional, configurable
+  category?: string; // Optional, configurable (Category/Type)
+  paymentMethod?: string; // Optional payment method
+  weight?: number; // Optional weight (for SLExpenses)
+  notes?: string;
+}
+
+interface Props {
+  moduleId: string;
+  tabId: string;
+  isReadOnly?: boolean;
+}
+
+// --- Mock Data ---
+const generateMockData = (): UnifiedExpenseItem[] => {
+  return [];
+};
+
+// Currency options and exchange rates
+const currencies = ['LKR', 'USD', 'TZS', 'KES', 'THB', 'EUR', 'GBP'];
+const exchangeRates: Record<string, number> = {
+  'LKR': 1.00,
+  'USD': 302.50,
+  'TZS': 0.1251,
+  'KES': 2.33,
+  'THB': 8.50,
+  'EUR': 330.20,
+  'GBP': 385.80
+};
+
+const paymentMethods = ['Cash', 'Cheque', 'Bank Transfer', 'Credit Card', 'Online Payment', 'Other'];
+const expenseCategories = ['Transport', 'Office', 'Service', 'Material', 'Food', 'Utilities', 'Other'];
+
+// --- Side Panel Component ---
+const ExpenseDetailPanel: React.FC<{
+  item: UnifiedExpenseItem;
+  initialIsEditing?: boolean;
+  onClose: () => void;
+  onSave: (item: UnifiedExpenseItem) => void;
+  onDelete: (id: string) => void;
+  isReadOnly?: boolean;
+}> = ({ item: initialItem, initialIsEditing = false, onClose, onSave, onDelete, isReadOnly }) => {
+  
+  const [isEditing, setIsEditing] = useState(initialIsEditing);
+  const [formData, setFormData] = useState<UnifiedExpenseItem>(initialItem);
+
+  useEffect(() => {
+    setFormData(initialItem);
+    setIsEditing(initialIsEditing);
+  }, [initialItem, initialIsEditing]);
+
+  useEffect(() => {
+    // Auto-calculate converted amount for foreign currencies
+    if (formData.currency && formData.currency !== 'LKR' && formData.amount && formData.exchangeRate) {
+      const converted = formData.amount * formData.exchangeRate;
+      setFormData(prev => ({ ...prev, convertedAmount: converted }));
+    } else if (formData.currency === 'LKR') {
+      setFormData(prev => ({ ...prev, convertedAmount: undefined, exchangeRate: undefined }));
+    }
+  }, [formData.amount, formData.exchangeRate, formData.currency]);
+
+  const handleInputChange = (key: keyof UnifiedExpenseItem, value: any) => {
+    setFormData(prev => ({ ...prev, [key]: value }));
+  };
+
+  const handleCurrencyChange = (currency: string) => {
+    const rate = exchangeRates[currency] || 1;
+    if (currency !== 'LKR' && formData.amount) {
+      const converted = formData.amount * rate;
+      setFormData(prev => ({ 
+        ...prev, 
+        currency, 
+        exchangeRate: rate,
+        convertedAmount: converted 
+      }));
+    } else {
+      setFormData(prev => ({ 
+        ...prev, 
+        currency, 
+        exchangeRate: undefined,
+        convertedAmount: undefined 
+      }));
+    }
+  };
+
+  const handleAmountChange = (amount: number) => {
+    if (formData.currency && formData.currency !== 'LKR' && formData.exchangeRate) {
+      const converted = amount * formData.exchangeRate;
+      setFormData(prev => ({ ...prev, amount, convertedAmount: converted }));
+    } else {
+      setFormData(prev => ({ ...prev, amount }));
+    }
+  };
+
+  const handleExchangeRateChange = (rate: number) => {
+    if (formData.amount) {
+      const converted = formData.amount * rate;
+      setFormData(prev => ({ ...prev, exchangeRate: rate, convertedAmount: converted }));
+    }
+  };
+
+  const handleSave = () => {
+    if (!formData.vendorName || !formData.amount || !formData.currency) {
+      return alert('Vendor Name, Amount, and Currency are required');
+    }
+    onSave(formData);
+  };
+
+  const handleDelete = () => {
+    if (confirm('Delete this expense record?')) {
+      onDelete(formData.id);
+    }
+  };
+
+  const formatCurrency = (amount: number, currency: string) => {
+    return `${currency} ${amount.toLocaleString()}`;
+  };
+
+  const Field: React.FC<{ 
+    label: string, 
+    value: any, 
+    field: keyof UnifiedExpenseItem, 
+    isEditing: boolean, 
+    onInputChange: (key: keyof UnifiedExpenseItem, value: any) => void,
+    type?: 'text' | 'number' | 'date' | 'select', 
+    highlight?: boolean, 
+    isCurrency?: boolean,
+    options?: string[]
+  }> = ({ label, value, field, isEditing, onInputChange, type = 'text', highlight = false, isCurrency = false, options }) => {
+    return (
+      <div className="flex flex-col py-2 border-b border-stone-100 last:border-0 min-h-[50px] justify-center">
+        <span className="text-[9px] font-bold text-stone-400 uppercase tracking-wider mb-0.5">{label}</span>
+        {isEditing ? (
+          type === 'select' && options ? (
+            <select
+              value={value === undefined || value === null ? '' : value.toString()}
+              onChange={(e) => onInputChange(field, e.target.value)}
+              className="w-full p-2 bg-stone-50 border border-stone-200 rounded-lg text-sm outline-none transition-all focus:border-red-500 focus:ring-2 focus:ring-red-500/10"
+            >
+              {options.map(opt => (
+                <option key={opt} value={opt}>{opt}</option>
+              ))}
+            </select>
+          ) : (
+            <input 
+              type={type} 
+              value={value === undefined || value === null ? '' : value.toString()} 
+              onChange={(e) => onInputChange(field, type === 'number' ? Number(e.target.value) : e.target.value)} 
+              onFocus={(e) => {
+                if (type === 'number' && (value === 0 || value === '0' || value === '')) {
+                  e.target.select();
+                }
+              }}
+              className="w-full p-2 bg-stone-50 border border-stone-200 rounded-lg text-sm outline-none transition-all focus:border-red-500 focus:ring-2 focus:ring-red-500/10" 
+            />
+          )
+        ) : (
+          <span className={`text-sm ${highlight ? 'font-bold text-red-700' : 'font-medium text-stone-700'} ${isCurrency ? 'font-mono' : ''}`}>
+            {value === undefined || value === null || value === '' ? '-' : (typeof value === 'number' ? value.toLocaleString() : value)}
+          </span>
+        )}
+      </div>
+    );
+  };
+
+  return (
+    <div className="fixed inset-0 z-[60] flex justify-end">
+      <div className="absolute inset-0 bg-stone-900/60 backdrop-blur-sm transition-opacity" onClick={onClose} />
+      <div className="relative w-full max-w-full md:max-w-2xl bg-white h-full shadow-2xl flex flex-col animate-in slide-in-from-right duration-300 border-l border-stone-200 overflow-hidden">
+        
+        <div className="px-4 py-4 md:px-6 md:py-5 bg-white border-b border-stone-100 flex justify-between items-start z-10">
+          <div className="flex gap-3 md:gap-4 items-center min-w-0">
+            <div className="w-12 h-12 md:w-16 md:h-16 rounded-2xl bg-red-50 border border-red-100 flex items-center justify-center text-red-600 shrink-0">
+              <Wallet size={24} />
+            </div>
+            <div className="min-w-0">
+              <div className="flex items-center gap-1.5 mb-1 flex-wrap">
+                <span className="px-2 py-0.5 rounded-full text-[9px] font-extrabold uppercase border bg-red-50 text-red-700 border-red-100">
+                  Expense
+                </span>
+                <span className="text-[10px] font-mono text-stone-400 bg-stone-50 px-1.5 py-0.5 rounded truncate">{formData.code}</span>
+              </div>
+              {isEditing ? (
+                <input 
+                  type="text" 
+                  value={formData.vendorName} 
+                  onChange={(e) => handleInputChange('vendorName', e.target.value)} 
+                  className="text-lg md:text-xl font-bold text-stone-900 border-b-2 border-red-200 focus:border-red-500 outline-none w-full" 
+                  placeholder="Vendor Name" 
+                  autoFocus 
+                />
+              ) : (
+                <h2 className="text-lg md:text-xl font-bold text-stone-900 truncate leading-tight">{formData.vendorName}</h2>
+              )}
+              <div className="flex items-center gap-1.5 mt-0.5 text-stone-500 font-medium text-xs md:text-sm">
+                <DollarSign size={14} className="text-stone-400" />
+                <p className="truncate">{formatCurrency(formData.amount, formData.currency)} {formData.convertedAmount && formData.currency !== 'LKR' && `• LKR ${formData.convertedAmount.toLocaleString()}`}</p>
+              </div>
+            </div>
+          </div>
+          <button onClick={onClose} className="p-2 bg-stone-50 hover:bg-stone-100 text-stone-400 rounded-full transition-colors shrink-0 ml-2"><X size={20} /></button>
+        </div>
+
+        <div className="flex-1 overflow-y-auto p-4 md:p-6 custom-scrollbar bg-stone-50/20">
+          <div className="space-y-4 md:space-y-6 animate-in fade-in zoom-in-95 duration-200">
+            <div className="bg-white p-4 md:p-5 rounded-3xl border border-stone-200 shadow-sm">
+              <h3 className="text-[10px] font-bold text-stone-400 uppercase tracking-widest mb-4 flex items-center gap-2"><Wallet size={14} className="text-red-500" /> Expense Details</h3>
+              <div className="grid grid-cols-2 gap-x-4 md:gap-x-6">
+                <Field label="Date" value={formData.date} field="date" isEditing={isEditing} onInputChange={handleInputChange} type="date" />
+                <Field label="Code" value={formData.code} field="code" isEditing={isEditing} onInputChange={handleInputChange} highlight />
+                <Field label="Vendor/Payee Name *" value={formData.vendorName} field="vendorName" isEditing={isEditing} onInputChange={handleInputChange} />
+                <Field label="Description" value={formData.description} field="description" isEditing={isEditing} onInputChange={handleInputChange} />
+                <Field label="Currency *" value={formData.currency} field="currency" isEditing={isEditing} onInputChange={handleCurrencyChange} type="select" options={currencies} />
+                <Field label="Amount *" value={formData.amount} field="amount" isEditing={isEditing} onInputChange={handleAmountChange} type="number" highlight isCurrency />
+                {formData.currency !== 'LKR' && (
+                  <>
+                    <Field label="Exchange Rate" value={formData.exchangeRate} field="exchangeRate" isEditing={isEditing} onInputChange={handleExchangeRateChange} type="number" />
+                    <Field label="Converted Amount (LKR)" value={formData.convertedAmount} field="convertedAmount" isEditing={false} onInputChange={handleInputChange} highlight isCurrency />
+                  </>
+                )}
+                <Field label="Location" value={formData.location} field="location" isEditing={isEditing} onInputChange={handleInputChange} />
+                <Field label="Company" value={formData.company} field="company" isEditing={isEditing} onInputChange={handleInputChange} />
+                <Field label="Category/Type" value={formData.category} field="category" isEditing={isEditing} onInputChange={handleInputChange} type="select" options={expenseCategories} />
+                <Field label="Payment Method" value={formData.paymentMethod} field="paymentMethod" isEditing={isEditing} onInputChange={handleInputChange} type="select" options={paymentMethods} />
+                <Field label="Weight" value={formData.weight} field="weight" isEditing={isEditing} onInputChange={handleInputChange} type="number" />
+                <Field label="Notes" value={formData.notes} field="notes" isEditing={isEditing} onInputChange={handleInputChange} />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="p-4 bg-white border-t border-stone-200 flex justify-end gap-2 items-center shrink-0">
+          {isEditing ? (
+            <>
+              <button onClick={() => setIsEditing(false)} className="px-4 py-2 bg-stone-50 text-stone-600 rounded-xl text-sm font-bold hover:bg-stone-100">Cancel</button>
+              <button onClick={handleSave} className="flex items-center gap-2 px-6 py-2 bg-red-600 text-white rounded-xl text-sm font-bold shadow-lg hover:bg-red-700 transition-all">
+                <Save size={16} /> Save
+              </button>
+            </>
+          ) : (
+            <>
+              <button onClick={() => window.print()} className="p-2.5 bg-stone-50 border border-stone-100 text-stone-500 rounded-xl hover:bg-stone-100">
+                <Printer size={18} />
+              </button>
+              {!isReadOnly && (
+                <>
+                  <button onClick={handleDelete} className="p-2.5 bg-red-50 text-red-600 rounded-xl hover:bg-red-100">
+                    <Trash2 size={18} />
+                  </button>
+                  <button onClick={() => setIsEditing(true)} className="flex-1 md:flex-none flex items-center justify-center gap-2 px-8 py-2.5 bg-red-600 text-white rounded-xl text-sm font-bold shadow-lg hover:bg-red-700 transition-all">
+                    <Edit size={16} /> Edit Record
+                  </button>
+                </>
+              )}
+            </>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export const UnifiedExpenseTemplate: React.FC<Props> = ({ moduleId, tabId, isReadOnly }) => {
+  const [items, setItems] = useState<UnifiedExpenseItem[]>(generateMockData());
+  const [searchQuery, setSearchQuery] = useState('');
+  
+  // Filter State
+  const [currencyFilter, setCurrencyFilter] = useState<string>('all');
+  const [categoryFilter, setCategoryFilter] = useState<string>('all');
+  const [companyFilter, setCompanyFilter] = useState<string>('all');
+  const [locationFilter, setLocationFilter] = useState<string>('all');
+  const [paymentMethodFilter, setPaymentMethodFilter] = useState<string>('all');
+  const [dateRange, setDateRange] = useState<{ start: string; end: string }>({ start: '', end: '' });
+  const [showFilters, setShowFilters] = useState(false);
+  
+  // Panel State
+  const [selectedItem, setSelectedItem] = useState<UnifiedExpenseItem | null>(null);
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [editingItem, setEditingItem] = useState<UnifiedExpenseItem | null>(null);
+
+  // --- Statistics ---
+  const stats = useMemo(() => {
+    const totalAmount = items.reduce((sum, item) => sum + (item.convertedAmount || item.amount), 0);
+    const expenseCount = items.length;
+    const avgExpense = expenseCount > 0 ? Math.floor(totalAmount / expenseCount) : 0;
+    
+    // Expenses this month
+    const now = new Date();
+    const currentMonth = now.getMonth();
+    const currentYear = now.getFullYear();
+    const expensesThisMonth = items.filter(item => {
+      const itemDate = new Date(item.date);
+      return itemDate.getMonth() === currentMonth && itemDate.getFullYear() === currentYear;
+    }).length;
+    
+    // Foreign currency transactions
+    const foreignCurrencyCount = items.filter(item => item.currency !== 'LKR').length;
+    
+    return { totalAmount, count: expenseCount, avgExpense, expensesThisMonth, foreignCurrencyCount };
+  }, [items]);
+
+  // --- Filter Options ---
+  const uniqueCurrencies = useMemo(() => ['all', ...Array.from(new Set(items.map(i => i.currency))).sort()], [items]);
+  const uniqueCategories = useMemo(() => ['all', ...Array.from(new Set(items.map(i => i.category).filter(Boolean))).sort()], [items]);
+  const uniqueCompanies = useMemo(() => ['all', ...Array.from(new Set(items.map(i => i.company).filter(Boolean))).sort()], [items]);
+  const uniqueLocations = useMemo(() => ['all', ...Array.from(new Set(items.map(i => i.location).filter(Boolean))).sort()], [items]);
+  const uniquePaymentMethods = useMemo(() => ['all', ...Array.from(new Set(items.map(i => i.paymentMethod).filter(Boolean))).sort()], [items]);
+
+  // --- Filtering ---
+  const filteredItems = useMemo(() => {
+    return items.filter(item => {
+      const matchesSearch = 
+        item.vendorName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (item.code && item.code.toLowerCase().includes(searchQuery.toLowerCase())) ||
+        (item.description && item.description.toLowerCase().includes(searchQuery.toLowerCase())) ||
+        (item.location && item.location.toLowerCase().includes(searchQuery.toLowerCase())) ||
+        (item.company && item.company.toLowerCase().includes(searchQuery.toLowerCase())) ||
+        (item.category && item.category.toLowerCase().includes(searchQuery.toLowerCase()));
+      
+      const matchesCurrency = currencyFilter === 'all' || item.currency === currencyFilter;
+      const matchesCategory = categoryFilter === 'all' || item.category === categoryFilter;
+      const matchesCompany = companyFilter === 'all' || item.company === companyFilter;
+      const matchesLocation = locationFilter === 'all' || item.location === locationFilter;
+      const matchesPaymentMethod = paymentMethodFilter === 'all' || item.paymentMethod === paymentMethodFilter;
+      
+      const matchesDateRange = 
+        (!dateRange.start || item.date >= dateRange.start) &&
+        (!dateRange.end || item.date <= dateRange.end);
+        
+      return matchesSearch && matchesCurrency && matchesCategory && matchesCompany && matchesLocation && matchesPaymentMethod && matchesDateRange;
+    }).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  }, [items, searchQuery, currencyFilter, categoryFilter, companyFilter, locationFilter, paymentMethodFilter, dateRange]);
+
+  // --- Active Filters Count ---
+  const activeFiltersCount = useMemo(() => {
+    let count = 0;
+    if (currencyFilter !== 'all') count++;
+    if (categoryFilter !== 'all') count++;
+    if (companyFilter !== 'all') count++;
+    if (locationFilter !== 'all') count++;
+    if (paymentMethodFilter !== 'all') count++;
+    if (dateRange.start || dateRange.end) count++;
+    return count;
+  }, [currencyFilter, categoryFilter, companyFilter, locationFilter, paymentMethodFilter, dateRange]);
+
+  // --- Clear All Filters ---
+  const clearAllFilters = () => {
+    setCurrencyFilter('all');
+    setCategoryFilter('all');
+    setCompanyFilter('all');
+    setLocationFilter('all');
+    setPaymentMethodFilter('all');
+    setDateRange({ start: '', end: '' });
+  };
+
+  // --- Handlers ---
+  const handleDelete = (id: string, e?: React.MouseEvent) => {
+    e?.stopPropagation();
+    if (confirm('Are you sure you want to delete this expense record?')) {
+      setItems(prev => prev.filter(i => i.id !== id));
+      if (selectedItem?.id === id) setSelectedItem(null);
+    }
+  };
+
+  const handleSave = (item: UnifiedExpenseItem) => {
+    if (editingItem) {
+      setItems(prev => prev.map(i => i.id === item.id ? item : i));
+    } else {
+      setItems(prev => [item, ...prev]);
+    }
+    setIsFormOpen(false);
+    setEditingItem(null);
+    setSelectedItem(null);
+  };
+
+  const handleSaveFromPanel = (item: UnifiedExpenseItem) => {
+    setItems(prev => prev.map(i => i.id === item.id ? item : i));
+    setSelectedItem(item);
+  };
+
+  const handleDeleteFromPanel = (id: string) => {
+    setItems(prev => prev.filter(i => i.id !== id));
+    setSelectedItem(null);
+  };
+
+  const formatCurrency = (amount: number, currency: string) => {
+    return `${currency} ${amount.toLocaleString()}`;
+  };
+
+  return (
+    <div className="p-4 md:p-8 max-w-[1920px] mx-auto min-h-screen bg-stone-50/20 pb-32 md:pb-8">
+      
+      {/* Header Section */}
+      <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6 mb-8">
+        <div className="w-full lg:w-auto">
+           <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] mb-1.5 text-red-600">
+             {moduleId.replace('-', ' ')} <span className="text-stone-300">/</span> {tabId}
+           </div>
+           <h2 className="text-2xl md:text-3xl font-black text-stone-900 tracking-tighter uppercase">{tabId} Dashboard</h2>
+           <p className="text-stone-400 text-xs md:text-sm mt-1 font-medium">{filteredItems.length} expenses currently tracked</p>
+        </div>
+        <div className="flex items-center gap-2.5 w-full lg:w-auto overflow-x-auto pb-1 lg:pb-0">
+           <button onClick={() => window.print()} className="flex-1 lg:flex-none flex items-center justify-center gap-2 px-5 py-3 bg-white border border-stone-200 text-stone-600 rounded-2xl text-xs font-bold shadow-sm hover:bg-stone-50 active:scale-95 whitespace-nowrap">
+             <Printer size={16} /> Print List
+           </button>
+           {!isReadOnly && (
+             <button 
+               onClick={() => { setEditingItem(null); setIsFormOpen(true); }}
+               className="flex-1 lg:flex-none flex items-center justify-center gap-2 px-6 py-3 bg-red-600 text-white rounded-xl text-xs font-bold shadow-lg shadow-red-900/20 hover:bg-red-700 active:scale-95 whitespace-nowrap"
+             >
+               <Plus size={18} /> Add Expense
+             </button>
+           )}
+        </div>
+      </div>
+
+      {/* Summary Stats - Mobile & Tablet: Compact 2x2 Grid */}
+      <div className="lg:hidden grid grid-cols-2 gap-3 mb-6">
+        <div className="bg-white p-3 rounded-2xl border border-stone-200 shadow-sm">
+           <div className="flex items-center gap-2 mb-2">
+              <div className="w-8 h-8 rounded-xl bg-red-50 flex items-center justify-center text-red-600 border border-red-100 shrink-0">
+                 <DollarSign size={16} />
+              </div>
+              <div className="text-[9px] font-black text-stone-400 uppercase tracking-wider truncate">Total Amount</div>
+           </div>
+           <div className="text-lg font-black text-stone-900 truncate">LKR {stats.totalAmount.toLocaleString()}</div>
+        </div>
+        <div className="bg-white p-3 rounded-2xl border border-stone-200 shadow-sm">
+           <div className="flex items-center gap-2 mb-2">
+              <div className="w-8 h-8 rounded-xl bg-stone-50 flex items-center justify-center text-stone-500 border border-stone-100 shrink-0">
+                 <FileText size={16} />
+              </div>
+              <div className="text-[9px] font-black text-stone-400 uppercase tracking-wider truncate">Total Expenses</div>
+           </div>
+           <div className="text-lg font-black text-stone-900">{stats.count}</div>
+        </div>
+        <div className="bg-white p-3 rounded-2xl border border-stone-200 shadow-sm">
+           <div className="flex items-center gap-2 mb-2">
+              <div className="w-8 h-8 rounded-xl bg-blue-50 flex items-center justify-center text-blue-600 border border-blue-100 shrink-0">
+                 <Globe size={16} />
+              </div>
+              <div className="text-[9px] font-black text-stone-400 uppercase tracking-wider truncate">Foreign Currency</div>
+           </div>
+           <div className="text-sm font-black text-stone-900 leading-tight">
+              {stats.foreignCurrencyCount}
+           </div>
+        </div>
+        <div className="bg-white p-3 rounded-2xl border border-stone-200 shadow-sm">
+           <div className="flex items-center gap-2 mb-2">
+              <div className="w-8 h-8 rounded-xl bg-emerald-50 flex items-center justify-center text-emerald-600 border border-emerald-100 shrink-0">
+                 <Wallet size={16} />
+              </div>
+              <div className="text-[9px] font-black text-stone-400 uppercase tracking-wider truncate">This Month</div>
+           </div>
+           <div className="text-lg font-black text-stone-900">{stats.expensesThisMonth}</div>
+        </div>
+      </div>
+
+      {/* Desktop Only: Original Layout */}
+      <div className="hidden lg:grid grid-cols-4 gap-6 mb-8">
+        <div className="bg-white p-6 rounded-3xl border border-stone-200 shadow-sm flex items-center justify-between">
+           <div>
+              <div className="text-[10px] font-black text-stone-400 uppercase tracking-[0.15em] mb-1">Total Amount</div>
+              <div className="text-2xl font-black text-stone-900">LKR {stats.totalAmount.toLocaleString()}</div>
+           </div>
+           <div className="w-14 h-14 rounded-2xl bg-red-50 flex items-center justify-center text-red-600 border border-red-100">
+              <DollarSign size={28} />
+           </div>
+        </div>
+        <div className="bg-white p-6 rounded-3xl border border-stone-200 shadow-sm flex items-center justify-between">
+           <div>
+              <div className="text-[10px] font-black text-stone-400 uppercase tracking-[0.15em] mb-1">Total Expenses</div>
+              <div className="text-2xl font-black text-stone-900">{stats.count}</div>
+           </div>
+           <div className="w-14 h-14 rounded-2xl bg-stone-50 flex items-center justify-center text-stone-500 border border-stone-100">
+              <FileText size={28} />
+           </div>
+        </div>
+        <div className="bg-white p-6 rounded-3xl border border-stone-200 shadow-sm flex items-center justify-between">
+           <div>
+              <div className="text-[10px] font-black text-stone-400 uppercase tracking-[0.15em] mb-1">Avg Expense Amount</div>
+              <div className="text-2xl font-black text-stone-900">
+                {stats.count > 0 ? `LKR ${stats.avgExpense.toLocaleString()}` : '-'}
+              </div>
+           </div>
+           <div className="w-14 h-14 rounded-2xl bg-blue-50 flex items-center justify-center text-blue-600 border border-blue-100">
+              <Globe size={28} />
+           </div>
+        </div>
+        <div className="bg-white p-6 rounded-3xl border border-stone-200 shadow-sm flex items-center justify-between">
+           <div>
+              <div className="text-[10px] font-black text-stone-400 uppercase tracking-[0.15em] mb-1">Expenses This Month</div>
+              <div className="text-2xl font-black text-stone-900">{stats.expensesThisMonth}</div>
+           </div>
+           <div className="w-14 h-14 rounded-2xl bg-emerald-50 flex items-center justify-center text-emerald-600 border border-emerald-100">
+              <Wallet size={28} />
+           </div>
+        </div>
+      </div>
+
+      {/* Toolbar */}
+      <div className="bg-white p-3 md:p-4 rounded-[32px] border border-stone-200 shadow-sm mb-8">
+         <div className="flex flex-col xl:flex-row gap-4">
+            <div className="relative flex-1">
+               <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-stone-300" size={18} />
+               <input 
+                  type="text" 
+                  placeholder="Search by vendor, code, description, location, company, category..." 
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full pl-11 pr-4 py-3 bg-stone-50/50 border border-stone-100 rounded-[20px] text-sm focus:ring-4 focus:ring-red-500/5 focus:border-red-300 outline-none transition-all placeholder-stone-300 text-stone-700" 
+               />
+            </div>
+            <div className="flex gap-2 overflow-x-auto hide-scrollbar pb-1 xl:pb-0">
+               <button 
+                  onClick={() => setShowFilters(!showFilters)}
+                  className={`px-4 py-3 border rounded-[20px] transition-colors shadow-sm flex items-center gap-2 ${
+                    showFilters || activeFiltersCount > 0
+                      ? 'bg-red-50 border-red-200 text-red-700'
+                      : 'bg-white border-stone-200 text-stone-500 hover:text-stone-800'
+                  }`}
+               >
+                  <Filter size={18} />
+                  {activeFiltersCount > 0 && (
+                     <span className="bg-red-600 text-white text-xs font-bold px-1.5 py-0.5 rounded-full min-w-[20px] text-center">
+                        {activeFiltersCount}
+                     </span>
+                  )}
+               </button>
+               <button className="px-4 py-3 bg-white border border-stone-200 rounded-[20px] text-stone-500 hover:text-stone-800 transition-colors shadow-sm">
+                 <Download size={18} />
+               </button>
+            </div>
+         </div>
+
+         {/* Filter Panel */}
+         {showFilters && (
+            <div className="mt-4 pt-4 border-t border-stone-100 animate-in fade-in slide-in-from-top duration-200">
+               <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-sm font-bold text-stone-700">Filters</h3>
+                  {activeFiltersCount > 0 && (
+                     <button 
+                        onClick={clearAllFilters}
+                        className="text-xs font-bold text-red-600 hover:text-red-700 flex items-center gap-1"
+                     >
+                        <XIcon size={14} /> Clear All
+                     </button>
+                  )}
+               </div>
+               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+                  {/* Currency Filter */}
+                  <div>
+                     <label className="block text-[10px] font-bold text-stone-500 uppercase mb-1.5 ml-1">Currency</label>
+                     <select 
+                        value={currencyFilter} 
+                        onChange={(e) => setCurrencyFilter(e.target.value)}
+                        className="w-full p-2 bg-stone-50 border border-stone-200 rounded-xl text-xs focus:ring-2 focus:ring-red-500/20 focus:border-red-500 outline-none"
+                     >
+                        {uniqueCurrencies.map(curr => (
+                           <option key={curr} value={curr}>{curr === 'all' ? 'All Currencies' : curr}</option>
+                        ))}
+                     </select>
+                  </div>
+
+                  {/* Category Filter */}
+                  <div>
+                     <label className="block text-[10px] font-bold text-stone-500 uppercase mb-1.5 ml-1">Category</label>
+                     <select 
+                        value={categoryFilter} 
+                        onChange={(e) => setCategoryFilter(e.target.value)}
+                        className="w-full p-2 bg-stone-50 border border-stone-200 rounded-xl text-xs focus:ring-2 focus:ring-red-500/20 focus:border-red-500 outline-none"
+                     >
+                        {uniqueCategories.map(cat => (
+                           <option key={cat} value={cat}>{cat === 'all' ? 'All Categories' : cat}</option>
+                        ))}
+                     </select>
+                  </div>
+
+                  {/* Company Filter */}
+                  <div>
+                     <label className="block text-[10px] font-bold text-stone-500 uppercase mb-1.5 ml-1">Company</label>
+                     <select 
+                        value={companyFilter} 
+                        onChange={(e) => setCompanyFilter(e.target.value)}
+                        className="w-full p-2 bg-stone-50 border border-stone-200 rounded-xl text-xs focus:ring-2 focus:ring-red-500/20 focus:border-red-500 outline-none"
+                     >
+                        {uniqueCompanies.map(comp => (
+                           <option key={comp} value={comp}>{comp === 'all' ? 'All Companies' : comp}</option>
+                        ))}
+                     </select>
+                  </div>
+
+                  {/* Location Filter */}
+                  <div>
+                     <label className="block text-[10px] font-bold text-stone-500 uppercase mb-1.5 ml-1">Location</label>
+                     <select 
+                        value={locationFilter} 
+                        onChange={(e) => setLocationFilter(e.target.value)}
+                        className="w-full p-2 bg-stone-50 border border-stone-200 rounded-xl text-xs focus:ring-2 focus:ring-red-500/20 focus:border-red-500 outline-none"
+                     >
+                        {uniqueLocations.map(loc => (
+                           <option key={loc} value={loc}>{loc === 'all' ? 'All Locations' : loc}</option>
+                        ))}
+                     </select>
+                  </div>
+
+                  {/* Payment Method Filter */}
+                  <div>
+                     <label className="block text-[10px] font-bold text-stone-500 uppercase mb-1.5 ml-1">Payment Method</label>
+                     <select 
+                        value={paymentMethodFilter} 
+                        onChange={(e) => setPaymentMethodFilter(e.target.value)}
+                        className="w-full p-2 bg-stone-50 border border-stone-200 rounded-xl text-xs focus:ring-2 focus:ring-red-500/20 focus:border-red-500 outline-none"
+                     >
+                        {uniquePaymentMethods.map(method => (
+                           <option key={method} value={method}>{method === 'all' ? 'All Methods' : method}</option>
+                        ))}
+                     </select>
+                  </div>
+
+                  {/* Date Range Filter */}
+                  <div>
+                     <label className="block text-[10px] font-bold text-stone-500 uppercase mb-1.5 ml-1">Date Range</label>
+                     <div className="flex gap-1">
+                        <input 
+                           type="date" 
+                           value={dateRange.start} 
+                           onChange={(e) => setDateRange({...dateRange, start: e.target.value})}
+                           className="flex-1 p-2 bg-stone-50 border border-stone-200 rounded-xl text-xs focus:ring-2 focus:ring-red-500/20 focus:border-red-500 outline-none"
+                           placeholder="Start"
+                        />
+                        <input 
+                           type="date" 
+                           value={dateRange.end} 
+                           onChange={(e) => setDateRange({...dateRange, end: e.target.value})}
+                           className="flex-1 p-2 bg-stone-50 border border-stone-200 rounded-xl text-xs focus:ring-2 focus:ring-red-500/20 focus:border-red-500 outline-none"
+                           placeholder="End"
+                        />
+                     </div>
+                  </div>
+               </div>
+            </div>
+         )}
+      </div>
+
+      {/* Desktop Table */}
+      <div className="hidden lg:block bg-white rounded-[40px] border border-stone-200 shadow-sm overflow-hidden mb-24">
+         <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse min-w-[1200px]">
+               <thead>
+                  <tr className="bg-stone-50 border-b border-stone-200 text-[10px] font-black text-stone-400 uppercase tracking-[0.15em]">
+                     <th className="p-6 pl-10">Date</th>
+                     <th className="p-6">Code</th>
+                     <th className="p-6">Vendor</th>
+                     <th className="p-6">Description</th>
+                     <th className="p-6">Location</th>
+                     <th className="p-6">Company</th>
+                     <th className="p-6 text-right pr-10">Amount</th>
+                  </tr>
+               </thead>
+               <tbody className="divide-y divide-stone-100 text-sm">
+                  {filteredItems.map(item => (
+                     <tr 
+                        key={item.id} 
+                        onClick={() => setSelectedItem(item)}
+                        className="hover:bg-red-50/5 transition-colors cursor-pointer group"
+                     >
+                        <td className="p-6 pl-10 font-mono text-stone-500 text-xs whitespace-nowrap">{item.date}</td>
+                        <td className="p-6">
+                           <span className="font-mono text-xs font-black text-red-600 bg-red-50 px-2.5 py-1 rounded-xl border border-red-100">
+                              {item.code}
+                           </span>
+                        </td>
+                        <td className="p-6 text-stone-600 font-medium">{item.vendorName}</td>
+                        <td className="p-6 text-stone-600 max-w-xs truncate" title={item.description}>
+                           {item.description}
+                        </td>
+                        <td className="p-6 text-stone-600">{item.location || <span className="text-stone-300">-</span>}</td>
+                        <td className="p-6 text-stone-600">{item.company || <span className="text-stone-300">-</span>}</td>
+                        <td className="p-6 text-right pr-10">
+                           <div className="font-black text-red-700">
+                              {formatCurrency(item.amount, item.currency)}
+                              {item.convertedAmount && item.currency !== 'LKR' && (
+                                 <span className="text-xs text-stone-500 ml-2">(LKR {item.convertedAmount.toLocaleString()})</span>
+                              )}
+                           </div>
+                        </td>
+                     </tr>
+                  ))}
+               </tbody>
+            </table>
+            {filteredItems.length === 0 && (
+               <div className="p-16 text-center text-stone-400">No expenses found.</div>
+            )}
+         </div>
+      </div>
+
+      {/* Mobile/Tablet Cards */}
+      <div className="lg:hidden space-y-4 mb-24">
+         {filteredItems.map(item => (
+            <div 
+               key={item.id}
+               onClick={() => setSelectedItem(item)}
+               className="bg-white p-5 rounded-3xl border border-stone-200 shadow-sm active:scale-[0.98] transition-transform relative overflow-hidden group"
+            >
+               <div className="absolute top-0 right-0 w-32 h-32 bg-red-50 rounded-bl-[60px] -mr-16 -mt-16 opacity-30 pointer-events-none"></div>
+               
+               <div className="flex justify-between items-start mb-4 relative z-10">
+                  <div className="flex flex-col">
+                     <span className="text-[10px] font-black text-stone-400 uppercase tracking-wider mb-1 flex items-center gap-1">
+                        <Wallet size={10} /> {item.date}
+                     </span>
+                     <h3 className="font-black text-stone-900 text-lg">{item.vendorName}</h3>
+                  </div>
+                  <span className="font-mono text-xs font-black text-red-600 bg-red-50 px-2.5 py-1 rounded-xl border border-red-100">
+                     {item.code}
+                  </span>
+               </div>
+
+               {item.description && (
+                  <div className="mb-4 relative z-10">
+                     <div className="text-sm text-stone-600">{item.description}</div>
+                  </div>
+               )}
+
+               <div className="mb-4 relative z-10 space-y-2">
+                  {item.location && (
+                     <div className="flex items-center gap-2 text-sm text-stone-600">
+                        <MapPin size={14} className="text-stone-400" />
+                        <span>{item.location}</span>
+                     </div>
+                  )}
+                  {item.company && (
+                     <div className="flex items-center gap-2 text-sm text-stone-600">
+                        <Building2 size={14} className="text-stone-400" />
+                        <span>{item.company}</span>
+                     </div>
+                  )}
+                  {item.category && (
+                     <div className="flex items-center gap-2 text-sm text-stone-600">
+                        <Tag size={14} className="text-stone-400" />
+                        <span>{item.category}</span>
+                     </div>
+                  )}
+               </div>
+
+               <div className="pt-4 border-t border-stone-100 flex justify-between items-center relative z-10">
+                  <div>
+                     <div className="text-xs text-stone-400 font-medium mb-1">Amount</div>
+                     <div className="text-xl font-black text-red-700">
+                        {formatCurrency(item.amount, item.currency)}
+                        {item.convertedAmount && item.currency !== 'LKR' && (
+                           <span className="text-sm text-stone-500 ml-2">(LKR {item.convertedAmount.toLocaleString()})</span>
+                        )}
+                     </div>
+                  </div>
+               </div>
+            </div>
+         ))}
+      </div>
+
+      {/* Side Panel */}
+      {selectedItem && (
+         <ExpenseDetailPanel 
+            item={selectedItem} 
+            initialIsEditing={selectedItem.id.startsWith('new-')} 
+            onClose={() => setSelectedItem(null)} 
+            onSave={handleSaveFromPanel} 
+            onDelete={handleDeleteFromPanel}
+            isReadOnly={isReadOnly}
+         />
+      )}
+
+      {/* Form Modal */}
+      {isFormOpen && (
+         <ExpenseForm 
+            initialData={editingItem}
+            onSave={handleSave}
+            onCancel={() => setIsFormOpen(false)}
+         />
+      )}
+    </div>
+  );
+};
+
+// --- Form Component ---
+const ExpenseForm: React.FC<{
+  initialData: UnifiedExpenseItem | null;
+  onSave: (item: UnifiedExpenseItem) => void;
+  onCancel: () => void;
+}> = ({ initialData, onSave, onCancel }) => {
+  const [formData, setFormData] = useState<Partial<UnifiedExpenseItem>>({
+    date: initialData?.date || new Date().toISOString().split('T')[0],
+    code: initialData?.code || '',
+    vendorName: initialData?.vendorName || '',
+    description: initialData?.description || '',
+    amount: initialData?.amount || 0,
+    currency: initialData?.currency || 'LKR',
+    exchangeRate: initialData?.exchangeRate,
+    convertedAmount: initialData?.convertedAmount,
+    location: initialData?.location || '',
+    company: initialData?.company || '',
+    category: initialData?.category || '',
+    paymentMethod: initialData?.paymentMethod || '',
+    weight: initialData?.weight,
+    notes: initialData?.notes || '',
+  });
+
+  useEffect(() => {
+    // Auto-calculate converted amount for foreign currencies
+    if (formData.currency && formData.currency !== 'LKR' && formData.amount && formData.exchangeRate) {
+      const converted = formData.amount * formData.exchangeRate;
+      setFormData(prev => ({ ...prev, convertedAmount: converted }));
+    } else if (formData.currency === 'LKR') {
+      setFormData(prev => ({ ...prev, convertedAmount: undefined, exchangeRate: undefined }));
+    }
+  }, [formData.amount, formData.exchangeRate, formData.currency]);
+
+  const handleCurrencyChange = (currency: string) => {
+    const rate = exchangeRates[currency] || 1;
+    if (currency !== 'LKR' && formData.amount) {
+      const converted = (formData.amount || 0) * rate;
+      setFormData(prev => ({ 
+        ...prev, 
+        currency, 
+        exchangeRate: rate,
+        convertedAmount: converted 
+      }));
+    } else {
+      setFormData(prev => ({ 
+        ...prev, 
+        currency, 
+        exchangeRate: undefined,
+        convertedAmount: undefined 
+      }));
+    }
+  };
+
+  const handleAmountChange = (amount: number) => {
+    if (formData.currency && formData.currency !== 'LKR' && formData.exchangeRate) {
+      const converted = amount * formData.exchangeRate;
+      setFormData(prev => ({ ...prev, amount, convertedAmount: converted }));
+    } else {
+      setFormData(prev => ({ ...prev, amount }));
+    }
+  };
+
+  const handleExchangeRateChange = (rate: number) => {
+    if (formData.amount) {
+      const converted = (formData.amount || 0) * rate;
+      setFormData(prev => ({ ...prev, exchangeRate: rate, convertedAmount: converted }));
+    }
+  };
+
+  const handleSubmit = () => {
+    if (!formData.vendorName || !formData.amount || !formData.currency) {
+      return alert('Vendor Name, Amount, and Currency are required');
+    }
+    
+    onSave({
+      id: initialData?.id || `expense-${Date.now()}`,
+      date: formData.date!,
+      code: formData.code || `EXP-${Date.now().toString().slice(-4)}`,
+      vendorName: formData.vendorName!,
+      description: formData.description || '',
+      amount: Number(formData.amount),
+      currency: formData.currency!,
+      exchangeRate: formData.exchangeRate,
+      convertedAmount: formData.convertedAmount,
+      location: formData.location,
+      company: formData.company,
+      category: formData.category,
+      paymentMethod: formData.paymentMethod,
+      weight: formData.weight,
+      notes: formData.notes,
+    });
+  };
+
+  return (
+    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-stone-900/60 backdrop-blur-sm animate-in fade-in duration-200">
+       <div className="bg-white rounded-3xl w-full max-w-lg shadow-2xl p-6 md:p-8 animate-in zoom-in-95 duration-200 max-h-[90vh] overflow-y-auto">
+          <div className="flex justify-between items-center mb-6 border-b border-stone-100 pb-4">
+             <h3 className="text-xl font-bold text-stone-900">{initialData ? 'Edit Expense' : 'New Expense'}</h3>
+             <button onClick={onCancel} className="p-2 hover:bg-stone-100 rounded-full text-stone-400"><X size={20}/></button>
+          </div>
+
+          <div className="space-y-5">
+             <div className="grid grid-cols-2 gap-4">
+                <div>
+                   <label className="block text-xs font-bold text-stone-500 uppercase mb-1.5 ml-1">Date</label>
+                   <input 
+                      type="date" 
+                      value={formData.date} 
+                      onChange={e => setFormData({...formData, date: e.target.value})}
+                      className="w-full p-2.5 bg-stone-50 border border-stone-200 rounded-xl text-sm focus:ring-2 focus:ring-red-500/20 focus:border-red-500 outline-none" 
+                   />
+                </div>
+                <div>
+                   <label className="block text-xs font-bold text-stone-500 uppercase mb-1.5 ml-1">Code</label>
+                   <input 
+                      type="text" 
+                      value={formData.code} 
+                      onChange={e => setFormData({...formData, code: e.target.value})}
+                      className="w-full p-2.5 bg-stone-50 border border-stone-200 rounded-xl text-sm font-mono focus:ring-2 focus:ring-red-500/20 focus:border-red-500 outline-none" 
+                      placeholder="EXP-001"
+                   />
+                </div>
+             </div>
+
+             <div>
+                <label className="block text-xs font-bold text-stone-500 uppercase mb-1.5 ml-1">Vendor/Payee Name *</label>
+                <input 
+                   type="text" 
+                   value={formData.vendorName} 
+                   onChange={e => setFormData({...formData, vendorName: e.target.value})}
+                   className="w-full p-2.5 bg-stone-50 border border-stone-200 rounded-xl text-sm focus:ring-2 focus:ring-red-500/20 focus:border-red-500 outline-none" 
+                   placeholder="Vendor or payee name"
+                />
+             </div>
+
+             <div>
+                <label className="block text-xs font-bold text-stone-500 uppercase mb-1.5 ml-1">Description</label>
+                <textarea 
+                   rows={2}
+                   value={formData.description} 
+                   onChange={e => setFormData({...formData, description: e.target.value})}
+                   className="w-full p-2.5 bg-stone-50 border border-stone-200 rounded-xl text-sm focus:ring-2 focus:ring-red-500/20 focus:border-red-500 outline-none resize-none" 
+                   placeholder="Expense description..."
+                />
+             </div>
+
+             <div className="grid grid-cols-2 gap-4">
+                <div>
+                   <label className="block text-xs font-bold text-stone-500 uppercase mb-1.5 ml-1">Currency *</label>
+                   <select 
+                      value={formData.currency} 
+                      onChange={e => handleCurrencyChange(e.target.value)}
+                      className="w-full p-2.5 bg-stone-50 border border-stone-200 rounded-xl text-sm focus:ring-2 focus:ring-red-500/20 focus:border-red-500 outline-none"
+                   >
+                      {currencies.map(curr => (
+                         <option key={curr} value={curr}>{curr}</option>
+                      ))}
+                   </select>
+                </div>
+                <div>
+                   <label className="block text-xs font-bold text-stone-500 uppercase mb-1.5 ml-1">Amount *</label>
+                   <input 
+                      type="number" 
+                      value={formData.amount} 
+                      onChange={e => handleAmountChange(Number(e.target.value))}
+                      onFocus={(e) => {
+                        if (formData.amount === 0 || formData.amount === null || formData.amount === undefined) {
+                          e.target.select();
+                        }
+                      }}
+                      className="w-full p-2.5 bg-stone-50 border border-stone-200 rounded-xl text-sm font-bold focus:ring-2 focus:ring-red-500/20 focus:border-red-500 outline-none" 
+                      placeholder="0.00"
+                   />
+                </div>
+             </div>
+
+             {formData.currency !== 'LKR' && (
+                <div className="grid grid-cols-2 gap-4">
+                   <div>
+                      <label className="block text-xs font-bold text-stone-500 uppercase mb-1.5 ml-1">Exchange Rate</label>
+                      <input 
+                         type="number" 
+                         step="0.0001"
+                         value={formData.exchangeRate || ''} 
+                         onChange={e => handleExchangeRateChange(Number(e.target.value))}
+                         onFocus={(e) => {
+                           if (formData.exchangeRate === 0 || formData.exchangeRate === null || formData.exchangeRate === undefined) {
+                             e.target.select();
+                           }
+                         }}
+                         className="w-full p-2.5 bg-stone-50 border border-stone-200 rounded-xl text-sm focus:ring-2 focus:ring-red-500/20 focus:border-red-500 outline-none" 
+                         placeholder="0.0000"
+                      />
+                   </div>
+                   <div>
+                      <label className="block text-xs font-bold text-stone-500 uppercase mb-1.5 ml-1">Converted Amount (LKR)</label>
+                      <input 
+                         type="number" 
+                         value={formData.convertedAmount || ''} 
+                         disabled
+                         className="w-full p-2.5 bg-stone-100 border border-stone-200 rounded-xl text-sm font-bold text-stone-600" 
+                         placeholder="Auto-calculated"
+                      />
+                   </div>
+                </div>
+             )}
+
+             <div className="grid grid-cols-2 gap-4">
+                <div>
+                   <label className="block text-xs font-bold text-stone-500 uppercase mb-1.5 ml-1">Location</label>
+                   <input 
+                      type="text" 
+                      value={formData.location || ''} 
+                      onChange={e => setFormData({...formData, location: e.target.value})}
+                      className="w-full p-2.5 bg-stone-50 border border-stone-200 rounded-xl text-sm focus:ring-2 focus:ring-red-500/20 focus:border-red-500 outline-none" 
+                      placeholder="Optional"
+                   />
+                </div>
+                <div>
+                   <label className="block text-xs font-bold text-stone-500 uppercase mb-1.5 ml-1">Company</label>
+                   <input 
+                      type="text" 
+                      value={formData.company || ''} 
+                      onChange={e => setFormData({...formData, company: e.target.value})}
+                      className="w-full p-2.5 bg-stone-50 border border-stone-200 rounded-xl text-sm focus:ring-2 focus:ring-red-500/20 focus:border-red-500 outline-none" 
+                      placeholder="Optional"
+                   />
+                </div>
+             </div>
+
+             <div className="grid grid-cols-2 gap-4">
+                <div>
+                   <label className="block text-xs font-bold text-stone-500 uppercase mb-1.5 ml-1">Category/Type</label>
+                   <select 
+                      value={formData.category || ''} 
+                      onChange={e => setFormData({...formData, category: e.target.value})}
+                      className="w-full p-2.5 bg-stone-50 border border-stone-200 rounded-xl text-sm focus:ring-2 focus:ring-red-500/20 focus:border-red-500 outline-none"
+                   >
+                      <option value="">Select category</option>
+                      {expenseCategories.map(cat => (
+                         <option key={cat} value={cat}>{cat}</option>
+                      ))}
+                   </select>
+                </div>
+                <div>
+                   <label className="block text-xs font-bold text-stone-500 uppercase mb-1.5 ml-1">Payment Method</label>
+                   <select 
+                      value={formData.paymentMethod || ''} 
+                      onChange={e => setFormData({...formData, paymentMethod: e.target.value})}
+                      className="w-full p-2.5 bg-stone-50 border border-stone-200 rounded-xl text-sm focus:ring-2 focus:ring-red-500/20 focus:border-red-500 outline-none"
+                   >
+                      <option value="">Select method</option>
+                      {paymentMethods.map(method => (
+                         <option key={method} value={method}>{method}</option>
+                      ))}
+                   </select>
+                </div>
+             </div>
+
+             <div>
+                <label className="block text-xs font-bold text-stone-500 uppercase mb-1.5 ml-1">Weight</label>
+                <input 
+                   type="number" 
+                   step="0.01"
+                   value={formData.weight || ''} 
+                   onChange={e => setFormData({...formData, weight: Number(e.target.value)})}
+                   className="w-full p-2.5 bg-stone-50 border border-stone-200 rounded-xl text-sm focus:ring-2 focus:ring-red-500/20 focus:border-red-500 outline-none" 
+                   placeholder="Optional (for weight-based expenses)"
+                />
+             </div>
+
+             <div>
+                <label className="block text-xs font-bold text-stone-500 uppercase mb-1.5 ml-1">Notes</label>
+                <textarea 
+                   rows={3}
+                   value={formData.notes} 
+                   onChange={e => setFormData({...formData, notes: e.target.value})}
+                   className="w-full p-2.5 bg-stone-50 border border-stone-200 rounded-xl text-sm focus:ring-2 focus:ring-red-500/20 focus:border-red-500 outline-none resize-none" 
+                   placeholder="Additional notes..."
+                />
+             </div>
+          </div>
+
+          <div className="flex justify-end gap-3 mt-8">
+             <button onClick={onCancel} className="px-6 py-3 text-stone-600 font-bold hover:bg-stone-100 rounded-xl transition-colors">Cancel</button>
+             <button onClick={handleSubmit} className="px-8 py-3 bg-red-600 text-white font-bold rounded-xl shadow-lg hover:bg-red-700 transition-all flex items-center gap-2">
+                <Save size={18} /> Save Expense
+             </button>
+          </div>
+       </div>
+    </div>
+  );
+};
+

@@ -86,6 +86,7 @@ import { HotelAccommodationTemplate } from './templates/HotelAccommodationTempla
 import { ExportChargesTemplate } from './templates/ExportChargesTemplate';
 import { UnifiedCapitalManagementTemplate } from './templates/UnifiedCapitalManagementTemplate';
 import { UnifiedPaymentLedgerTemplate } from './templates/UnifiedPaymentLedgerTemplate';
+import { UnifiedExpenseTemplate } from './templates/UnifiedExpenseTemplate';
 
 import { 
   Eye, Settings2, X, ArrowUp, ArrowDown, 
@@ -256,6 +257,7 @@ export const ModuleView: React.FC = () => {
     if (templateType === 'ExportCharges') return <ExportChargesTemplate {...props} />;
     if (templateType === 'UnifiedCapitalManagement') return <UnifiedCapitalManagementTemplate {...props} />;
     if (templateType === 'UnifiedPaymentLedger') return <UnifiedPaymentLedgerTemplate {...props} />;
+    if (templateType === 'UnifiedExpense') return <UnifiedExpenseTemplate {...props} />;
 
     const specializedConfig = getSpecializedRecordConfig(moduleId!, tabId!);
     if (specializedConfig) return <SpecializedRecordTemplate config={specializedConfig} {...props} />;
@@ -369,6 +371,7 @@ export const ModuleView: React.FC = () => {
                       { id: 'ExportCharges', name: 'Export Charges', desc: 'Track export-related charges and fees with reference numbers and authority tracking.', icon: <Package className="text-amber-600"/> },
                       { id: 'UnifiedCapitalManagement', name: 'Unified Capital Management', desc: 'Track capital injections and investments with multi-currency support and exchange rate tracking.', icon: <TrendingUp className="text-indigo-600"/> },
                       { id: 'UnifiedPaymentLedger', name: 'Unified Payment Ledger', desc: 'Track payments received with invoice amounts, outstanding balances, and payment status tracking.', icon: <CreditCard className="text-violet-600"/> },
+                      { id: 'UnifiedExpense', name: 'Unified Expense', desc: 'Comprehensive expense tracking with multi-currency support, location tracking, and configurable fields.', icon: <Wallet className="text-red-600"/> },
                       { id: 'ExpenseLog', name: 'Expense Ledger', desc: 'Financial tracking with currency conversion and vendor logging.', icon: <Wallet className="text-red-600"/> },
                       { id: 'SupplierPayable', name: 'Payable Ledger', desc: 'Track buying payments, supplier debts and settlements.', icon: <DollarSign className="text-amber-600"/> },
                       { id: 'SimpleList', name: 'Standard List', desc: 'Simple list view for reference data and basic collections.', icon: <List className="text-blue-600"/> },

@@ -88,7 +88,8 @@ export type TemplateType =
   | 'HotelAccommodation'
   | 'ExportCharges'
   | 'UnifiedCapitalManagement'
-  | 'UnifiedPaymentLedger';
+  | 'UnifiedPaymentLedger'
+  | 'UnifiedExpense';
 
 /**
  * Persists a template assignment for a custom-added tab.
@@ -179,7 +180,6 @@ export const getTemplateForTab = (moduleId: string, tabId: string): TemplateType
     if (tabNormal === 'dashboard') return 'KPIDashboard';
     if (tabNormal === 'bkk') return 'VisionGemsSpinel';
     if (tabNormal === 'bkktickets') return 'TicketsVisa';
-    if (tabNormal === 'bkkexpenses') return 'BKKExpenses';
     if (tabNormal === 'export.charge') return 'BKKExportCharge';
     if (tabNormal === 'apartment') return 'HotelAccommodation';
     if (tabNormal === 'bkkcapital') return 'BKKCapital';
@@ -192,7 +192,6 @@ export const getTemplateForTab = (moduleId: string, tabId: string): TemplateType
     if (tabNormal === 'cutpolish') return 'CutPolish';
     if (tabNormal === 'export') return 'ExportCharges';
     if (tabNormal === 'traveling.ex') return 'TicketsVisa';
-    if (tabNormal === 'bkkexpenses') return 'BKKExpenses'; 
     if (tabNormal === 'bkkhotel') return 'HotelAccommodation'; 
     if (tabNormal === 'kpurchasing') return 'KenyaPurchasing';
     if (tabNormal === 'kexpenses') return 'GeneralExpenses';
@@ -204,6 +203,35 @@ export const getTemplateForTab = (moduleId: string, tabId: string): TemplateType
   }
   if (moduleId === 'spinel-gallery' && tabNormal === 'bkkexport') {
     return 'ExportCharges';
+  }
+
+  // --- UNIFIED EXPENSE MAPPING (8 tabs) ---
+  if (moduleId === 'bkk' && tabNormal === 'bkkexpenses') {
+    return 'UnifiedExpense';
+  }
+  if (moduleId === 'kenya' && tabNormal === 'bkkexpenses') {
+    return 'UnifiedExpense';
+  }
+  if (moduleId === 'spinel-gallery' && tabNormal === 'sl.expenses') {
+    return 'UnifiedExpense';
+  }
+  if (moduleId === 'vgtz') {
+    if (tabNormal === 'slexpenses' || tabNormal === 'tz.expenses') {
+      return 'UnifiedExpense';
+    }
+  }
+  if (moduleId === 'madagascar') {
+    if (tabNormal === 'mexpenses' || tabNormal === 'slexpenses') {
+      return 'UnifiedExpense';
+    }
+  }
+  if (moduleId === 'dada') {
+    if (tabNormal === 't.expense' || tabNormal === '202412texpense') {
+      return 'UnifiedExpense';
+    }
+  }
+  if (moduleId === 'vg-ramazan' && tabNormal === 't.expenses') {
+    return 'UnifiedExpense';
   }
 
   // --- UNIFIED CAPITAL MANAGEMENT MAPPING ---
@@ -311,18 +339,14 @@ export const getTemplateForTab = (moduleId: string, tabId: string): TemplateType
     const spinelDesignTabs = ['mahenge', 'spinel', 'blue.sapphire'];
     if (spinelDesignTabs.includes(tabNormal)) return 'VisionGemsSpinel';
     if (tabNormal === 'cut.polish') return 'CutPolishExpenses';
-    if (tabNormal === 'sl.expenses') return 'SLExpenses';
     if (tabNormal === 'bkkticket') return 'TicketsVisa';
     if (tabNormal === 'bkkhotel') return 'HotelAccommodation';
     if (tabNormal === 'texpenses') return 'GeneralExpenses';
   }
 
-  // --- GENERAL EXPENSES TEMPLATE MAPPING (6 tabs) ---
+  // --- GENERAL EXPENSES TEMPLATE MAPPING (remaining tabs not covered by UnifiedExpense) ---
   // Note: KExpenses is handled in Kenya overrides section above
   if (moduleId === 'dada') {
-    if (tabNormal === 't.expense' || tabNormal === '202412texpense') {
-      return 'GeneralExpenses';
-    }
     if (tabNormal === 'tickets.visa') {
       return 'TicketsVisa';
     }
@@ -332,17 +356,11 @@ export const getTemplateForTab = (moduleId: string, tabId: string): TemplateType
     if (tabNormal === 'cut.polish') {
       return 'CutPolishExpenses';
     }
-    if (tabNormal === 't.expenses') {
-      return 'GeneralExpenses';
-    }
   }
 
   if (moduleId === 'madagascar') {
     if (tabNormal === 'cut.polish') {
       return 'CutPolishExpenses';
-    }
-    if (tabNormal === 'mexpenses') {
-      return 'GeneralExpenses';
     }
     if (tabNormal === 'tickets.visa') {
       return 'TicketsVisa';
@@ -350,9 +368,6 @@ export const getTemplateForTab = (moduleId: string, tabId: string): TemplateType
   }
 
   if (moduleId === 'vgtz') {
-    if (tabNormal === 'tz.expenses') {
-      return 'GeneralExpenses';
-    }
     if (tabNormal === 'tickets.visa') {
       return 'TicketsVisa';
     }
