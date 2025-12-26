@@ -259,6 +259,7 @@ export const ModuleView: React.FC = () => {
     if (templateType === 'UnifiedCapitalManagement') return <UnifiedCapitalManagementTemplate {...props} />;
     if (templateType === 'UnifiedPaymentLedger') return <UnifiedPaymentLedgerTemplate {...props} />;
     if (templateType === 'UnifiedExpense') return <UnifiedExpenseTemplate {...props} />;
+    if (templateType === 'UnifiedDashboard') return <UnifiedDashboardTemplate {...props} />;
 
     const specializedConfig = getSpecializedRecordConfig(moduleId!, tabId!);
     if (specializedConfig) return <SpecializedRecordTemplate config={specializedConfig} {...props} />;
