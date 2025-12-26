@@ -89,7 +89,8 @@ export type TemplateType =
   | 'ExportCharges'
   | 'UnifiedCapitalManagement'
   | 'UnifiedPaymentLedger'
-  | 'UnifiedExpense';
+  | 'UnifiedExpense'
+  | 'UnifiedDashboard';
 
 /**
  * Persists a template assignment for a custom-added tab.
@@ -320,6 +321,9 @@ export const getTemplateForTab = (moduleId: string, tabId: string): TemplateType
   }
 
   if (moduleId === 'in-stocks') {
+    if (tabNormal === 'dashboard') {
+      return 'UnifiedDashboard';
+    }
     if (tabNormal === 'all stones') {
       return 'VisionGemsSpinel';
     }

@@ -87,6 +87,7 @@ import { ExportChargesTemplate } from './templates/ExportChargesTemplate';
 import { UnifiedCapitalManagementTemplate } from './templates/UnifiedCapitalManagementTemplate';
 import { UnifiedPaymentLedgerTemplate } from './templates/UnifiedPaymentLedgerTemplate';
 import { UnifiedExpenseTemplate } from './templates/UnifiedExpenseTemplate';
+import { UnifiedDashboardTemplate } from './templates/UnifiedDashboardTemplate';
 
 import { 
   Eye, Settings2, X, ArrowUp, ArrowDown, 

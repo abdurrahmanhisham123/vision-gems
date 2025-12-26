@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { 
-  Search, Plus, Download, Printer, Filter, X as XIcon,
+  Search, Plus, Download, Printer,
   Trash2, Edit, Save, X, DollarSign, 
-  FileText, Globe, Building2, Wallet, MapPin, Tag, CreditCard, Calendar
+  FileText, Globe, Building2, Wallet, MapPin, Tag
 } from 'lucide-react';
 
 // --- Types ---
@@ -284,13 +284,9 @@ export const UnifiedExpenseTemplate: React.FC<Props> = ({ moduleId, tabId, isRea
   const [searchQuery, setSearchQuery] = useState('');
   
   // Filter State
-  const [currencyFilter, setCurrencyFilter] = useState<string>('all');
-  const [categoryFilter, setCategoryFilter] = useState<string>('all');
-  const [companyFilter, setCompanyFilter] = useState<string>('all');
-  const [locationFilter, setLocationFilter] = useState<string>('all');
-  const [paymentMethodFilter, setPaymentMethodFilter] = useState<string>('all');
-  const [dateRange, setDateRange] = useState<{ start: string; end: string }>({ start: '', end: '' });
-  const [showFilters, setShowFilters] = useState(false);
+  const [currencyFilter, setCurrencyFilter] = useState<string>('All');
+  const [categoryFilter, setCategoryFilter] = useState<string>('All');
+  const [companyFilter, setCompanyFilter] = useState<string>('All');
   
   // Panel State
   const [selectedItem, setSelectedItem] = useState<UnifiedExpenseItem | null>(null);
@@ -319,11 +315,9 @@ export const UnifiedExpenseTemplate: React.FC<Props> = ({ moduleId, tabId, isRea
   }, [items]);
 
   // --- Filter Options ---
-  const uniqueCurrencies = useMemo(() => ['all', ...Array.from(new Set(items.map(i => i.currency))).sort()], [items]);
-  const uniqueCategories = useMemo(() => ['all', ...Array.from(new Set(items.map(i => i.category).filter(Boolean))).sort()], [items]);
-  const uniqueCompanies = useMemo(() => ['all', ...Array.from(new Set(items.map(i => i.company).filter(Boolean))).sort()], [items]);
-  const uniqueLocations = useMemo(() => ['all', ...Array.from(new Set(items.map(i => i.location).filter(Boolean))).sort()], [items]);
-  const uniquePaymentMethods = useMemo(() => ['all', ...Array.from(new Set(items.map(i => i.paymentMethod).filter(Boolean))).sort()], [items]);
+  const uniqueCurrencies = useMemo(() => Array.from(new Set(items.map(i => i.currency))).sort(), [items]);
+  const uniqueCategories = useMemo(() => Array.from(new Set(items.map(i => i.category).filter(Boolean))).sort(), [items]);
+  const uniqueCompanies = useMemo(() => Array.from(new Set(items.map(i => i.company).filter(Boolean))).sort(), [items]);
 
   // --- Filtering ---
   const filteredItems = useMemo(() => {
@@ -336,41 +330,14 @@ export const UnifiedExpenseTemplate: React.FC<Props> = ({ moduleId, tabId, isRea
         (item.company && item.company.toLowerCase().includes(searchQuery.toLowerCase())) ||
         (item.category && item.category.toLowerCase().includes(searchQuery.toLowerCase()));
       
-      const matchesCurrency = currencyFilter === 'all' || item.currency === currencyFilter;
-      const matchesCategory = categoryFilter === 'all' || item.category === categoryFilter;
-      const matchesCompany = companyFilter === 'all' || item.company === companyFilter;
-      const matchesLocation = locationFilter === 'all' || item.location === locationFilter;
-      const matchesPaymentMethod = paymentMethodFilter === 'all' || item.paymentMethod === paymentMethodFilter;
-      
-      const matchesDateRange = 
-        (!dateRange.start || item.date >= dateRange.start) &&
-        (!dateRange.end || item.date <= dateRange.end);
+      const matchesCurrency = currencyFilter === 'All' || item.currency === currencyFilter;
+      const matchesCategory = categoryFilter === 'All' || item.category === categoryFilter;
+      const matchesCompany = companyFilter === 'All' || item.company === companyFilter;
         
-      return matchesSearch && matchesCurrency && matchesCategory && matchesCompany && matchesLocation && matchesPaymentMethod && matchesDateRange;
+      return matchesSearch && matchesCurrency && matchesCategory && matchesCompany;
     }).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-  }, [items, searchQuery, currencyFilter, categoryFilter, companyFilter, locationFilter, paymentMethodFilter, dateRange]);
+  }, [items, searchQuery, currencyFilter, categoryFilter, companyFilter]);
 
-  // --- Active Filters Count ---
-  const activeFiltersCount = useMemo(() => {
-    let count = 0;
-    if (currencyFilter !== 'all') count++;
-    if (categoryFilter !== 'all') count++;
-    if (companyFilter !== 'all') count++;
-    if (locationFilter !== 'all') count++;
-    if (paymentMethodFilter !== 'all') count++;
-    if (dateRange.start || dateRange.end) count++;
-    return count;
-  }, [currencyFilter, categoryFilter, companyFilter, locationFilter, paymentMethodFilter, dateRange]);
-
-  // --- Clear All Filters ---
-  const clearAllFilters = () => {
-    setCurrencyFilter('all');
-    setCategoryFilter('all');
-    setCompanyFilter('all');
-    setLocationFilter('all');
-    setPaymentMethodFilter('all');
-    setDateRange({ start: '', end: '' });
-  };
 
   // --- Handlers ---
   const handleDelete = (id: string, e?: React.MouseEvent) => {
@@ -531,135 +498,50 @@ export const UnifiedExpenseTemplate: React.FC<Props> = ({ moduleId, tabId, isRea
                />
             </div>
             <div className="flex gap-2 overflow-x-auto hide-scrollbar pb-1 xl:pb-0">
-               <button 
-                  onClick={() => setShowFilters(!showFilters)}
-                  className={`px-4 py-3 border rounded-[20px] transition-colors shadow-sm flex items-center gap-2 ${
-                    showFilters || activeFiltersCount > 0
-                      ? 'bg-red-50 border-red-200 text-red-700'
-                      : 'bg-white border-stone-200 text-stone-500 hover:text-stone-800'
-                  }`}
-               >
-                  <Filter size={18} />
-                  {activeFiltersCount > 0 && (
-                     <span className="bg-red-600 text-white text-xs font-bold px-1.5 py-0.5 rounded-full min-w-[20px] text-center">
-                        {activeFiltersCount}
-                     </span>
-                  )}
-               </button>
-               <button className="px-4 py-3 bg-white border border-stone-200 rounded-[20px] text-stone-500 hover:text-stone-800 transition-colors shadow-sm">
+               <div className="flex items-center bg-stone-50 border border-stone-100 rounded-[20px] px-3 shrink-0">
+                  <DollarSign size={14} className="text-stone-300" />
+                  <select 
+                     value={currencyFilter} 
+                     onChange={(e) => setCurrencyFilter(e.target.value)} 
+                     className="px-2 py-2.5 bg-transparent text-xs text-stone-600 font-bold focus:outline-none min-w-[100px]"
+                  >
+                     <option value="All">Currency</option>
+                     {uniqueCurrencies.map(curr => (
+                        <option key={curr} value={curr}>{curr}</option>
+                     ))}
+                  </select>
+               </div>
+               <div className="flex items-center bg-stone-50 border border-stone-100 rounded-[20px] px-3 shrink-0">
+                  <Tag size={14} className="text-stone-300" />
+                  <select 
+                     value={categoryFilter} 
+                     onChange={(e) => setCategoryFilter(e.target.value)} 
+                     className="px-2 py-2.5 bg-transparent text-xs text-stone-600 font-bold focus:outline-none min-w-[100px]"
+                  >
+                     <option value="All">Category</option>
+                     {uniqueCategories.map(cat => (
+                        <option key={cat} value={cat}>{cat}</option>
+                     ))}
+                  </select>
+               </div>
+               <div className="flex items-center bg-stone-50 border border-stone-100 rounded-[20px] px-3 shrink-0">
+                  <Building2 size={14} className="text-stone-300" />
+                  <select 
+                     value={companyFilter} 
+                     onChange={(e) => setCompanyFilter(e.target.value)} 
+                     className="px-2 py-2.5 bg-transparent text-xs text-stone-600 font-bold focus:outline-none min-w-[100px]"
+                  >
+                     <option value="All">Company</option>
+                     {uniqueCompanies.map(comp => (
+                        <option key={comp} value={comp}>{comp}</option>
+                     ))}
+                  </select>
+               </div>
+               <button className="px-4 py-3 bg-white border border-stone-200 rounded-[20px] text-stone-500 hover:text-stone-800 transition-colors shadow-sm shrink-0">
                  <Download size={18} />
                </button>
             </div>
          </div>
-
-         {/* Filter Panel */}
-         {showFilters && (
-            <div className="mt-4 pt-4 border-t border-stone-100 animate-in fade-in slide-in-from-top duration-200">
-               <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-sm font-bold text-stone-700">Filters</h3>
-                  {activeFiltersCount > 0 && (
-                     <button 
-                        onClick={clearAllFilters}
-                        className="text-xs font-bold text-red-600 hover:text-red-700 flex items-center gap-1"
-                     >
-                        <XIcon size={14} /> Clear All
-                     </button>
-                  )}
-               </div>
-               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
-                  {/* Currency Filter */}
-                  <div>
-                     <label className="block text-[10px] font-bold text-stone-500 uppercase mb-1.5 ml-1">Currency</label>
-                     <select 
-                        value={currencyFilter} 
-                        onChange={(e) => setCurrencyFilter(e.target.value)}
-                        className="w-full p-2 bg-stone-50 border border-stone-200 rounded-xl text-xs focus:ring-2 focus:ring-red-500/20 focus:border-red-500 outline-none"
-                     >
-                        {uniqueCurrencies.map(curr => (
-                           <option key={curr} value={curr}>{curr === 'all' ? 'All Currencies' : curr}</option>
-                        ))}
-                     </select>
-                  </div>
-
-                  {/* Category Filter */}
-                  <div>
-                     <label className="block text-[10px] font-bold text-stone-500 uppercase mb-1.5 ml-1">Category</label>
-                     <select 
-                        value={categoryFilter} 
-                        onChange={(e) => setCategoryFilter(e.target.value)}
-                        className="w-full p-2 bg-stone-50 border border-stone-200 rounded-xl text-xs focus:ring-2 focus:ring-red-500/20 focus:border-red-500 outline-none"
-                     >
-                        {uniqueCategories.map(cat => (
-                           <option key={cat} value={cat}>{cat === 'all' ? 'All Categories' : cat}</option>
-                        ))}
-                     </select>
-                  </div>
-
-                  {/* Company Filter */}
-                  <div>
-                     <label className="block text-[10px] font-bold text-stone-500 uppercase mb-1.5 ml-1">Company</label>
-                     <select 
-                        value={companyFilter} 
-                        onChange={(e) => setCompanyFilter(e.target.value)}
-                        className="w-full p-2 bg-stone-50 border border-stone-200 rounded-xl text-xs focus:ring-2 focus:ring-red-500/20 focus:border-red-500 outline-none"
-                     >
-                        {uniqueCompanies.map(comp => (
-                           <option key={comp} value={comp}>{comp === 'all' ? 'All Companies' : comp}</option>
-                        ))}
-                     </select>
-                  </div>
-
-                  {/* Location Filter */}
-                  <div>
-                     <label className="block text-[10px] font-bold text-stone-500 uppercase mb-1.5 ml-1">Location</label>
-                     <select 
-                        value={locationFilter} 
-                        onChange={(e) => setLocationFilter(e.target.value)}
-                        className="w-full p-2 bg-stone-50 border border-stone-200 rounded-xl text-xs focus:ring-2 focus:ring-red-500/20 focus:border-red-500 outline-none"
-                     >
-                        {uniqueLocations.map(loc => (
-                           <option key={loc} value={loc}>{loc === 'all' ? 'All Locations' : loc}</option>
-                        ))}
-                     </select>
-                  </div>
-
-                  {/* Payment Method Filter */}
-                  <div>
-                     <label className="block text-[10px] font-bold text-stone-500 uppercase mb-1.5 ml-1">Payment Method</label>
-                     <select 
-                        value={paymentMethodFilter} 
-                        onChange={(e) => setPaymentMethodFilter(e.target.value)}
-                        className="w-full p-2 bg-stone-50 border border-stone-200 rounded-xl text-xs focus:ring-2 focus:ring-red-500/20 focus:border-red-500 outline-none"
-                     >
-                        {uniquePaymentMethods.map(method => (
-                           <option key={method} value={method}>{method === 'all' ? 'All Methods' : method}</option>
-                        ))}
-                     </select>
-                  </div>
-
-                  {/* Date Range Filter */}
-                  <div>
-                     <label className="block text-[10px] font-bold text-stone-500 uppercase mb-1.5 ml-1">Date Range</label>
-                     <div className="flex gap-1">
-                        <input 
-                           type="date" 
-                           value={dateRange.start} 
-                           onChange={(e) => setDateRange({...dateRange, start: e.target.value})}
-                           className="flex-1 p-2 bg-stone-50 border border-stone-200 rounded-xl text-xs focus:ring-2 focus:ring-red-500/20 focus:border-red-500 outline-none"
-                           placeholder="Start"
-                        />
-                        <input 
-                           type="date" 
-                           value={dateRange.end} 
-                           onChange={(e) => setDateRange({...dateRange, end: e.target.value})}
-                           className="flex-1 p-2 bg-stone-50 border border-stone-200 rounded-xl text-xs focus:ring-2 focus:ring-red-500/20 focus:border-red-500 outline-none"
-                           placeholder="End"
-                        />
-                     </div>
-                  </div>
-               </div>
-            </div>
-         )}
       </div>
 
       {/* Desktop Table */}
