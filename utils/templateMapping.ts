@@ -91,7 +91,8 @@ export type TemplateType =
   | 'UnifiedPaymentLedger'
   | 'UnifiedExpense'
   | 'UnifiedDashboard'
-  | 'UnifiedPurchasing';
+  | 'UnifiedPurchasing'
+  | 'UnifiedExport';
 
 /**
  * Persists a template assignment for a custom-added tab.
@@ -208,23 +209,40 @@ export const getTemplateForTab = (moduleId: string, tabId: string): TemplateType
     return 'UnifiedPurchasing';
   }
 
+  // --- UNIFIED EXPORT MAPPING (8-10 tabs) ---
+  if (moduleId === 'kenya' && tabNormal === 'export') {
+    return 'UnifiedExport';
+  }
+  if (moduleId === 'madagascar' && tabNormal === 'mexport') {
+    return 'UnifiedExport';
+  }
+  if (moduleId === 'spinel-gallery' && tabNormal === 'bkkexport') {
+    return 'UnifiedExport';
+  }
+  if (moduleId === 'vgtz' && tabNormal === 't.export') {
+    return 'UnifiedExport';
+  }
+  if (moduleId === 'dada' && tabNormal === 't.export') {
+    return 'UnifiedExport';
+  }
+  if (moduleId === 'vg-ramazan' && tabNormal === 't.export') {
+    return 'UnifiedExport';
+  }
+  // ExportRecords via exportConfig will be handled below, but we'll override it
+  // ExportInvoiceMaster tabs (export -invoice, invoice, invoice bkk) - keeping separate as they're more detailed
+
   // --- KENYA OVERRIDES ---
   if (moduleId === 'kenya') {
     if (tabNormal === 'instock') return 'VisionGemsSpinel';
     if (tabNormal === 'cutpolish') return 'CutPolish';
-    if (tabNormal === 'export') return 'ExportCharges';
+    // export tab now uses UnifiedExport (mapped above)
     if (tabNormal === 'traveling.ex') return 'TicketsVisa';
     if (tabNormal === 'bkkhotel') return 'HotelAccommodation'; 
     if (tabNormal === 'kexpenses') return 'GeneralExpenses';
   }
 
-  // --- EXPORT CHARGES MAPPING ---
-  if (moduleId === 'madagascar' && tabNormal === 'mexport') {
-    return 'ExportCharges';
-  }
-  if (moduleId === 'spinel-gallery' && tabNormal === 'bkkexport') {
-    return 'ExportCharges';
-  }
+  // --- EXPORT CHARGES MAPPING (only for bkk module now) ---
+  // Note: madagascar/mexport and spinel-gallery/bkkexport now use UnifiedExport
 
   // --- UNIFIED EXPENSE MAPPING (8 tabs) ---
   if (moduleId === 'bkk' && tabNormal === 'bkkexpenses') {
@@ -469,8 +487,12 @@ export const getTemplateForTab = (moduleId: string, tabId: string): TemplateType
   const payableConfig = getPayableConfig(moduleId, tabId);
   if (payableConfig) return 'SupplierPayable';
 
+  // Check if this should use UnifiedExport instead of ExportRecords
   const exportConfig = getExportConfig(moduleId, tabId);
-  if (exportConfig) return 'ExportRecords';
+  if (exportConfig) {
+    // Use UnifiedExport for all export config tabs to consolidate
+    return 'UnifiedExport';
+  }
 
   const purchasingConfig = getPurchasingConfig(moduleId, tabId);
   if (purchasingConfig) return 'PurchasingRecords';
@@ -513,7 +535,9 @@ export const getTemplateForTab = (moduleId: string, tabId: string): TemplateType
   if (tabLower.includes('stock')) return 'Inventory';
   if (tabLower.includes('payment')) return 'PaymentTracking';
   if (tabLower.includes('ticket')) return 'ExpenseLog'; 
-  if (tabLower.includes('export')) return 'ExportInvoice';
+  // Note: Most export tabs are now handled by UnifiedExport mappings above
+  // Only use ExportInvoice as fallback for very specific cases not covered
+  if (tabLower.includes('export') && !tabLower.includes('t.export')) return 'ExportInvoice';
 
   return 'Inventory'; 
 };

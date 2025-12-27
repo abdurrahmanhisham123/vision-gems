@@ -89,13 +89,14 @@ import { UnifiedPaymentLedgerTemplate } from './templates/UnifiedPaymentLedgerTe
 import { UnifiedExpenseTemplate } from './templates/UnifiedExpenseTemplate';
 import { UnifiedDashboardTemplate } from './templates/UnifiedDashboardTemplate';
 import { UnifiedPurchasingTemplate } from './templates/UnifiedPurchasingTemplate';
+import { UnifiedExportTemplate } from './templates/UnifiedExportTemplate';
 
 import { 
   Eye, Settings2, X, ArrowUp, ArrowDown, 
   GripVertical, Plus, Trash2, 
   ChevronRight, ChevronLeft, LayoutPanelLeft,
   FolderClosed, FolderOpen,
-  Gem, Wallet, DollarSign, List, ArrowLeft, CheckCircle2, ArrowRightLeft, Scissors, Ticket, User, Briefcase, Hotel, Package, TrendingUp, CreditCard, ShoppingBag
+  Gem, Wallet, DollarSign, List, ArrowLeft, CheckCircle2, ArrowRightLeft, Scissors, Ticket, User, Briefcase, Hotel, Package, TrendingUp, CreditCard, ShoppingBag, Plane
 } from 'lucide-react';
 
 export const ModuleView: React.FC = () => {
@@ -262,6 +263,7 @@ export const ModuleView: React.FC = () => {
     if (templateType === 'UnifiedExpense') return <UnifiedExpenseTemplate {...props} />;
     if (templateType === 'UnifiedDashboard') return <UnifiedDashboardTemplate {...props} />;
     if (templateType === 'UnifiedPurchasing') return <UnifiedPurchasingTemplate {...props} />;
+    if (templateType === 'UnifiedExport') return <UnifiedExportTemplate {...props} />;
 
     const specializedConfig = getSpecializedRecordConfig(moduleId!, tabId!);
     if (specializedConfig) return <SpecializedRecordTemplate config={specializedConfig} {...props} />;
@@ -377,6 +379,7 @@ export const ModuleView: React.FC = () => {
                       { id: 'UnifiedPaymentLedger', name: 'Unified Payment Ledger', desc: 'Track payments received with invoice amounts, outstanding balances, and payment status tracking.', icon: <CreditCard className="text-violet-600"/> },
                       { id: 'UnifiedExpense', name: 'Unified Expense', desc: 'Comprehensive expense tracking with multi-currency support, location tracking, and configurable fields.', icon: <Wallet className="text-red-600"/> },
                       { id: 'UnifiedPurchasing', name: 'Unified Purchasing', desc: 'Track stone purchases with supplier details, weight, pieces, cost, and payment status across multiple currencies.', icon: <ShoppingBag className="text-blue-600"/> },
+                      { id: 'UnifiedExport', name: 'Unified Export', desc: 'Track export transactions with company details, export types, reference numbers, destinations, and multi-currency support.', icon: <Plane className="text-sky-600"/> },
                       { id: 'ExpenseLog', name: 'Expense Ledger', desc: 'Financial tracking with currency conversion and vendor logging.', icon: <Wallet className="text-red-600"/> },
                       { id: 'SupplierPayable', name: 'Payable Ledger', desc: 'Track buying payments, supplier debts and settlements.', icon: <DollarSign className="text-amber-600"/> },
                       { id: 'SimpleList', name: 'Standard List', desc: 'Simple list view for reference data and basic collections.', icon: <List className="text-blue-600"/> },
