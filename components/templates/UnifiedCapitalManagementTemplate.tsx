@@ -19,6 +19,7 @@ interface CapitalItem {
   location?: string; // Optional location
   company?: string; // Optional company
   description?: string; // Optional description
+  paymentMethod?: string; // Payment method (Cash, Card, Bank Transfer, Cheque, etc.)
   notes?: string;
 }
 
@@ -43,6 +44,9 @@ const exchangeRates: Record<string, number> = {
   'TZS': 0.1251,
   'KES': 2.33
 };
+
+// Payment method options
+const paymentMethods = ['Cash', 'Card', 'Bank Transfer', 'Cheque', 'Online Payment', 'Other'];
 
 // --- Side Panel Component ---
 const CapitalDetailPanel: React.FC<{
@@ -218,6 +222,7 @@ const CapitalDetailPanel: React.FC<{
                 <Field label="Converted Amount (LKR)" value={formData.convertedAmount} field="convertedAmount" isEditing={false} onInputChange={handleInputChange} highlight isCurrency />
                 <Field label="Location" value={formData.location} field="location" isEditing={isEditing} onInputChange={handleInputChange} />
                 <Field label="Company" value={formData.company} field="company" isEditing={isEditing} onInputChange={handleInputChange} />
+                <Field label="Payment Method" value={formData.paymentMethod} field="paymentMethod" isEditing={isEditing} onInputChange={handleInputChange} type="select" options={paymentMethods} />
                 <Field label="Description" value={formData.description} field="description" isEditing={isEditing} onInputChange={handleInputChange} />
                 <Field label="Notes" value={formData.notes} field="notes" isEditing={isEditing} onInputChange={handleInputChange} />
               </div>
@@ -291,7 +296,8 @@ export const UnifiedCapitalManagementTemplate: React.FC<Props> = ({ moduleId, ta
         (item.code && item.code.toLowerCase().includes(searchQuery.toLowerCase())) ||
         (item.location && item.location.toLowerCase().includes(searchQuery.toLowerCase())) ||
         (item.company && item.company.toLowerCase().includes(searchQuery.toLowerCase())) ||
-        (item.description && item.description.toLowerCase().includes(searchQuery.toLowerCase()));
+        (item.description && item.description.toLowerCase().includes(searchQuery.toLowerCase())) ||
+        (item.paymentMethod && item.paymentMethod.toLowerCase().includes(searchQuery.toLowerCase()));
         
       return matchesSearch;
     }).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
@@ -449,7 +455,7 @@ export const UnifiedCapitalManagementTemplate: React.FC<Props> = ({ moduleId, ta
                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-stone-300" size={18} />
                <input 
                   type="text" 
-                  placeholder="Search by vendor, code, location, company, description..." 
+                  placeholder="Search by vendor, code, location, company, description, payment method..." 
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="w-full pl-11 pr-4 py-3 bg-stone-50/50 border border-stone-100 rounded-[20px] text-sm focus:ring-4 focus:ring-indigo-500/5 focus:border-indigo-300 outline-none transition-all placeholder-stone-300 text-stone-700" 
@@ -476,6 +482,7 @@ export const UnifiedCapitalManagementTemplate: React.FC<Props> = ({ moduleId, ta
                      <th className="p-6">Currency</th>
                      <th className="p-6">Amount</th>
                      <th className="p-6">Rate</th>
+                     <th className="p-6">Payment Method</th>
                      <th className="p-6 text-right pr-10">LKR Amount</th>
                   </tr>
                </thead>
@@ -509,6 +516,15 @@ export const UnifiedCapitalManagementTemplate: React.FC<Props> = ({ moduleId, ta
                         </td>
                         <td className="p-6 font-mono font-bold text-stone-900">{formatCurrency(item.amount, item.currency)}</td>
                         <td className="p-6 font-mono text-stone-500">{item.exchangeRate.toFixed(4)}</td>
+                        <td className="p-6">
+                           {item.paymentMethod ? (
+                              <span className="px-3 py-1 rounded-full text-xs font-bold bg-indigo-50 text-indigo-700 border border-indigo-200">
+                                 {item.paymentMethod}
+                              </span>
+                           ) : (
+                              <span className="text-stone-300">-</span>
+                           )}
+                        </td>
                         <td className="p-6 text-right pr-10">
                            <div className="font-black text-indigo-700">
                               LKR {item.convertedAmount.toLocaleString()}
@@ -573,6 +589,17 @@ export const UnifiedCapitalManagementTemplate: React.FC<Props> = ({ moduleId, ta
                   </div>
                )}
 
+               {item.paymentMethod && (
+                  <div className="mb-4 relative z-10">
+                     <div className="flex items-center gap-2 text-sm">
+                        <Wallet size={14} className="text-stone-400" />
+                        <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-indigo-50 text-indigo-700 border border-indigo-200">
+                           {item.paymentMethod}
+                        </span>
+                     </div>
+                  </div>
+               )}
+
                <div className="pt-4 border-t border-stone-100 flex justify-between items-center relative z-10">
                   <div>
                      <div className="text-xs text-stone-400 font-medium mb-1">LKR Amount</div>
@@ -627,6 +654,7 @@ const CapitalForm: React.FC<{
     location: initialData?.location || '',
     company: initialData?.company || '',
     description: initialData?.description || '',
+    paymentMethod: initialData?.paymentMethod || '',
     notes: initialData?.notes || '',
   });
 
@@ -676,6 +704,7 @@ const CapitalForm: React.FC<{
       location: formData.location,
       company: formData.company,
       description: formData.description,
+      paymentMethod: formData.paymentMethod,
       notes: formData.notes,
     });
   };
@@ -814,6 +843,20 @@ const CapitalForm: React.FC<{
                    className="w-full p-2.5 bg-stone-50 border border-stone-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none" 
                    placeholder="Optional"
                 />
+             </div>
+
+             <div>
+                <label className="block text-xs font-bold text-stone-500 uppercase mb-1.5 ml-1">Payment Method</label>
+                <select 
+                   value={formData.paymentMethod || ''} 
+                   onChange={e => setFormData({...formData, paymentMethod: e.target.value})}
+                   className="w-full p-2.5 bg-stone-50 border border-stone-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none"
+                >
+                   <option value="">Select payment method</option>
+                   {paymentMethods.map(method => (
+                      <option key={method} value={method}>{method}</option>
+                   ))}
+                </select>
              </div>
 
              <div>
