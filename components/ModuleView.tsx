@@ -91,13 +91,14 @@ import { UnifiedDashboardTemplate } from './templates/UnifiedDashboardTemplate';
 import { UnifiedPurchasingTemplate } from './templates/UnifiedPurchasingTemplate';
 import { UnifiedExportTemplate } from './templates/UnifiedExportTemplate';
 import { UnifiedStatementTemplate } from './templates/UnifiedStatementTemplate';
+import { UnifiedSheetTemplate } from './templates/UnifiedSheetTemplate';
 
 import { 
   Eye, Settings2, X, ArrowUp, ArrowDown, 
   GripVertical, Plus, Trash2, 
   ChevronRight, ChevronLeft, LayoutPanelLeft,
   FolderClosed, FolderOpen,
-  Gem, Wallet, DollarSign, List, ArrowLeft, CheckCircle2, ArrowRightLeft, Scissors, Ticket, User, Briefcase, Hotel, Package, TrendingUp, CreditCard, ShoppingBag, Plane, FileText
+  Gem, Wallet, DollarSign, List, ArrowLeft, CheckCircle2, ArrowRightLeft, Scissors, Ticket, User, Briefcase, Hotel, Package, TrendingUp, CreditCard, ShoppingBag, Plane, FileText, ClipboardList
 } from 'lucide-react';
 
 export const ModuleView: React.FC = () => {
@@ -266,6 +267,7 @@ export const ModuleView: React.FC = () => {
     if (templateType === 'UnifiedPurchasing') return <UnifiedPurchasingTemplate {...props} />;
     if (templateType === 'UnifiedExport') return <UnifiedExportTemplate {...props} />;
     if (templateType === 'UnifiedStatement') return <UnifiedStatementTemplate {...props} />;
+    if (templateType === 'UnifiedSheet') return <UnifiedSheetTemplate {...props} />;
 
     const specializedConfig = getSpecializedRecordConfig(moduleId!, tabId!);
     if (specializedConfig) return <SpecializedRecordTemplate config={specializedConfig} {...props} />;
@@ -383,6 +385,7 @@ export const ModuleView: React.FC = () => {
                       { id: 'UnifiedPurchasing', name: 'Unified Purchasing', desc: 'Track stone purchases with supplier details, weight, pieces, cost, and payment status across multiple currencies.', icon: <ShoppingBag className="text-blue-600"/> },
                       { id: 'UnifiedExport', name: 'Unified Export', desc: 'Track export transactions with company details, export types, reference numbers, destinations, and multi-currency support.', icon: <Plane className="text-sky-600"/> },
                       { id: 'UnifiedStatement', name: 'Unified Statement Report', desc: 'Consolidated bank and cash ledger tracking with company, account, location, and person tracking.', icon: <FileText className="text-violet-600"/> },
+                      { id: 'UnifiedSheet', name: 'Unified Sheet/Expense Log', desc: 'Simple expense log for sheet tabs with date, description, amount, currency, category, and vendor tracking.', icon: <ClipboardList className="text-slate-600"/> },
                    ].map(tpl => (
                       <button 
                         key={tpl.id}
