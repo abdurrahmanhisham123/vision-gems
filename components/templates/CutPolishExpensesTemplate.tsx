@@ -18,6 +18,7 @@ interface CutPolishExpenseItem {
   perCaratCost?: number; // Auto-calculated: amount / weight
   company?: string;
   type?: 'Cutting' | 'Polishing';
+  paymentMethod?: string; // Cash / Cheque
 }
 
 interface Props {
@@ -165,6 +166,7 @@ const CutPolishDetailPanel: React.FC<{
                 <Field label="Amount (LKR)" value={formData.amount} field="amount" isEditing={isEditing} onInputChange={handleInputChange} type="number" highlight isCurrency />
                 <Field label="Per Carat Cost" value={formData.perCaratCost} field="perCaratCost" isEditing={false} onInputChange={handleInputChange} highlight isCurrency />
                 <Field label="Company" value={formData.company} field="company" isEditing={isEditing} onInputChange={handleInputChange} />
+                <Field label="Cash / Cheque" value={formData.paymentMethod} field="paymentMethod" isEditing={isEditing} onInputChange={handleInputChange} options={['Cash', 'Cheque', 'Bank Transfer']} />
               </div>
             </div>
           </div>
@@ -431,6 +433,7 @@ export const CutPolishExpensesTemplate: React.FC<Props> = ({ moduleId, tabId, is
                      <th className="p-6">Type</th>
                      <th className="p-6 text-right">Weight (ct)</th>
                      <th className="p-6 text-right">Amount (LKR)</th>
+                     <th className="p-6">Cash / Cheque</th>
                      <th className="p-6 text-right pr-10">Per Carat</th>
                   </tr>
                </thead>
@@ -463,6 +466,15 @@ export const CutPolishExpensesTemplate: React.FC<Props> = ({ moduleId, tabId, is
                            <div className="font-black text-stone-900">
                               LKR {item.amount.toLocaleString()}
                            </div>
+                        </td>
+                        <td className="p-6">
+                           {item.paymentMethod ? (
+                              <span className="px-2.5 py-1 rounded-full text-[10px] font-bold uppercase border bg-stone-50 text-stone-700 border-stone-200">
+                                 {item.paymentMethod}
+                              </span>
+                           ) : (
+                              <span className="text-stone-300">-</span>
+                           )}
                         </td>
                         <td className="p-6 text-right pr-10">
                            <div className="font-black text-emerald-600">
@@ -523,6 +535,12 @@ export const CutPolishExpensesTemplate: React.FC<Props> = ({ moduleId, tabId, is
                      <Sparkles size={14} className="text-stone-400" />
                      <span className="font-mono">LKR {item.perCaratCost?.toFixed(2) || '-'}/ct</span>
                   </div>
+                  {item.paymentMethod && (
+                     <div className="flex items-center gap-2">
+                        <Wallet size={14} className="text-stone-400" />
+                        <span className="text-stone-600">{item.paymentMethod}</span>
+                     </div>
+                  )}
                </div>
 
                <div className="pt-4 border-t border-stone-100 flex justify-between items-center relative z-10">
@@ -575,6 +593,7 @@ const CutPolishExpenseForm: React.FC<{
     currency: 'LKR',
     type: initialData?.type || 'Cutting',
     company: initialData?.company || '',
+    paymentMethod: initialData?.paymentMethod || '',
     perCaratCost: initialData?.perCaratCost,
   });
 
@@ -605,6 +624,7 @@ const CutPolishExpenseForm: React.FC<{
       perCaratCost: formData.perCaratCost,
       type: formData.type,
       company: formData.company,
+      paymentMethod: formData.paymentMethod,
     });
   };
 
@@ -707,15 +727,30 @@ const CutPolishExpenseForm: React.FC<{
                 </div>
              )}
 
-             <div>
-                <label className="block text-xs font-bold text-stone-500 uppercase mb-1.5 ml-1">Company</label>
-                <input 
-                   type="text" 
-                   value={formData.company} 
-                   onChange={e => setFormData({...formData, company: e.target.value})}
-                   className="w-full p-2.5 bg-stone-50 border border-stone-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none" 
-                   placeholder="Optional"
-                />
+             <div className="grid grid-cols-2 gap-4">
+                <div>
+                   <label className="block text-xs font-bold text-stone-500 uppercase mb-1.5 ml-1">Company</label>
+                   <input 
+                      type="text" 
+                      value={formData.company} 
+                      onChange={e => setFormData({...formData, company: e.target.value})}
+                      className="w-full p-2.5 bg-stone-50 border border-stone-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none" 
+                      placeholder="Optional"
+                   />
+                </div>
+                <div>
+                   <label className="block text-xs font-bold text-stone-500 uppercase mb-1.5 ml-1">Cash / Cheque</label>
+                   <select 
+                      value={formData.paymentMethod || ''} 
+                      onChange={e => setFormData({...formData, paymentMethod: e.target.value})}
+                      className="w-full p-2.5 bg-stone-50 border border-stone-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none"
+                   >
+                      <option value="">Select method</option>
+                      <option value="Cash">Cash</option>
+                      <option value="Cheque">Cheque</option>
+                      <option value="Bank Transfer">Bank Transfer</option>
+                   </select>
+                </div>
              </div>
           </div>
 

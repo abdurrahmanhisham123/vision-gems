@@ -21,6 +21,7 @@ interface UnifiedExpenseItem {
   category?: string; // Optional, configurable (Category/Type)
   paymentMethod?: string; // Optional payment method
   weight?: number; // Optional weight (for SLExpenses)
+  inOutCheque?: string; // IN, OUT, or CHEQUES
   notes?: string;
 }
 
@@ -49,6 +50,7 @@ const exchangeRates: Record<string, number> = {
 
 const paymentMethods = ['Cash', 'Cheque', 'Bank Transfer', 'Credit Card', 'Online Payment', 'Other'];
 const expenseCategories = ['Transport', 'Office', 'Service', 'Material', 'Food', 'Utilities', 'Other'];
+const inOutChequeOptions = ['IN', 'OUT', 'CHEQUES'];
 
 // --- Side Panel Component ---
 const ExpenseDetailPanel: React.FC<{
@@ -241,6 +243,7 @@ const ExpenseDetailPanel: React.FC<{
                 <Field label="Company" value={formData.company} field="company" isEditing={isEditing} onInputChange={handleInputChange} />
                 <Field label="Category/Type" value={formData.category} field="category" isEditing={isEditing} onInputChange={handleInputChange} type="select" options={expenseCategories} />
                 <Field label="Payment Method" value={formData.paymentMethod} field="paymentMethod" isEditing={isEditing} onInputChange={handleInputChange} type="select" options={paymentMethods} />
+                <Field label="IN / OUT / CHEQUES" value={formData.inOutCheque} field="inOutCheque" isEditing={isEditing} onInputChange={handleInputChange} type="select" options={inOutChequeOptions} />
                 <Field label="Weight" value={formData.weight} field="weight" isEditing={isEditing} onInputChange={handleInputChange} type="number" />
                 <Field label="Notes" value={formData.notes} field="notes" isEditing={isEditing} onInputChange={handleInputChange} />
               </div>
@@ -556,6 +559,7 @@ export const UnifiedExpenseTemplate: React.FC<Props> = ({ moduleId, tabId, isRea
                      <th className="p-6">Description</th>
                      <th className="p-6">Location</th>
                      <th className="p-6">Company</th>
+                     <th className="p-6">IN/OUT/CHEQUES</th>
                      <th className="p-6 text-right pr-10">Amount</th>
                   </tr>
                </thead>
@@ -578,6 +582,19 @@ export const UnifiedExpenseTemplate: React.FC<Props> = ({ moduleId, tabId, isRea
                         </td>
                         <td className="p-6 text-stone-600">{item.location || <span className="text-stone-300">-</span>}</td>
                         <td className="p-6 text-stone-600">{item.company || <span className="text-stone-300">-</span>}</td>
+                        <td className="p-6">
+                           {item.inOutCheque ? (
+                              <span className={`px-3 py-1 rounded-full text-xs font-bold ${
+                                 item.inOutCheque === 'IN' ? 'bg-green-50 text-green-700 border border-green-200' :
+                                 item.inOutCheque === 'OUT' ? 'bg-red-50 text-red-700 border border-red-200' :
+                                 'bg-amber-50 text-amber-700 border border-amber-200'
+                              }`}>
+                                 {item.inOutCheque}
+                              </span>
+                           ) : (
+                              <span className="text-stone-300">-</span>
+                           )}
+                        </td>
                         <td className="p-6 text-right pr-10">
                            <div className="font-black text-red-700">
                               {formatCurrency(item.amount, item.currency)}
@@ -643,6 +660,17 @@ export const UnifiedExpenseTemplate: React.FC<Props> = ({ moduleId, tabId, isRea
                         <span>{item.category}</span>
                      </div>
                   )}
+                  {item.inOutCheque && (
+                     <div className="flex items-center gap-2 text-sm">
+                        <span className={`px-2.5 py-1 rounded-full text-xs font-bold ${
+                           item.inOutCheque === 'IN' ? 'bg-green-50 text-green-700 border border-green-200' :
+                           item.inOutCheque === 'OUT' ? 'bg-red-50 text-red-700 border border-red-200' :
+                           'bg-amber-50 text-amber-700 border border-amber-200'
+                        }`}>
+                           {item.inOutCheque}
+                        </span>
+                     </div>
+                  )}
                </div>
 
                <div className="pt-4 border-t border-stone-100 flex justify-between items-center relative z-10">
@@ -704,6 +732,7 @@ const ExpenseForm: React.FC<{
     category: initialData?.category || '',
     paymentMethod: initialData?.paymentMethod || '',
     weight: initialData?.weight,
+    inOutCheque: initialData?.inOutCheque || '',
     notes: initialData?.notes || '',
   });
 
@@ -773,6 +802,7 @@ const ExpenseForm: React.FC<{
       category: formData.category,
       paymentMethod: formData.paymentMethod,
       weight: formData.weight,
+      inOutCheque: formData.inOutCheque,
       notes: formData.notes,
     });
   };
@@ -941,6 +971,20 @@ const ExpenseForm: React.FC<{
                       ))}
                    </select>
                 </div>
+             </div>
+
+             <div>
+                <label className="block text-xs font-bold text-stone-500 uppercase mb-1.5 ml-1">IN / OUT / CHEQUES</label>
+                <select 
+                   value={formData.inOutCheque || ''} 
+                   onChange={e => setFormData({...formData, inOutCheque: e.target.value})}
+                   className="w-full p-2.5 bg-stone-50 border border-stone-200 rounded-xl text-sm focus:ring-2 focus:ring-red-500/20 focus:border-red-500 outline-none"
+                >
+                   <option value="">Select option</option>
+                   {inOutChequeOptions.map(option => (
+                      <option key={option} value={option}>{option}</option>
+                   ))}
+                </select>
              </div>
 
              <div>

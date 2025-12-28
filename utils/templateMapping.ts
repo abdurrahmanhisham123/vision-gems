@@ -49,13 +49,11 @@ export type TemplateType =
   | 'PayableDashboard'
   | 'SupplierLedger'
   | 'PaymentDueDate'
-  | 'GeneralExpenses'
   | 'CutPolishExpenses'
   | 'TicketsVisa'
   | 'PersonalShares'
   | 'SpecificServices'
   | 'HotelAccommodation'
-  | 'ExportCharges'
   | 'UnifiedCapitalManagement'
   | 'UnifiedPaymentLedger'
   | 'UnifiedExpense'
@@ -162,7 +160,7 @@ export const getTemplateForTab = (moduleId: string, tabId: string): TemplateType
     if (tabNormal === 'dashboard') return 'KPIDashboard';
     if (tabNormal === 'bkk') return 'VisionGemsSpinel';
     if (tabNormal === 'bkktickets') return 'TicketsVisa';
-    if (tabNormal === 'export.charge') return 'BKKExportCharge';
+    if (tabNormal === 'export.charge') return 'UnifiedExport';
     if (tabNormal === 'apartment') return 'HotelAccommodation';
     if (tabNormal === 'bkkcapital') return 'BKKCapital';
     // bkk.statement now uses UnifiedStatement (mapped above)
@@ -231,7 +229,7 @@ export const getTemplateForTab = (moduleId: string, tabId: string): TemplateType
     // export tab now uses UnifiedExport (mapped above)
     if (tabNormal === 'traveling.ex') return 'TicketsVisa';
     if (tabNormal === 'bkkhotel') return 'HotelAccommodation'; 
-    if (tabNormal === 'kexpenses') return 'GeneralExpenses';
+    if (tabNormal === 'kexpenses') return 'UnifiedExpense';
   }
 
   // --- INSTOCK MAPPINGS (Rich Inventory Template) ---
@@ -328,6 +326,20 @@ export const getTemplateForTab = (moduleId: string, tabId: string): TemplateType
     return 'PayableDashboard';
   }
 
+  // --- UNIFIED EXPENSE MAPPING FOR ALL-EXPENSES MODULE ---
+  if (moduleId === 'all-expenses') {
+    if (tabNormal === 'vgexpenses' || 
+        tabNormal === 'ziyam' || 
+        tabNormal === 'zcar' || 
+        tabNormal === 'zahran' || 
+        tabNormal === 'dad' || 
+        tabNormal === 'ramzanhaji.shares' || 
+        tabNormal === 'azeem.shares' ||
+        tabNormal === 'others.shares') {
+      return 'UnifiedExpense';
+    }
+  }
+
   // --- SPECIFIC SERVICES TEMPLATE MAPPING (4 tabs) ---
   if (moduleId === 'all-expenses') {
     if (tabNormal === 'classictravel' || tabNormal === 'office' || tabNormal === 'gem.license' || tabNormal === 'audit.accounts') {
@@ -396,7 +408,7 @@ export const getTemplateForTab = (moduleId: string, tabId: string): TemplateType
     if (tabNormal === 'cut.polish') return 'CutPolishExpenses';
     if (tabNormal === 'bkkticket') return 'TicketsVisa';
     if (tabNormal === 'bkkhotel') return 'HotelAccommodation';
-    if (tabNormal === 'texpenses') return 'GeneralExpenses';
+    if (tabNormal === 'texpenses') return 'UnifiedExpense';
   }
 
   if (moduleId === 'all-expenses' && tabNormal === 'exdashboard') {
@@ -441,11 +453,10 @@ export const getTemplateForTab = (moduleId: string, tabId: string): TemplateType
     if (tabNormal === 'cut.polish') return 'CutPolishExpenses';
     if (tabNormal === 'bkkticket') return 'TicketsVisa';
     if (tabNormal === 'bkkhotel') return 'HotelAccommodation';
-    if (tabNormal === 'texpenses') return 'GeneralExpenses';
+    if (tabNormal === 'texpenses') return 'UnifiedExpense';
   }
 
-  // --- GENERAL EXPENSES TEMPLATE MAPPING (remaining tabs not covered by UnifiedExpense) ---
-  // Note: KExpenses is handled in Kenya overrides section above
+  // --- ADDITIONAL TEMPLATE MAPPINGS ---
   if (moduleId === 'dada') {
     if (tabNormal === 'tickets.visa') {
       return 'TicketsVisa';

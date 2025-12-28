@@ -46,13 +46,11 @@ import { BKKCapitalTemplate } from './templates/BKKCapitalTemplate';
 import { PayableDashboardTemplate } from './templates/PayableDashboardTemplate';
 import { SupplierLedgerTemplate } from './templates/SupplierLedgerTemplate';
 import { PaymentDueDateTemplate } from './templates/PaymentDueDateTemplate';
-import { GeneralExpensesTemplate } from './templates/GeneralExpensesTemplate';
 import { CutPolishExpensesTemplate } from './templates/CutPolishExpensesTemplate';
 import { TicketsVisaTemplate } from './templates/TicketsVisaTemplate';
 import { PersonalSharesTemplate } from './templates/PersonalSharesTemplate';
 import { SpecificServicesTemplate } from './templates/SpecificServicesTemplate';
 import { HotelAccommodationTemplate } from './templates/HotelAccommodationTemplate';
-import { ExportChargesTemplate } from './templates/ExportChargesTemplate';
 import { UnifiedCapitalManagementTemplate } from './templates/UnifiedCapitalManagementTemplate';
 import { UnifiedPaymentLedgerTemplate } from './templates/UnifiedPaymentLedgerTemplate';
 import { UnifiedExpenseTemplate } from './templates/UnifiedExpenseTemplate';
@@ -200,13 +198,11 @@ export const ModuleView: React.FC = () => {
     if (templateType === 'BKKCapital') return <BKKCapitalTemplate {...props} />;
     if (templateType === 'SupplierLedger') return <SupplierLedgerTemplate {...props} />;
     if (templateType === 'PaymentDueDate') return <PaymentDueDateTemplate {...props} />;
-    if (templateType === 'GeneralExpenses') return <GeneralExpensesTemplate {...props} />;
     if (templateType === 'CutPolishExpenses') return <CutPolishExpensesTemplate {...props} />;
     if (templateType === 'TicketsVisa') return <TicketsVisaTemplate {...props} />;
     if (templateType === 'PersonalShares') return <PersonalSharesTemplate {...props} />;
     if (templateType === 'SpecificServices') return <SpecificServicesTemplate {...props} />;
     if (templateType === 'HotelAccommodation') return <HotelAccommodationTemplate {...props} />;
-    if (templateType === 'ExportCharges') return <ExportChargesTemplate {...props} />;
     if (templateType === 'UnifiedCapitalManagement') return <UnifiedCapitalManagementTemplate {...props} />;
     if (templateType === 'UnifiedPaymentLedger') return <UnifiedPaymentLedgerTemplate {...props} />;
     if (templateType === 'UnifiedExpense') return <UnifiedExpenseTemplate {...props} />;
@@ -312,13 +308,11 @@ export const ModuleView: React.FC = () => {
                    {[
                       { id: 'VisionGemsSpinel', name: 'Rich Inventory (Template 1)', desc: 'Full 41-column master inventory with multi-currency & rich details.', icon: <Gem className="text-purple-600"/> },
                       { id: 'VGExpenses', name: 'VG Style Ledger', desc: 'Consolidated financial ledger with IN/OUT/CHECKS categories.', icon: <ArrowRightLeft className="text-emerald-600"/> },
-                      { id: 'GeneralExpenses', name: 'General Expenses', desc: 'Operational expense tracking with multi-currency support and location tracking.', icon: <Wallet className="text-red-600"/> },
                       { id: 'CutPolishExpenses', name: 'Cut & Polish Expenses', desc: 'Track cutting and polishing jobs with weight-based calculations and per-carat costs.', icon: <Scissors className="text-emerald-600"/> },
                       { id: 'TicketsVisa', name: 'Tickets & Visa', desc: 'Track flight tickets and visa expenses with route, airline, and visa type tracking.', icon: <Ticket className="text-cyan-600"/> },
                       { id: 'PersonalShares', name: 'Personal Shares', desc: 'Track personal shares and partner distributions with out/in indicators and location tracking.', icon: <User className="text-green-600"/> },
                       { id: 'SpecificServices', name: 'Specific Services', desc: 'Track service expenses like travel, office rent, licenses, and accounting with vendor tracking.', icon: <Briefcase className="text-orange-600"/> },
                       { id: 'HotelAccommodation', name: 'Hotel & Accommodation', desc: 'Track hotel stays and accommodations with check-in/out dates, nights calculation, and cost per night.', icon: <Hotel className="text-pink-600"/> },
-                      { id: 'ExportCharges', name: 'Export Charges', desc: 'Track export-related charges and fees with reference numbers and authority tracking.', icon: <Package className="text-amber-600"/> },
                       { id: 'UnifiedCapitalManagement', name: 'Unified Capital Management', desc: 'Track capital injections and investments with multi-currency support and exchange rate tracking.', icon: <TrendingUp className="text-indigo-600"/> },
                       { id: 'UnifiedPaymentLedger', name: 'Unified Payment Ledger', desc: 'Track payments received with invoice amounts, outstanding balances, and payment status tracking.', icon: <CreditCard className="text-violet-600"/> },
                       { id: 'UnifiedExpense', name: 'Unified Expense', desc: 'Comprehensive expense tracking with multi-currency support, location tracking, and configurable fields.', icon: <Wallet className="text-red-600"/> },
