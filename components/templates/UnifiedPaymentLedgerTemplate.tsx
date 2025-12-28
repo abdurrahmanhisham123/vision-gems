@@ -12,7 +12,7 @@ interface PaymentItem {
   code: string;
   customerName: string; // Customer/Entity Name
   description: string;
-  invoiceAmount: number; // Original invoice/transaction amount
+  invoiceAmount: number; // Original invoice/transaction amount (Rs amount)
   currency: string; // USD, LKR, etc.
   paidAmount: number; // Amount paid
   outstandingAmount: number; // Outstanding amount (invoiceAmount - paidAmount)
@@ -23,6 +23,13 @@ interface PaymentItem {
   exchangeRate?: number; // Exchange rate if foreign currency
   convertedAmount?: number; // Amount converted to LKR
   company?: string; // Optional company
+  weight?: number; // Weight
+  deal?: string; // Deal information
+  percent?: number; // Percentage (%)
+  commission?: number; // Commission amount
+  finalAmount?: number; // Final Amount (separate from invoiceAmount)
+  halfPaid?: boolean; // Half Paid indicator
+  cleared?: boolean; // Cleared? indicator
   notes?: string;
 }
 
@@ -74,6 +81,20 @@ const PaymentDetailPanel: React.FC<{
     const outstanding = formData.invoiceAmount - formData.paidAmount;
     setFormData(prev => ({ ...prev, outstandingAmount: outstanding }));
     
+    // Auto-calculate commission if percent and invoiceAmount are provided
+    if (formData.percent && formData.invoiceAmount) {
+      const commission = (formData.invoiceAmount * formData.percent) / 100;
+      setFormData(prev => ({ ...prev, commission }));
+    }
+    
+    // Auto-calculate final amount (invoiceAmount + commission if commission exists)
+    if (formData.commission !== undefined) {
+      const finalAmount = formData.invoiceAmount + (formData.commission || 0);
+      setFormData(prev => ({ ...prev, finalAmount }));
+    } else {
+      setFormData(prev => ({ ...prev, finalAmount: formData.invoiceAmount }));
+    }
+    
     // Auto-update status based on amounts
     let newStatus: 'Paid' | 'Partial' | 'Pending' | 'Overdue' = 'Pending';
     if (outstanding <= 0) {
@@ -99,7 +120,7 @@ const PaymentDetailPanel: React.FC<{
     } else if (formData.currency === 'LKR') {
       setFormData(prev => ({ ...prev, convertedAmount: formData.paidAmount }));
     }
-  }, [formData.invoiceAmount, formData.paidAmount, formData.currency, formData.exchangeRate, formData.dueDate]);
+  }, [formData.invoiceAmount, formData.paidAmount, formData.currency, formData.exchangeRate, formData.dueDate, formData.percent, formData.commission]);
 
   const handleInputChange = (key: keyof PaymentItem, value: any) => {
     setFormData(prev => ({ ...prev, [key]: value }));
@@ -129,6 +150,17 @@ const PaymentDetailPanel: React.FC<{
   const handleExchangeRateChange = (rate: number) => {
     const converted = formData.paidAmount * rate;
     setFormData(prev => ({ ...prev, exchangeRate: rate, convertedAmount: converted }));
+  };
+
+  const handlePercentChange = (percent: number) => {
+    const commission = formData.invoiceAmount * (percent / 100);
+    const finalAmount = formData.invoiceAmount + commission;
+    setFormData(prev => ({ ...prev, percent, commission, finalAmount }));
+  };
+
+  const handleCommissionChange = (commission: number) => {
+    const finalAmount = formData.invoiceAmount + commission;
+    setFormData(prev => ({ ...prev, commission, finalAmount }));
   };
 
   const handleSave = () => {
@@ -174,8 +206,19 @@ const PaymentDetailPanel: React.FC<{
         {isEditing ? (
           type === 'select' && options ? (
             <select
-              value={value === undefined || value === null ? '' : value.toString()}
-              onChange={(e) => onInputChange(field, e.target.value)}
+              value={
+                typeof value === 'boolean' 
+                  ? (value ? 'Yes' : 'No')
+                  : (value === undefined || value === null ? '' : value.toString())
+              }
+              onChange={(e) => {
+                // Handle boolean fields specially
+                if (field === 'halfPaid' || field === 'cleared') {
+                  onInputChange(field, e.target.value === 'Yes');
+                } else {
+                  onInputChange(field, e.target.value);
+                }
+              }}
               className="w-full p-2 bg-stone-50 border border-stone-200 rounded-lg text-sm outline-none transition-all focus:border-violet-500 focus:ring-2 focus:ring-violet-500/10"
             >
               {options.map(opt => (
@@ -197,7 +240,7 @@ const PaymentDetailPanel: React.FC<{
           )
         ) : (
           <span className={`text-sm ${highlight ? 'font-bold text-violet-700' : 'font-medium text-stone-700'} ${isCurrency ? 'font-mono' : ''}`}>
-            {value === undefined || value === null || value === '' ? '-' : (typeof value === 'number' ? value.toLocaleString() : value)}
+            {value === undefined || value === null || value === '' ? '-' : (typeof value === 'boolean' ? (value ? 'Yes' : 'No') : (typeof value === 'number' ? value.toLocaleString() : value))}
           </span>
         )}
       </div>
@@ -254,13 +297,20 @@ const PaymentDetailPanel: React.FC<{
                 <Field label="Code" value={formData.code} field="code" isEditing={isEditing} onInputChange={handleInputChange} highlight />
                 <Field label="Customer/Entity Name *" value={formData.customerName} field="customerName" isEditing={isEditing} onInputChange={handleInputChange} />
                 <Field label="Description" value={formData.description} field="description" isEditing={isEditing} onInputChange={handleInputChange} />
+                <Field label="Weight" value={formData.weight} field="weight" isEditing={isEditing} onInputChange={handleInputChange} type="number" />
+                <Field label="Deal" value={formData.deal} field="deal" isEditing={isEditing} onInputChange={handleInputChange} />
                 <Field label="Currency *" value={formData.currency} field="currency" isEditing={isEditing} onInputChange={handleCurrencyChange} type="select" options={currencies} />
                 <Field label="Payment Method" value={formData.paymentMethod} field="paymentMethod" isEditing={isEditing} onInputChange={handleInputChange} type="select" options={paymentMethods} />
-                <Field label="Invoice Amount *" value={formData.invoiceAmount} field="invoiceAmount" isEditing={isEditing} onInputChange={handleInvoiceAmountChange} type="number" highlight isCurrency />
-                <Field label="Paid Amount *" value={formData.paidAmount} field="paidAmount" isEditing={isEditing} onInputChange={handlePaidAmountChange} type="number" highlight isCurrency />
+                <Field label="Rs Amount *" value={formData.invoiceAmount} field="invoiceAmount" isEditing={isEditing} onInputChange={handleInvoiceAmountChange} type="number" highlight isCurrency />
+                <Field label="% (Percent)" value={formData.percent} field="percent" isEditing={isEditing} onInputChange={handlePercentChange} type="number" />
+                <Field label="Commission" value={formData.commission} field="commission" isEditing={isEditing} onInputChange={handleCommissionChange} type="number" highlight isCurrency />
+                <Field label="Final Amount" value={formData.finalAmount} field="finalAmount" isEditing={false} onInputChange={handleInputChange} highlight isCurrency />
                 <Field label="Outstanding Amount" value={formData.outstandingAmount} field="outstandingAmount" isEditing={false} onInputChange={handleInputChange} highlight isCurrency />
+                <Field label="Half Paid" value={formData.halfPaid} field="halfPaid" isEditing={isEditing} onInputChange={handleInputChange} type="select" options={['No', 'Yes']} />
                 <Field label="Payment Date" value={formData.paymentDate} field="paymentDate" isEditing={isEditing} onInputChange={handleInputChange} type="date" />
                 <Field label="Due Date" value={formData.dueDate} field="dueDate" isEditing={isEditing} onInputChange={handleInputChange} type="date" />
+                <Field label="Paid / Not Paid" value={formData.status} field="status" isEditing={isEditing} onInputChange={handleInputChange} type="select" options={['Paid', 'Partial', 'Pending', 'Overdue']} />
+                <Field label="Cleared?" value={formData.cleared} field="cleared" isEditing={isEditing} onInputChange={handleInputChange} type="select" options={['No', 'Yes']} />
                 <Field label="Status" value={formData.status} field="status" isEditing={isEditing} onInputChange={handleInputChange} type="select" options={['Paid', 'Partial', 'Pending', 'Overdue']} />
                 {formData.currency !== 'LKR' && (
                   <>
@@ -333,7 +383,8 @@ export const UnifiedPaymentLedgerTemplate: React.FC<Props> = ({ moduleId, tabId,
         item.customerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
         (item.code && item.code.toLowerCase().includes(searchQuery.toLowerCase())) ||
         (item.description && item.description.toLowerCase().includes(searchQuery.toLowerCase())) ||
-        (item.company && item.company.toLowerCase().includes(searchQuery.toLowerCase()));
+        (item.company && item.company.toLowerCase().includes(searchQuery.toLowerCase())) ||
+        (item.deal && item.deal.toLowerCase().includes(searchQuery.toLowerCase()));
         
       return matchesSearch;
     }).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
@@ -498,7 +549,7 @@ export const UnifiedPaymentLedgerTemplate: React.FC<Props> = ({ moduleId, tabId,
                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-stone-300" size={18} />
                <input 
                   type="text" 
-                  placeholder="Search by customer, code, description, company..." 
+                  placeholder="Search by customer, code, description, company, deal..." 
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="w-full pl-11 pr-4 py-3 bg-stone-50/50 border border-stone-100 rounded-[20px] text-sm focus:ring-4 focus:ring-violet-500/5 focus:border-violet-300 outline-none transition-all placeholder-stone-300 text-stone-700" 
@@ -515,16 +566,23 @@ export const UnifiedPaymentLedgerTemplate: React.FC<Props> = ({ moduleId, tabId,
       {/* Desktop Table */}
       <div className="hidden lg:block bg-white rounded-[40px] border border-stone-200 shadow-sm overflow-hidden mb-24">
          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse min-w-[1400px]">
+            <table className="w-full text-left border-collapse min-w-[2000px]">
                <thead>
                   <tr className="bg-stone-50 border-b border-stone-200 text-[10px] font-black text-stone-400 uppercase tracking-[0.15em]">
                      <th className="p-6 pl-10">Date</th>
                      <th className="p-6">Code</th>
                      <th className="p-6">Customer</th>
+                     <th className="p-6">Weight</th>
+                     <th className="p-6">Deal</th>
+                     <th className="p-6">Rs Amount</th>
+                     <th className="p-6">%</th>
+                     <th className="p-6">Commission</th>
+                     <th className="p-6">Final Amount</th>
+                     <th className="p-6">Outstanding</th>
+                     <th className="p-6">Half Paid</th>
                      <th className="p-6">Status</th>
-                     <th className="p-6">Invoice Amount</th>
-                     <th className="p-6">Paid Amount</th>
-                     <th className="p-6 text-right pr-10">Outstanding</th>
+                     <th className="p-6">Cleared?</th>
+                     <th className="p-6 text-right pr-10">Paid Amount</th>
                   </tr>
                </thead>
                <tbody className="divide-y divide-stone-100 text-sm">
@@ -541,18 +599,33 @@ export const UnifiedPaymentLedgerTemplate: React.FC<Props> = ({ moduleId, tabId,
                            </span>
                         </td>
                         <td className="p-6 text-stone-600 font-medium">{item.customerName}</td>
+                        <td className="p-6 text-stone-600">{item.weight ? `${item.weight.toFixed(2)}ct` : <span className="text-stone-300">-</span>}</td>
+                        <td className="p-6 text-stone-600 max-w-xs truncate" title={item.deal}>{item.deal || <span className="text-stone-300">-</span>}</td>
+                        <td className="p-6 font-mono font-bold text-stone-900">{formatCurrency(item.invoiceAmount, item.currency)}</td>
+                        <td className="p-6 font-mono text-stone-600">{item.percent ? `${item.percent}%` : <span className="text-stone-300">-</span>}</td>
+                        <td className="p-6 font-mono font-bold text-stone-700">{item.commission ? formatCurrency(item.commission, item.currency) : <span className="text-stone-300">-</span>}</td>
+                        <td className="p-6 font-mono font-bold text-indigo-700">{item.finalAmount ? formatCurrency(item.finalAmount, item.currency) : formatCurrency(item.invoiceAmount, item.currency)}</td>
+                        <td className="p-6 font-mono font-bold text-red-700">{formatCurrency(item.outstandingAmount, item.currency)}</td>
+                        <td className="p-6">
+                           {item.halfPaid ? (
+                              <span className="px-2 py-1 rounded-full text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200">Yes</span>
+                           ) : (
+                              <span className="text-stone-300">-</span>
+                           )}
+                        </td>
                         <td className="p-6">
                            <span className={`px-2 py-1 rounded-lg text-[10px] font-bold uppercase border ${getStatusColor(item.status)}`}>
                               {item.status}
                            </span>
                         </td>
-                        <td className="p-6 font-mono font-bold text-stone-900">{formatCurrency(item.invoiceAmount, item.currency)}</td>
-                        <td className="p-6 font-mono font-bold text-violet-700">{formatCurrency(item.paidAmount, item.currency)}</td>
-                        <td className="p-6 text-right pr-10">
-                           <div className="font-black text-red-700">
-                              {formatCurrency(item.outstandingAmount, item.currency)}
-                           </div>
+                        <td className="p-6">
+                           {item.cleared ? (
+                              <span className="px-2 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">Yes</span>
+                           ) : (
+                              <span className="text-stone-300">-</span>
+                           )}
                         </td>
+                        <td className="p-6 text-right pr-10 font-mono font-bold text-violet-700">{formatCurrency(item.paidAmount, item.currency)}</td>
                      </tr>
                   ))}
                </tbody>
@@ -596,11 +669,54 @@ export const UnifiedPaymentLedgerTemplate: React.FC<Props> = ({ moduleId, tabId,
                   </div>
                )}
 
+               <div className="mb-4 relative z-10 space-y-2">
+                  {item.weight && (
+                     <div className="flex items-center gap-2 text-sm text-stone-600">
+                        <span className="text-stone-500">Weight:</span>
+                        <span className="font-medium">{item.weight.toFixed(2)}ct</span>
+                     </div>
+                  )}
+                  {item.deal && (
+                     <div className="flex items-center gap-2 text-sm text-stone-600">
+                        <span className="text-stone-500">Deal:</span>
+                        <span className="font-medium">{item.deal}</span>
+                     </div>
+                  )}
+                  {item.percent && (
+                     <div className="flex items-center gap-2 text-sm text-stone-600">
+                        <span className="text-stone-500">%:</span>
+                        <span className="font-medium">{item.percent}%</span>
+                     </div>
+                  )}
+                  {item.commission && (
+                     <div className="flex items-center gap-2 text-sm text-stone-600">
+                        <span className="text-stone-500">Commission:</span>
+                        <span className="font-medium">{formatCurrency(item.commission, item.currency)}</span>
+                     </div>
+                  )}
+                  {item.halfPaid && (
+                     <div className="flex items-center gap-2 text-sm">
+                        <span className="px-2 py-1 rounded-full text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200">Half Paid</span>
+                     </div>
+                  )}
+                  {item.cleared && (
+                     <div className="flex items-center gap-2 text-sm">
+                        <span className="px-2 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">Cleared</span>
+                     </div>
+                  )}
+               </div>
+
                <div className="mb-4 relative z-10">
                   <div className="flex items-center justify-between text-sm mb-2">
-                     <span className="text-stone-500">Invoice:</span>
+                     <span className="text-stone-500">Rs Amount:</span>
                      <span className="font-bold text-stone-900">{formatCurrency(item.invoiceAmount, item.currency)}</span>
                   </div>
+                  {item.finalAmount && item.finalAmount !== item.invoiceAmount && (
+                     <div className="flex items-center justify-between text-sm mb-2">
+                        <span className="text-stone-500">Final Amount:</span>
+                        <span className="font-bold text-indigo-700">{formatCurrency(item.finalAmount, item.currency)}</span>
+                     </div>
+                  )}
                   <div className="flex items-center justify-between text-sm mb-2">
                      <span className="text-stone-500">Paid:</span>
                      <span className="font-bold text-violet-700">{formatCurrency(item.paidAmount, item.currency)}</span>
@@ -660,6 +776,13 @@ const PaymentForm: React.FC<{
     exchangeRate: initialData?.exchangeRate,
     convertedAmount: initialData?.convertedAmount,
     company: initialData?.company || '',
+    weight: initialData?.weight,
+    deal: initialData?.deal || '',
+    percent: initialData?.percent,
+    commission: initialData?.commission,
+    finalAmount: initialData?.finalAmount,
+    halfPaid: initialData?.halfPaid || false,
+    cleared: initialData?.cleared || false,
     notes: initialData?.notes || '',
   });
 
@@ -667,6 +790,20 @@ const PaymentForm: React.FC<{
     // Auto-calculate outstanding amount
     const outstanding = (formData.invoiceAmount || 0) - (formData.paidAmount || 0);
     setFormData(prev => ({ ...prev, outstandingAmount: outstanding }));
+    
+    // Auto-calculate commission if percent and invoiceAmount are provided
+    if (formData.percent && formData.invoiceAmount) {
+      const commission = (formData.invoiceAmount * formData.percent) / 100;
+      setFormData(prev => ({ ...prev, commission }));
+    }
+    
+    // Auto-calculate final amount (invoiceAmount + commission if commission exists)
+    if (formData.commission !== undefined) {
+      const finalAmount = (formData.invoiceAmount || 0) + (formData.commission || 0);
+      setFormData(prev => ({ ...prev, finalAmount }));
+    } else {
+      setFormData(prev => ({ ...prev, finalAmount: formData.invoiceAmount }));
+    }
     
     // Auto-update status
     let newStatus: 'Paid' | 'Partial' | 'Pending' | 'Overdue' = 'Pending';
@@ -690,7 +827,7 @@ const PaymentForm: React.FC<{
     } else if (formData.currency === 'LKR') {
       setFormData(prev => ({ ...prev, convertedAmount: formData.paidAmount }));
     }
-  }, [formData.invoiceAmount, formData.paidAmount, formData.currency, formData.exchangeRate, formData.dueDate]);
+  }, [formData.invoiceAmount, formData.paidAmount, formData.currency, formData.exchangeRate, formData.dueDate, formData.percent, formData.commission]);
 
   const handleCurrencyChange = (currency: string) => {
     const rate = exchangeRates[currency] || 1;
@@ -718,6 +855,17 @@ const PaymentForm: React.FC<{
     setFormData(prev => ({ ...prev, exchangeRate: rate, convertedAmount: converted }));
   };
 
+  const handlePercentChange = (percent: number) => {
+    const commission = (formData.invoiceAmount || 0) * (percent / 100);
+    const finalAmount = (formData.invoiceAmount || 0) + commission;
+    setFormData(prev => ({ ...prev, percent, commission, finalAmount }));
+  };
+
+  const handleCommissionChange = (commission: number) => {
+    const finalAmount = (formData.invoiceAmount || 0) + commission;
+    setFormData(prev => ({ ...prev, commission, finalAmount }));
+  };
+
   const handleSubmit = () => {
     if (!formData.customerName || !formData.invoiceAmount || !formData.currency) {
       return alert('Customer Name, Invoice Amount, and Currency are required');
@@ -740,6 +888,13 @@ const PaymentForm: React.FC<{
       exchangeRate: formData.exchangeRate,
       convertedAmount: formData.convertedAmount,
       company: formData.company,
+      weight: formData.weight,
+      deal: formData.deal,
+      percent: formData.percent,
+      commission: formData.commission,
+      finalAmount: formData.finalAmount,
+      halfPaid: formData.halfPaid || false,
+      cleared: formData.cleared || false,
       notes: formData.notes,
     });
   };
@@ -799,6 +954,30 @@ const PaymentForm: React.FC<{
 
              <div className="grid grid-cols-2 gap-4">
                 <div>
+                   <label className="block text-xs font-bold text-stone-500 uppercase mb-1.5 ml-1">Weight</label>
+                   <input 
+                      type="number" 
+                      step="0.01"
+                      value={formData.weight || ''} 
+                      onChange={e => setFormData({...formData, weight: Number(e.target.value)})}
+                      className="w-full p-2.5 bg-stone-50 border border-stone-200 rounded-xl text-sm focus:ring-2 focus:ring-violet-500/20 focus:border-violet-500 outline-none" 
+                      placeholder="Optional"
+                   />
+                </div>
+                <div>
+                   <label className="block text-xs font-bold text-stone-500 uppercase mb-1.5 ml-1">Deal</label>
+                   <input 
+                      type="text" 
+                      value={formData.deal || ''} 
+                      onChange={e => setFormData({...formData, deal: e.target.value})}
+                      className="w-full p-2.5 bg-stone-50 border border-stone-200 rounded-xl text-sm focus:ring-2 focus:ring-violet-500/20 focus:border-violet-500 outline-none" 
+                      placeholder="Optional"
+                   />
+                </div>
+             </div>
+
+             <div className="grid grid-cols-2 gap-4">
+                <div>
                    <label className="block text-xs font-bold text-stone-500 uppercase mb-1.5 ml-1">Currency *</label>
                    <select 
                       value={formData.currency} 
@@ -826,7 +1005,7 @@ const PaymentForm: React.FC<{
 
              <div className="grid grid-cols-2 gap-4">
                 <div>
-                   <label className="block text-xs font-bold text-stone-500 uppercase mb-1.5 ml-1">Invoice Amount *</label>
+                   <label className="block text-xs font-bold text-stone-500 uppercase mb-1.5 ml-1">Rs Amount *</label>
                    <input 
                       type="number" 
                       value={formData.invoiceAmount} 
@@ -840,6 +1019,43 @@ const PaymentForm: React.FC<{
                       placeholder="0.00"
                    />
                 </div>
+                <div>
+                   <label className="block text-xs font-bold text-stone-500 uppercase mb-1.5 ml-1">% (Percent)</label>
+                   <input 
+                      type="number" 
+                      step="0.01"
+                      value={formData.percent || ''} 
+                      onChange={e => handlePercentChange(Number(e.target.value))}
+                      className="w-full p-2.5 bg-stone-50 border border-stone-200 rounded-xl text-sm focus:ring-2 focus:ring-violet-500/20 focus:border-violet-500 outline-none" 
+                      placeholder="Optional"
+                   />
+                </div>
+             </div>
+
+             <div className="grid grid-cols-2 gap-4">
+                <div>
+                   <label className="block text-xs font-bold text-stone-500 uppercase mb-1.5 ml-1">Commission</label>
+                   <input 
+                      type="number" 
+                      value={formData.commission || ''} 
+                      onChange={e => handleCommissionChange(Number(e.target.value))}
+                      className="w-full p-2.5 bg-stone-50 border border-stone-200 rounded-xl text-sm font-bold focus:ring-2 focus:ring-violet-500/20 focus:border-violet-500 outline-none" 
+                      placeholder="Auto-calculated"
+                   />
+                </div>
+                <div>
+                   <label className="block text-xs font-bold text-stone-500 uppercase mb-1.5 ml-1">Final Amount</label>
+                   <input 
+                      type="number" 
+                      value={formData.finalAmount || ''} 
+                      disabled
+                      className="w-full p-2.5 bg-stone-100 border border-stone-200 rounded-xl text-sm font-bold text-indigo-600" 
+                      placeholder="Auto-calculated"
+                   />
+                </div>
+             </div>
+
+             <div className="grid grid-cols-2 gap-4">
                 <div>
                    <label className="block text-xs font-bold text-stone-500 uppercase mb-1.5 ml-1">Paid Amount *</label>
                    <input 
@@ -855,17 +1071,41 @@ const PaymentForm: React.FC<{
                       placeholder="0.00"
                    />
                 </div>
+                <div>
+                   <label className="block text-xs font-bold text-stone-500 uppercase mb-1.5 ml-1">Outstanding Amount</label>
+                   <input 
+                      type="number" 
+                      value={formData.outstandingAmount} 
+                      disabled
+                      className="w-full p-2.5 bg-stone-100 border border-stone-200 rounded-xl text-sm font-bold text-stone-600" 
+                      placeholder="Auto-calculated"
+                   />
+                </div>
              </div>
 
-             <div>
-                <label className="block text-xs font-bold text-stone-500 uppercase mb-1.5 ml-1">Outstanding Amount</label>
-                <input 
-                   type="number" 
-                   value={formData.outstandingAmount} 
-                   disabled
-                   className="w-full p-2.5 bg-stone-100 border border-stone-200 rounded-xl text-sm font-bold text-stone-600" 
-                   placeholder="Auto-calculated"
-                />
+             <div className="grid grid-cols-2 gap-4">
+                <div>
+                   <label className="block text-xs font-bold text-stone-500 uppercase mb-1.5 ml-1">Half Paid</label>
+                   <select 
+                      value={formData.halfPaid ? 'Yes' : 'No'} 
+                      onChange={e => setFormData({...formData, halfPaid: e.target.value === 'Yes'})}
+                      className="w-full p-2.5 bg-stone-50 border border-stone-200 rounded-xl text-sm focus:ring-2 focus:ring-violet-500/20 focus:border-violet-500 outline-none"
+                   >
+                      <option value="No">No</option>
+                      <option value="Yes">Yes</option>
+                   </select>
+                </div>
+                <div>
+                   <label className="block text-xs font-bold text-stone-500 uppercase mb-1.5 ml-1">Cleared?</label>
+                   <select 
+                      value={formData.cleared ? 'Yes' : 'No'} 
+                      onChange={e => setFormData({...formData, cleared: e.target.value === 'Yes'})}
+                      className="w-full p-2.5 bg-stone-50 border border-stone-200 rounded-xl text-sm focus:ring-2 focus:ring-violet-500/20 focus:border-violet-500 outline-none"
+                   >
+                      <option value="No">No</option>
+                      <option value="Yes">Yes</option>
+                   </select>
+                </div>
              </div>
 
              <div className="grid grid-cols-2 gap-4">

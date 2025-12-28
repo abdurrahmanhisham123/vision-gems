@@ -59,7 +59,6 @@ export type TemplateType =
   | 'UnifiedPurchasing'
   | 'UnifiedExport'
   | 'UnifiedStatement'
-  | 'UnifiedSheet'
   | 'DealRecord';
 
 /**
@@ -130,10 +129,10 @@ export const getTemplateForTab = (moduleId: string, tabId: string): TemplateType
     }
   }
 
-  // Individual Customer Ledger Tabs (27 tabs) - Module: outstanding
+  // Individual Customer Ledger Tabs (29 tabs) - Module: outstanding
   if (moduleId === 'outstanding') {
     const customerLedgerTabs = [
-      'zahran', 'ruzaiksales', 'beruwalasales', 'sajithonline', 'ziyam', 
+      'zahran', 'ruzaiksales', 'ruzaik sales', 'russeqsales', 'beruwalasales', 'sajithonline', 'ziyam', 
       'infazhaji', 'nusrathali', 'binara', 'mikdarhaji', 'rameesnana', 
       'shimar', 'ruqshan', 'faizeenhaj', 'sharikhaj', 'fazeel', 
       'azeemcolo', 'kadarhaj.colo', 'althafhaj', 'bangkoksales', 'sadam bkk', 
@@ -190,13 +189,6 @@ export const getTemplateForTab = (moduleId: string, tabId: string): TemplateType
   }
   // Note: StatementReport template is legacy and not actively mapped to any tabs
 
-  // --- UNIFIED SHEET/EXPENSE LOG MAPPING (5-8 tabs) ---
-  if (moduleId === 'all-expenses' && (tabNormal === 'sheet19' || tabNormal === 'sheet21' || tabNormal === 'sheet23')) {
-    return 'UnifiedSheet';
-  }
-  if (moduleId === 'kenya' && tabNormal === 'sheet19') {
-    return 'UnifiedSheet';
-  }
 
   // --- UNIFIED EXPORT MAPPING (8-10 tabs) ---
   if (moduleId === 'kenya' && tabNormal === 'export') {
@@ -507,11 +499,10 @@ export const getTemplateForTab = (moduleId: string, tabId: string): TemplateType
   const financialConfig = getFinancialConfig(moduleId, tabId);
   if (financialConfig) return 'CapitalManagement';
 
-  // Check if this should use UnifiedSheet instead of ExpenseLog
+  // Check expense config (now uses ExpenseLog template)
   const expenseConfig = getExpenseConfig(moduleId, tabId);
   if (expenseConfig) {
-    // Use UnifiedSheet for all expense config tabs to consolidate
-    return 'UnifiedSheet';
+    return 'ExpenseLog';
   }
 
   if (moduleId === 'madagascar' && (tabNormal === 'invoice' || tabNormal === 'invoice bkk')) {
@@ -532,8 +523,8 @@ export const getTemplateForTab = (moduleId: string, tabId: string): TemplateType
     if (tabLower === 'stone shapes' || tabLower.includes('important')) return 'ReferenceData'; 
     return 'Inventory';
   }
-  // all-expenses module tabs now use UnifiedSheet
-  if (moduleId === 'all-expenses') return 'UnifiedSheet';
+  // all-expenses module tabs now use ExpenseLog
+  if (moduleId === 'all-expenses') return 'ExpenseLog';
   if (moduleId === 'payable') {
     if (tabLower === 'name') return 'SimpleList';
     return 'PaymentTracking';
@@ -542,8 +533,8 @@ export const getTemplateForTab = (moduleId: string, tabId: string): TemplateType
   if (isTripModule) {
     // Azeem in vgtz is handled above as UnifiedExpense
     if (tabLower === 'azeem' && moduleId !== 'vgtz') return 'PaymentTracking';
-    // Sheet tabs and numeric tabs now use UnifiedSheet
-    if (tabLower.match(/^\d+/) || tabLower.includes('sheet')) return 'UnifiedSheet';
+    // Sheet tabs and numeric tabs now use ExpenseLog
+    if (tabLower.match(/^\d+/) || tabLower.includes('sheet')) return 'ExpenseLog';
   }
   if (tabLower.includes('stock')) return 'Inventory';
   if (tabLower.includes('payment')) return 'PaymentTracking';
