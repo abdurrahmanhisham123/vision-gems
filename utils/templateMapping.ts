@@ -92,7 +92,8 @@ export type TemplateType =
   | 'UnifiedExpense'
   | 'UnifiedDashboard'
   | 'UnifiedPurchasing'
-  | 'UnifiedExport';
+  | 'UnifiedExport'
+  | 'UnifiedStatement';
 
 /**
  * Persists a template assignment for a custom-added tab.
