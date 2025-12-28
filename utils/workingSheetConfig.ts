@@ -31,44 +31,7 @@ export interface WorkingSheetConfig {
 }
 
 export const WORKING_SHEET_CONFIGS: WorkingSheetConfig[] = [
-  // 1. Sheet19 (AllExpenses) - Capital Tracking + Statement
-  {
-    tabName: "Sheet19",
-    moduleId: "all-expenses",
-    sheetType: "capital_tracking",
-    themeColor: "#64748B", // Slate
-    title: "Capital Tracking & Statement",
-    description: "Track capital sources and daily transactions with running balance.",
-    hasRunningBalance: true,
-    showTotal: true
-  },
-  
-  // 2. Sheet21 (AllExpenses) - Transaction Log
-  {
-    tabName: "Sheet21",
-    moduleId: "all-expenses",
-    sheetType: "transaction_log",
-    themeColor: "#64748B",
-    title: "Transaction Log",
-    description: "General log of financial transactions.",
-    hasRunningBalance: false,
-    showTotal: true
-  },
-  
-  // 3. Sheet23 (AllExpenses) - Financial Statement (IN/OUT)
-  {
-    tabName: "Sheet23",
-    moduleId: "all-expenses",
-    sheetType: "statement",
-    themeColor: "#64748B",
-    title: "Financial Statement",
-    description: "Comprehensive IN/OUT statement with running balance calculation.",
-    hasRunningBalance: true,
-    hasInOutColumns: true,
-    showTotal: true
-  },
-  
-  // 4. Sheet19 (Kenya) - Expense Template
+  // 1. Sheet19 (Kenya) - Expense Template
   {
     tabName: "Sheet19",
     moduleId: "kenya",

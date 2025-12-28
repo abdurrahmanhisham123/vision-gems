@@ -25,7 +25,7 @@ export const APP_MODULES: ModuleConfig[] = [
     icon: 'Package',
     tabs: [
       'Export', 'Export -invoice', 'Spinel bkk', 'Tsv bkk', 'Tsv sold', 'Mix semi bkk', 
-      'Sapphire bkk', 'Ru- bkk 1', 'Ru-bkk2', 'Ru-bkk-16042025', 'China'
+      'Sapphire bkk', 'Ru- bkk 1', 'Ru-bkk2', 'Ru-bkk-16042025'
     ]
   },
   // 2. Vision Gems (Main)
@@ -77,7 +77,7 @@ export const APP_MODULES: ModuleConfig[] = [
       'ExDashboard', 'VGExpenses', 'Cut.polish', 'Ziyam', 'Zcar', 'Zahran', 'DAD', 
       'Ramzanhaji.Shares', 'Azeem.Shares', 'Others.Shares', 'Classictravel', 
       'Online.Ticket', 'Personal Ticket Visa', 'Office', 'Gem.license', 
-      'Audit.Accounts', 'Fawazwife.Shares', 'Sheet19', 'Sheet21', 'Sheet23'
+      'Audit.Accounts', 'Fawazwife.Shares'
     ]
   },
   // 6. Outstanding
