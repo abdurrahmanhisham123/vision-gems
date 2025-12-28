@@ -26,14 +26,6 @@ import { PurchaseJobTemplate, ExportInvoiceTemplate, TravelTicketsTemplate } fro
 import { LotBasedInventoryTemplate } from './templates/LotBasedInventoryTemplate';
 import { BatchPurchaseTemplate } from './templates/BatchPurchaseTemplate';
 import { MixedInventoryTemplate } from './templates/MixedInventoryTemplate';
-import { TsvSoldTemplate } from './templates/TsvSoldTemplate';
-import { TsvBKKTemplate } from './templates/TsvBKKTemplate';
-import { MixSemiBKKTemplate } from './templates/MixSemiBKKTemplate';
-import { SpinelBKKTemplate } from './templates/SpinelBKKTemplate';
-import { SapphireBKKTemplate } from './templates/SapphireBKKTemplate';
-import { RuBkk1Template } from './templates/RuBkk1Template';
-import { RuBkk2Template } from './templates/RuBkk2Template';
-import { RuBkk160425Template } from './templates/RuBkk160425Template';
 import { ChinaTemplate } from './templates/ChinaTemplate';
 import { ExportInvoiceMaster } from './templates/ExportInvoiceMaster';
 import { ExpenseLogTemplate } from './templates/ExpenseLogTemplate';
@@ -47,35 +39,12 @@ import { WorkingSheetTemplate } from './templates/WorkingSheetTemplate';
 import { SpecializedRecordTemplate } from './templates/SpecializedRecordTemplate';
 import { VisionGemsSpinelTemplate } from './templates/VisionGemsSpinelTemplate';
 import { VGOldStockTemplate } from './templates/VGOldStockTemplate';
-import { CutPolishTemplate } from './templates/CutPolishTemplate';
 import { AllExpensesDashboardTemplate } from './templates/AllExpensesDashboardTemplate';
 import { VGExpensesTemplate } from './templates/VGExpensesTemplate'; 
-import { ClassicTravelTemplate } from './templates/ClassicTravelTemplate'; 
-import { SLExpensesTemplate } from './templates/SLExpensesTemplate';
-import { BKKTicketsTemplate } from './templates/BKKTicketsTemplate'; 
-import { BKKExpensesTemplate } from './templates/BKKExpensesTemplate';
-import { BKKApartmentTemplate } from './templates/BKKApartmentTemplate';
 import { BKKExportChargeTemplate } from './templates/BKKExportChargeTemplate';
 import { BKKCapitalTemplate } from './templates/BKKCapitalTemplate';
-import { BKKPaymentTemplate } from './templates/BKKPaymentTemplate';
-import { BKKStatementTemplate } from './templates/BKKStatementTemplate';
-import { OnlineTicketsTemplate } from './templates/OnlineTicketsTemplate';
-import { OfficeExpensesTemplate } from './templates/OfficeExpensesTemplate';
-import { SGPaymentReceivedTemplate } from './templates/SGPaymentReceivedTemplate';
-import { InStocksCategoryTemplate } from './templates/InStocksCategoryTemplate';
 import { PayableDashboardTemplate } from './templates/PayableDashboardTemplate';
-import { GemLicenseTemplate } from './templates/GemLicenseTemplate';
-import { AuditAccountsTemplate } from './templates/AuditAccountsTemplate';
-import { PartnerSharesTemplate } from './templates/PartnerSharesTemplate';
-import { ZahranLedgerTemplate } from './templates/ZahranLedgerTemplate';
-import { BangkokLedgerTemplate } from './templates/BangkokLedgerTemplate';
-import { PaymentReceivedTemplate } from './templates/PaymentReceivedTemplate';
 import { SupplierLedgerTemplate } from './templates/SupplierLedgerTemplate';
-import { KenyaExportTemplate } from './templates/KenyaExportTemplate';
-import { KenyaTravelingTemplate } from './templates/KenyaTravelingTemplate';
-import { KenyaPurchasingTemplate } from './templates/KenyaPurchasingTemplate';
-import { KenyaExpenseTemplate } from './templates/KenyaExpenseTemplate';
-import { KenyaCapitalTemplate } from './templates/KenyaCapitalTemplate';
 import { PaymentDueDateTemplate } from './templates/PaymentDueDateTemplate';
 import { GeneralExpensesTemplate } from './templates/GeneralExpensesTemplate';
 import { CutPolishExpensesTemplate } from './templates/CutPolishExpensesTemplate';
@@ -92,13 +61,14 @@ import { UnifiedPurchasingTemplate } from './templates/UnifiedPurchasingTemplate
 import { UnifiedExportTemplate } from './templates/UnifiedExportTemplate';
 import { UnifiedStatementTemplate } from './templates/UnifiedStatementTemplate';
 import { UnifiedSheetTemplate } from './templates/UnifiedSheetTemplate';
+import { DealRecordTemplate } from './templates/DealRecordTemplate';
 
 import { 
   Eye, Settings2, X, ArrowUp, ArrowDown, 
   GripVertical, Plus, Trash2, 
   ChevronRight, ChevronLeft, LayoutPanelLeft,
   FolderClosed, FolderOpen,
-  Gem, Wallet, DollarSign, List, ArrowLeft, CheckCircle2, ArrowRightLeft, Scissors, Ticket, User, Briefcase, Hotel, Package, TrendingUp, CreditCard, ShoppingBag, Plane, FileText, ClipboardList
+  Gem, Wallet, DollarSign, List, ArrowLeft, CheckCircle2, ArrowRightLeft, Scissors, Ticket, User, Briefcase, Hotel, Package, TrendingUp, CreditCard, ShoppingBag, Plane, FileText, ClipboardList, Handshake
 } from 'lucide-react';
 
 export const ModuleView: React.FC = () => {
@@ -222,36 +192,13 @@ export const ModuleView: React.FC = () => {
         if (dashboardConfig) return <AllExpensesDashboardTemplate config={dashboardConfig} {...props} />;
         return <div className="p-8 text-center text-red-500">Configuration not found</div>;
     }
-    if (templateType === 'PayableDashboard') return < PayableDashboardTemplate {...props} />;
-    if (templateType === 'CutPolish') return <CutPolishTemplate {...props} />;
+    if (templateType === 'PayableDashboard') return <PayableDashboardTemplate {...props} />;
     if (templateType === 'VGOldStock') return <VGOldStockTemplate />;
     if (templateType === 'VisionGemsSpinel') return <VisionGemsSpinelTemplate {...props} />;
     if (templateType === 'VGExpenses') return <VGExpensesTemplate {...props} />;
-    if (templateType === 'ClassicTravel') return <ClassicTravelTemplate />;
-    if (templateType === 'SLExpenses') return <SLExpensesTemplate {...props} />;
-    if (templateType === 'BKKTickets') return <BKKTicketsTemplate {...props} />;
-    if (templateType === 'BKKExpenses') return <BKKExpensesTemplate {...props} />;
-    if (templateType === 'BKKApartment') return <BKKApartmentTemplate {...props} />;
     if (templateType === 'BKKExportCharge') return <BKKExportChargeTemplate {...props} />;
     if (templateType === 'BKKCapital') return <BKKCapitalTemplate {...props} />;
-    if (templateType === 'BKKPayment') return <BKKPaymentTemplate {...props} />;
-    if (templateType === 'BKKStatement') return <BKKStatementTemplate {...props} />;
-    if (templateType === 'OnlineTickets') return <OnlineTicketsTemplate {...props} />;
-    if (templateType === 'OfficeExpenses') return <OfficeExpensesTemplate {...props} />;
-    if (templateType === 'SGPaymentReceived') return <SGPaymentReceivedTemplate {...props} />;
-    if (templateType === 'InStocksCategory') return <InStocksCategoryTemplate {...props} />;
-    if (templateType === 'GemLicense') return <GemLicenseTemplate {...props} />;
-    if (templateType === 'AuditAccounts') return <AuditAccountsTemplate {...props} />;
-    if (templateType === 'PartnerShares') return <PartnerSharesTemplate {...props} />;
-    if (templateType === 'ZahranLedger') return <ZahranLedgerTemplate {...props} />;
-    if (templateType === 'BangkokLedger') return <BangkokLedgerTemplate {...props} />;
-    if (templateType === 'PaymentReceived') return <PaymentReceivedTemplate {...props} />;
     if (templateType === 'SupplierLedger') return <SupplierLedgerTemplate {...props} />;
-    if (templateType === 'KenyaExport') return <KenyaExportTemplate />;
-    if (templateType === 'KenyaTraveling') return <KenyaTravelingTemplate />;
-    if (templateType === 'KenyaPurchasing') return <KenyaPurchasingTemplate {...props} />;
-    if (templateType === 'KenyaExpense') return <KenyaExpenseTemplate {...props} />;
-    if (templateType === 'KenyaCapital') return <KenyaCapitalTemplate {...props} />;
     if (templateType === 'PaymentDueDate') return <PaymentDueDateTemplate {...props} />;
     if (templateType === 'GeneralExpenses') return <GeneralExpensesTemplate {...props} />;
     if (templateType === 'CutPolishExpenses') return <CutPolishExpensesTemplate {...props} />;
@@ -268,6 +215,7 @@ export const ModuleView: React.FC = () => {
     if (templateType === 'UnifiedExport') return <UnifiedExportTemplate {...props} />;
     if (templateType === 'UnifiedStatement') return <UnifiedStatementTemplate {...props} />;
     if (templateType === 'UnifiedSheet') return <UnifiedSheetTemplate {...props} />;
+    if (templateType === 'DealRecord') return <DealRecordTemplate {...props} />;
 
     const specializedConfig = getSpecializedRecordConfig(moduleId!, tabId!);
     if (specializedConfig) return <SpecializedRecordTemplate config={specializedConfig} {...props} />;
@@ -308,14 +256,6 @@ export const ModuleView: React.FC = () => {
       case 'TravelTickets': return <TravelTicketsTemplate {...props} />;
       case 'StatementReport': return <StatementReportTemplate {...props} />;
       case 'SimpleList': return <SimpleListTemplate {...props} />;
-      case 'TsvSold': return <TsvSoldTemplate {...props} />;
-      case 'TsvBKK': return <TsvBKKTemplate {...props} />;
-      case 'MixSemiBKK': return <MixSemiBKKTemplate {...props} />;
-      case 'SpinelBKK': return <SpinelBKKTemplate {...props} />;
-      case 'SapphireBKK': return <SapphireBKKTemplate {...props} />;
-      case 'RuBkk1': return <RuBkk1Template {...props} />;
-      case 'RuBkk2': return <RuBkk2Template {...props} />;
-      case 'RuBkk160425': return <RuBkk160425Template {...props} />;
       case 'China': return <ChinaTemplate {...props} />;
       default: return <InventoryTemplate {...props} />;
     }
@@ -386,6 +326,7 @@ export const ModuleView: React.FC = () => {
                       { id: 'UnifiedExport', name: 'Unified Export', desc: 'Track export transactions with company details, export types, reference numbers, destinations, and multi-currency support.', icon: <Plane className="text-sky-600"/> },
                       { id: 'UnifiedStatement', name: 'Unified Statement Report', desc: 'Consolidated bank and cash ledger tracking with company, account, location, and person tracking.', icon: <FileText className="text-violet-600"/> },
                       { id: 'UnifiedSheet', name: 'Unified Sheet/Expense Log', desc: 'Simple expense log for sheet tabs with date, description, amount, currency, category, and vendor tracking.', icon: <ClipboardList className="text-slate-600"/> },
+                      { id: 'DealRecord', name: 'Payment Received', desc: 'Track payments received with company, date, code, name, description, weight, deal information, and amount fields.', icon: <Handshake className="text-red-600"/> },
                    ].map(tpl => (
                       <button 
                         key={tpl.id}

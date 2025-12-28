@@ -28,14 +28,6 @@ export type TemplateType =
   | 'LotBasedInventory' 
   | 'BatchPurchase' 
   | 'MixedInventory'
-  | 'TsvSold'
-  | 'TsvBKK'
-  | 'MixSemiBKK'
-  | 'SpinelBKK'
-  | 'SapphireBKK'
-  | 'RuBkk1'
-  | 'RuBkk2'
-  | 'RuBkk160425'
   | 'China'
   | 'ExportInvoiceMaster'
   | 'ExpenseLog'
@@ -50,35 +42,12 @@ export type TemplateType =
   | 'SpecializedRecord'
   | 'VisionGemsSpinel'
   | 'VGOldStock'
-  | 'CutPolish'
   | 'VGExpenses'
   | 'AllExpensesDashboard'
-  | 'ClassicTravel'
-  | 'SLExpenses'
-  | 'BKKTickets'
-  | 'BKKExpenses'
-  | 'BKKApartment'
   | 'BKKExportCharge'
   | 'BKKCapital'
-  | 'BKKPayment'
-  | 'BKKStatement'
-  | 'OnlineTickets'
-  | 'OfficeExpenses'
-  | 'SGPaymentReceived'
-  | 'InStocksCategory'
   | 'PayableDashboard'
-  | 'GemLicense'
-  | 'AuditAccounts'
-  | 'PartnerShares'
-  | 'ZahranLedger'
-  | 'BangkokLedger'
-  | 'PaymentReceived'
   | 'SupplierLedger'
-  | 'KenyaExport'
-  | 'KenyaTraveling'
-  | 'KenyaPurchasing'
-  | 'KenyaExpense'
-  | 'KenyaCapital'
   | 'PaymentDueDate'
   | 'GeneralExpenses'
   | 'CutPolishExpenses'
@@ -94,7 +63,8 @@ export type TemplateType =
   | 'UnifiedPurchasing'
   | 'UnifiedExport'
   | 'UnifiedStatement'
-  | 'UnifiedSheet';
+  | 'UnifiedSheet'
+  | 'DealRecord';
 
 /**
  * Persists a template assignment for a custom-added tab.
@@ -145,14 +115,17 @@ export const getTemplateForTab = (moduleId: string, tabId: string): TemplateType
 
   // --- UNIFIED PAYMENT LEDGER MAPPING (36 tabs) ---
   // Company Payment Summary Tabs - Module: outstanding
-  // VG Style Ledger tabs (6 tabs) - using VGExpenses template
+  // Deal Record tabs (5 tabs) - using DealRecord template
   if (moduleId === 'outstanding') {
     if (tabNormal === 'sg.payment.received' || 
         tabNormal === 'madagascar.payment.received' || 
         tabNormal === 'k.payment.received' || 
         tabNormal === 'vg.r.payment.received' || 
-        tabNormal === 'vg.payment.received' || 
-        tabNormal === 'vg.t.payment.received') {
+        tabNormal === 'vg.payment.received') {
+      return 'DealRecord';
+    }
+    // VG.T.Payment.Received still uses VGExpenses
+    if (tabNormal === 'vg.t.payment.received') {
       return 'VGExpenses';
     }
     // Other payment received tabs still use UnifiedPaymentLedger
