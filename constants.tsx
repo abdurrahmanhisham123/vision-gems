@@ -61,7 +61,7 @@ export const APP_MODULES: ModuleConfig[] = [
     description: 'Secondary company (Read Only)',
     icon: 'GalleryVerticalEnd',
     tabs: [
-      'DashboardGEMS', 'Dash', 'Mahenge', 'Spinel', 'Blue.Sapphire', 'Cut.polish', 
+      'DashboardGEMS', 'Mahenge', 'Spinel', 'Blue.Sapphire', 'Cut.polish', 
       'SL.Expenses', 'BKkticket', 'BKKExport', 'BKKExpenses', 'BKKHotel', 
       'Purchasing', 'Capital', 'Stone Shapes', 'TExpenses', 'Important', 'Copy of Mahenge'
     ]

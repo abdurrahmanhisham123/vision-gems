@@ -144,15 +144,19 @@ export const getTemplateForTab = (moduleId: string, tabId: string): TemplateType
   }
 
   // --- UNIFIED PAYMENT LEDGER MAPPING (36 tabs) ---
-  // Company Payment Summary Tabs (7 tabs) - Module: outstanding
+  // Company Payment Summary Tabs - Module: outstanding
+  // VG Style Ledger tabs (6 tabs) - using VGExpenses template
   if (moduleId === 'outstanding') {
     if (tabNormal === 'sg.payment.received' || 
         tabNormal === 'madagascar.payment.received' || 
         tabNormal === 'k.payment.received' || 
         tabNormal === 'vg.r.payment.received' || 
         tabNormal === 'vg.payment.received' || 
-        tabNormal === 'vg.t.payment.received' || 
-        tabNormal === 'payment.received') {
+        tabNormal === 'vg.t.payment.received') {
+      return 'VGExpenses';
+    }
+    // Other payment received tabs still use UnifiedPaymentLedger
+    if (tabNormal === 'payment.received') {
       return 'UnifiedPaymentLedger';
     }
   }
@@ -250,11 +254,25 @@ export const getTemplateForTab = (moduleId: string, tabId: string): TemplateType
   // --- KENYA OVERRIDES ---
   if (moduleId === 'kenya') {
     if (tabNormal === 'instock') return 'VisionGemsSpinel';
-    if (tabNormal === 'cutpolish') return 'CutPolish';
+    if (tabNormal === 'cutpolish') return 'CutPolishExpenses';
     // export tab now uses UnifiedExport (mapped above)
     if (tabNormal === 'traveling.ex') return 'TicketsVisa';
     if (tabNormal === 'bkkhotel') return 'HotelAccommodation'; 
     if (tabNormal === 'kexpenses') return 'GeneralExpenses';
+  }
+
+  // --- INSTOCK MAPPINGS (Rich Inventory Template) ---
+  if (moduleId === 'vgtz' && tabNormal === 'vg.t.instock') {
+    return 'VisionGemsSpinel';
+  }
+  if (moduleId === 'madagascar' && tabNormal === 'instock') {
+    return 'VisionGemsSpinel';
+  }
+  if (moduleId === 'dada' && tabNormal === 'instock') {
+    return 'VisionGemsSpinel';
+  }
+  if (moduleId === 'vg-ramazan' && tabNormal === 'instock') {
+    return 'VisionGemsSpinel';
   }
 
   // --- EXPORT CHARGES MAPPING (only for bkk module now) ---
@@ -477,6 +495,9 @@ export const getTemplateForTab = (moduleId: string, tabId: string): TemplateType
   }
 
   if (moduleId === 'vgtz') {
+    if (tabNormal === 'cut.and.polish') {
+      return 'CutPolishExpenses';
+    }
     if (tabNormal === 'tickets.visa') {
       return 'TicketsVisa';
     }
