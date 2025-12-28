@@ -42,7 +42,6 @@ export type TemplateType =
   | 'SpecializedRecord'
   | 'VisionGemsSpinel'
   | 'VGOldStock'
-  | 'VGExpenses'
   | 'AllExpensesDashboard'
   | 'BKKExportCharge'
   | 'BKKCapital'
@@ -51,7 +50,6 @@ export type TemplateType =
   | 'PaymentDueDate'
   | 'CutPolishExpenses'
   | 'TicketsVisa'
-  | 'PersonalShares'
   | 'SpecificServices'
   | 'HotelAccommodation'
   | 'UnifiedCapitalManagement'
@@ -122,9 +120,9 @@ export const getTemplateForTab = (moduleId: string, tabId: string): TemplateType
         tabNormal === 'vg.payment.received') {
       return 'DealRecord';
     }
-    // VG.T.Payment.Received still uses VGExpenses
+    // VG.T.Payment.Received uses UnifiedExpense
     if (tabNormal === 'vg.t.payment.received') {
-      return 'VGExpenses';
+      return 'UnifiedExpense';
     }
     // Other payment received tabs still use UnifiedPaymentLedger
     if (tabNormal === 'payment.received') {
@@ -319,7 +317,7 @@ export const getTemplateForTab = (moduleId: string, tabId: string): TemplateType
   }
 
   if (moduleId === 'all-expenses' && tabNormal === 'fawazwife.shares') {
-    return 'PersonalShares';
+    return 'UnifiedExpense';
   }
 
   if (moduleId === 'payable' && tabNormal === 'dashboard') {
@@ -340,34 +338,22 @@ export const getTemplateForTab = (moduleId: string, tabId: string): TemplateType
     }
   }
 
-  // --- SPECIFIC SERVICES TEMPLATE MAPPING (4 tabs) ---
+  // --- SPECIFIC SERVICES TEMPLATE MAPPING (3 tabs) ---
   if (moduleId === 'all-expenses') {
-    if (tabNormal === 'classictravel' || tabNormal === 'office' || tabNormal === 'gem.license' || tabNormal === 'audit.accounts') {
+    if (tabNormal === 'office' || tabNormal === 'gem.license' || tabNormal === 'audit.accounts') {
       return 'SpecificServices';
     }
+  }
+
+  // --- TICKETS & VISA TEMPLATE MAPPING ---
+  if (moduleId === 'all-expenses' && tabNormal === 'classictravel') {
+    return 'TicketsVisa';
   }
 
   if (moduleId === 'all-expenses' && tabNormal === 'exdashboard') {
     return 'AllExpensesDashboard';
   }
 
-  // --- PERSONAL SHARES TEMPLATE MAPPING (9 tabs) ---
-  if (moduleId === 'all-expenses') {
-    if (tabNormal === 'ziyam' || tabNormal === 'zahran' || tabNormal === 'dad' || tabNormal === 'zcar') {
-      return 'PersonalShares';
-    }
-    if (tabNormal === 'ramzanhaji.shares' || tabNormal === 'azeem.shares' || tabNormal === 'others.shares') {
-      return 'PersonalShares';
-    }
-  }
-
-  const vgStyleTabs = [
-    'vgexpenses'
-  ];
-  
-  if (moduleId === 'all-expenses' && vgStyleTabs.includes(tabNormal)) {
-    return 'VGExpenses';
-  }
 
   if (moduleId === 'all-expenses' && tabNormal === 'cut.polish') {
     return 'CutPolishExpenses';
@@ -486,7 +472,7 @@ export const getTemplateForTab = (moduleId: string, tabId: string): TemplateType
       return 'TicketsVisa';
     }
     if (tabNormal === 'azeem') {
-      return 'PersonalShares';
+      return 'UnifiedExpense';
     }
   }
 
@@ -554,7 +540,7 @@ export const getTemplateForTab = (moduleId: string, tabId: string): TemplateType
   }
   const isTripModule = ['kenya', 'vgtz', 'madagascar', 'dada', 'vg-ramazan'].includes(moduleId);
   if (isTripModule) {
-    // Azeem in vgtz is handled above as PersonalShares
+    // Azeem in vgtz is handled above as UnifiedExpense
     if (tabLower === 'azeem' && moduleId !== 'vgtz') return 'PaymentTracking';
     // Sheet tabs and numeric tabs now use UnifiedSheet
     if (tabLower.match(/^\d+/) || tabLower.includes('sheet')) return 'UnifiedSheet';

@@ -40,7 +40,6 @@ import { SpecializedRecordTemplate } from './templates/SpecializedRecordTemplate
 import { VisionGemsSpinelTemplate } from './templates/VisionGemsSpinelTemplate';
 import { VGOldStockTemplate } from './templates/VGOldStockTemplate';
 import { AllExpensesDashboardTemplate } from './templates/AllExpensesDashboardTemplate';
-import { VGExpensesTemplate } from './templates/VGExpensesTemplate'; 
 import { BKKExportChargeTemplate } from './templates/BKKExportChargeTemplate';
 import { BKKCapitalTemplate } from './templates/BKKCapitalTemplate';
 import { PayableDashboardTemplate } from './templates/PayableDashboardTemplate';
@@ -48,7 +47,6 @@ import { SupplierLedgerTemplate } from './templates/SupplierLedgerTemplate';
 import { PaymentDueDateTemplate } from './templates/PaymentDueDateTemplate';
 import { CutPolishExpensesTemplate } from './templates/CutPolishExpensesTemplate';
 import { TicketsVisaTemplate } from './templates/TicketsVisaTemplate';
-import { PersonalSharesTemplate } from './templates/PersonalSharesTemplate';
 import { SpecificServicesTemplate } from './templates/SpecificServicesTemplate';
 import { HotelAccommodationTemplate } from './templates/HotelAccommodationTemplate';
 import { UnifiedCapitalManagementTemplate } from './templates/UnifiedCapitalManagementTemplate';
@@ -193,14 +191,12 @@ export const ModuleView: React.FC = () => {
     if (templateType === 'PayableDashboard') return <PayableDashboardTemplate {...props} />;
     if (templateType === 'VGOldStock') return <VGOldStockTemplate />;
     if (templateType === 'VisionGemsSpinel') return <VisionGemsSpinelTemplate {...props} />;
-    if (templateType === 'VGExpenses') return <VGExpensesTemplate {...props} />;
     if (templateType === 'BKKExportCharge') return <BKKExportChargeTemplate {...props} />;
     if (templateType === 'BKKCapital') return <BKKCapitalTemplate {...props} />;
     if (templateType === 'SupplierLedger') return <SupplierLedgerTemplate {...props} />;
     if (templateType === 'PaymentDueDate') return <PaymentDueDateTemplate {...props} />;
     if (templateType === 'CutPolishExpenses') return <CutPolishExpensesTemplate {...props} />;
     if (templateType === 'TicketsVisa') return <TicketsVisaTemplate {...props} />;
-    if (templateType === 'PersonalShares') return <PersonalSharesTemplate {...props} />;
     if (templateType === 'SpecificServices') return <SpecificServicesTemplate {...props} />;
     if (templateType === 'HotelAccommodation') return <HotelAccommodationTemplate {...props} />;
     if (templateType === 'UnifiedCapitalManagement') return <UnifiedCapitalManagementTemplate {...props} />;
@@ -307,10 +303,8 @@ export const ModuleView: React.FC = () => {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4 pb-4">
                    {[
                       { id: 'VisionGemsSpinel', name: 'Rich Inventory (Template 1)', desc: 'Full 41-column master inventory with multi-currency & rich details.', icon: <Gem className="text-purple-600"/> },
-                      { id: 'VGExpenses', name: 'VG Style Ledger', desc: 'Consolidated financial ledger with IN/OUT/CHECKS categories.', icon: <ArrowRightLeft className="text-emerald-600"/> },
                       { id: 'CutPolishExpenses', name: 'Cut & Polish Expenses', desc: 'Track cutting and polishing jobs with weight-based calculations and per-carat costs.', icon: <Scissors className="text-emerald-600"/> },
                       { id: 'TicketsVisa', name: 'Tickets & Visa', desc: 'Track flight tickets and visa expenses with route, airline, and visa type tracking.', icon: <Ticket className="text-cyan-600"/> },
-                      { id: 'PersonalShares', name: 'Personal Shares', desc: 'Track personal shares and partner distributions with out/in indicators and location tracking.', icon: <User className="text-green-600"/> },
                       { id: 'SpecificServices', name: 'Specific Services', desc: 'Track service expenses like travel, office rent, licenses, and accounting with vendor tracking.', icon: <Briefcase className="text-orange-600"/> },
                       { id: 'HotelAccommodation', name: 'Hotel & Accommodation', desc: 'Track hotel stays and accommodations with check-in/out dates, nights calculation, and cost per night.', icon: <Hotel className="text-pink-600"/> },
                       { id: 'UnifiedCapitalManagement', name: 'Unified Capital Management', desc: 'Track capital injections and investments with multi-currency support and exchange rate tracking.', icon: <TrendingUp className="text-indigo-600"/> },

@@ -16,7 +16,7 @@ interface SpecificServiceItem {
   currency: string; // "LKR", "TZS", "USD", etc.
   convertedAmount?: number; // Amount in LKR if foreign currency
   exchangeRate?: number;
-  vendorName: string; // Vendor/Provider Name
+  vendorName?: string; // Vendor/Provider Name (optional)
   company?: string; // Optional, for some tabs like Gem.license
   notes?: string;
 }
@@ -70,8 +70,8 @@ const SpecificServiceDetailPanel: React.FC<{
   };
 
   const handleSave = () => {
-    if (!formData.description || !formData.amount || !formData.serviceName || !formData.vendorName) {
-      return alert('Description, Amount, Service Name, and Vendor Name are required');
+    if (!formData.description || !formData.amount || !formData.serviceName) {
+      return alert('Description, Amount, and Service Name are required');
     }
     onSave(formData);
   };
@@ -162,7 +162,7 @@ const SpecificServiceDetailPanel: React.FC<{
               )}
               <div className="flex items-center gap-1.5 mt-0.5 text-stone-500 font-medium text-xs md:text-sm">
                 <User size={14} className="text-stone-400" />
-                <p className="truncate">{formData.vendorName} • {formatCurrency(formData.amount, formData.currency)}</p>
+                <p className="truncate">{formData.vendorName || 'No vendor'} • {formatCurrency(formData.amount, formData.currency)}</p>
               </div>
             </div>
           </div>
@@ -277,7 +277,7 @@ export const SpecificServicesTemplate: React.FC<Props> = ({ moduleId, tabId, isR
         item.serviceName.toLowerCase().includes(searchQuery.toLowerCase()) ||
         item.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
         (item.code && item.code.toLowerCase().includes(searchQuery.toLowerCase())) ||
-        item.vendorName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (item.vendorName && item.vendorName.toLowerCase().includes(searchQuery.toLowerCase())) ||
         (item.company && item.company.toLowerCase().includes(searchQuery.toLowerCase()));
         
       return matchesSearch;
@@ -490,7 +490,7 @@ export const SpecificServicesTemplate: React.FC<Props> = ({ moduleId, tabId, isR
                         <td className="p-6 text-stone-600 max-w-xs truncate" title={item.description}>
                            {item.description}
                         </td>
-                        <td className="p-6 text-stone-600">{item.vendorName}</td>
+                        <td className="p-6 text-stone-600">{item.vendorName || <span className="text-stone-300">-</span>}</td>
                         {tabConfig.hasCompany && (
                           <td className="p-6 text-stone-600">{item.company || <span className="text-stone-300">-</span>}</td>
                         )}
@@ -541,10 +541,12 @@ export const SpecificServicesTemplate: React.FC<Props> = ({ moduleId, tabId, isR
                </div>
 
                <div className="grid grid-cols-2 gap-y-3 gap-x-4 text-sm text-stone-600 mb-4 relative z-10">
-                  <div className="flex items-center gap-2">
-                     <User size={14} className="text-stone-400" />
-                     <span className="truncate font-medium">{item.vendorName}</span>
-                  </div>
+                  {item.vendorName && (
+                    <div className="flex items-center gap-2">
+                       <User size={14} className="text-stone-400" />
+                       <span className="truncate font-medium">{item.vendorName}</span>
+                    </div>
+                  )}
                   {item.company && tabConfig.hasCompany && (
                      <div className="flex items-center gap-2">
                         <Building2 size={14} className="text-stone-400" />
@@ -639,8 +641,8 @@ const SpecificServiceForm: React.FC<{
   }, [formData.amount, formData.currency]);
 
   const handleSubmit = () => {
-    if (!formData.description || !formData.amount || !formData.serviceName || !formData.vendorName) {
-      return alert('Description, Amount, Service Name, and Vendor Name are required');
+    if (!formData.description || !formData.amount || !formData.serviceName) {
+      return alert('Description, Amount, and Service Name are required');
     }
     
     onSave({
@@ -653,7 +655,7 @@ const SpecificServiceForm: React.FC<{
       currency: formData.currency || 'LKR',
       convertedAmount: formData.convertedAmount,
       exchangeRate: formData.exchangeRate,
-      vendorName: formData.vendorName!,
+      vendorName: formData.vendorName || '',
       company: formData.company,
       notes: formData.notes,
     });
@@ -713,13 +715,13 @@ const SpecificServiceForm: React.FC<{
              </div>
 
              <div>
-                <label className="block text-xs font-bold text-stone-500 uppercase mb-1.5 ml-1">Vendor/Provider Name *</label>
+                <label className="block text-xs font-bold text-stone-500 uppercase mb-1.5 ml-1">Vendor/Provider Name</label>
                 <input 
                    type="text" 
-                   value={formData.vendorName} 
+                   value={formData.vendorName || ''} 
                    onChange={e => setFormData({...formData, vendorName: e.target.value})}
                    className="w-full p-2.5 bg-stone-50 border border-stone-200 rounded-xl text-sm focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-none" 
-                   placeholder="Vendor or provider name"
+                   placeholder="Vendor or provider name (optional)"
                 />
              </div>
 
