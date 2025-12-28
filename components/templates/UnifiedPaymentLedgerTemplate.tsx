@@ -28,6 +28,7 @@ interface PaymentItem {
   percent?: number; // Percentage (%)
   commission?: number; // Commission amount
   finalAmount?: number; // Final Amount (separate from invoiceAmount)
+  payableAmount?: number; // Payable Amount
   halfPaid?: boolean; // Half Paid indicator
   cleared?: boolean; // Cleared? indicator
   notes?: string;
@@ -305,6 +306,7 @@ const PaymentDetailPanel: React.FC<{
                 <Field label="% (Percent)" value={formData.percent} field="percent" isEditing={isEditing} onInputChange={handlePercentChange} type="number" />
                 <Field label="Commission" value={formData.commission} field="commission" isEditing={isEditing} onInputChange={handleCommissionChange} type="number" highlight isCurrency />
                 <Field label="Final Amount" value={formData.finalAmount} field="finalAmount" isEditing={false} onInputChange={handleInputChange} highlight isCurrency />
+                <Field label="Payable Amount" value={formData.payableAmount} field="payableAmount" isEditing={isEditing} onInputChange={handleInputChange} type="number" highlight isCurrency />
                 <Field label="Outstanding Amount" value={formData.outstandingAmount} field="outstandingAmount" isEditing={false} onInputChange={handleInputChange} highlight isCurrency />
                 <Field label="Half Paid" value={formData.halfPaid} field="halfPaid" isEditing={isEditing} onInputChange={handleInputChange} type="select" options={['No', 'Yes']} />
                 <Field label="Payment Date" value={formData.paymentDate} field="paymentDate" isEditing={isEditing} onInputChange={handleInputChange} type="date" />
@@ -566,7 +568,7 @@ export const UnifiedPaymentLedgerTemplate: React.FC<Props> = ({ moduleId, tabId,
       {/* Desktop Table */}
       <div className="hidden lg:block bg-white rounded-[40px] border border-stone-200 shadow-sm overflow-hidden mb-24">
          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse min-w-[2000px]">
+            <table className="w-full text-left border-collapse min-w-[2200px]">
                <thead>
                   <tr className="bg-stone-50 border-b border-stone-200 text-[10px] font-black text-stone-400 uppercase tracking-[0.15em]">
                      <th className="p-6 pl-10">Date</th>
@@ -578,6 +580,7 @@ export const UnifiedPaymentLedgerTemplate: React.FC<Props> = ({ moduleId, tabId,
                      <th className="p-6">%</th>
                      <th className="p-6">Commission</th>
                      <th className="p-6">Final Amount</th>
+                     <th className="p-6">Payable Amount</th>
                      <th className="p-6">Outstanding</th>
                      <th className="p-6">Half Paid</th>
                      <th className="p-6">Status</th>
@@ -605,6 +608,7 @@ export const UnifiedPaymentLedgerTemplate: React.FC<Props> = ({ moduleId, tabId,
                         <td className="p-6 font-mono text-stone-600">{item.percent ? `${item.percent}%` : <span className="text-stone-300">-</span>}</td>
                         <td className="p-6 font-mono font-bold text-stone-700">{item.commission ? formatCurrency(item.commission, item.currency) : <span className="text-stone-300">-</span>}</td>
                         <td className="p-6 font-mono font-bold text-indigo-700">{item.finalAmount ? formatCurrency(item.finalAmount, item.currency) : formatCurrency(item.invoiceAmount, item.currency)}</td>
+                        <td className="p-6 font-mono font-bold text-blue-700">{item.payableAmount ? formatCurrency(item.payableAmount, item.currency) : <span className="text-stone-300">-</span>}</td>
                         <td className="p-6 font-mono font-bold text-red-700">{formatCurrency(item.outstandingAmount, item.currency)}</td>
                         <td className="p-6">
                            {item.halfPaid ? (
@@ -717,6 +721,12 @@ export const UnifiedPaymentLedgerTemplate: React.FC<Props> = ({ moduleId, tabId,
                         <span className="font-bold text-indigo-700">{formatCurrency(item.finalAmount, item.currency)}</span>
                      </div>
                   )}
+                  {item.payableAmount && (
+                     <div className="flex items-center justify-between text-sm mb-2">
+                        <span className="text-stone-500">Payable Amount:</span>
+                        <span className="font-bold text-blue-700">{formatCurrency(item.payableAmount, item.currency)}</span>
+                     </div>
+                  )}
                   <div className="flex items-center justify-between text-sm mb-2">
                      <span className="text-stone-500">Paid:</span>
                      <span className="font-bold text-violet-700">{formatCurrency(item.paidAmount, item.currency)}</span>
@@ -769,6 +779,7 @@ const PaymentForm: React.FC<{
     currency: initialData?.currency || 'LKR',
     paidAmount: initialData?.paidAmount || 0,
     outstandingAmount: initialData?.outstandingAmount || 0,
+    payableAmount: initialData?.payableAmount,
     paymentMethod: initialData?.paymentMethod || 'Cash',
     paymentDate: initialData?.paymentDate || new Date().toISOString().split('T')[0],
     dueDate: initialData?.dueDate || '',
@@ -893,6 +904,7 @@ const PaymentForm: React.FC<{
       percent: formData.percent,
       commission: formData.commission,
       finalAmount: formData.finalAmount,
+      payableAmount: formData.payableAmount,
       halfPaid: formData.halfPaid || false,
       cleared: formData.cleared || false,
       notes: formData.notes,
@@ -1056,6 +1068,16 @@ const PaymentForm: React.FC<{
              </div>
 
              <div className="grid grid-cols-2 gap-4">
+                <div>
+                   <label className="block text-xs font-bold text-stone-500 uppercase mb-1.5 ml-1">Payable Amount</label>
+                   <input 
+                      type="number" 
+                      value={formData.payableAmount || ''} 
+                      onChange={e => setFormData({...formData, payableAmount: Number(e.target.value)})}
+                      className="w-full p-2.5 bg-stone-50 border border-stone-200 rounded-xl text-sm font-bold focus:ring-2 focus:ring-violet-500/20 focus:border-violet-500 outline-none" 
+                      placeholder="0.00"
+                   />
+                </div>
                 <div>
                    <label className="block text-xs font-bold text-stone-500 uppercase mb-1.5 ml-1">Paid Amount *</label>
                    <input 
