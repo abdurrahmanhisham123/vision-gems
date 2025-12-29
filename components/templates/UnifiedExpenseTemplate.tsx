@@ -376,6 +376,164 @@ export const UnifiedExpenseTemplate: React.FC<Props> = ({ moduleId, tabId, isRea
     return `${currency} ${amount.toLocaleString()}`;
   };
 
+  const handlePrint = () => {
+    const now = new Date();
+    const printDate = now.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+    const printTime = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+
+    const tableRows = filteredItems.map(item => {
+      const date = (item.date || '-').toString().replace(/</g, '&lt;').replace(/>/g, '&gt;');
+      const code = (item.code || '-').toString().replace(/</g, '&lt;').replace(/>/g, '&gt;');
+      const vendorName = (item.vendorName || '-').toString().replace(/</g, '&lt;').replace(/>/g, '&gt;');
+      const description = (item.description || '-').toString().replace(/</g, '&lt;').replace(/>/g, '&gt;');
+      const location = (item.location || '-').toString().replace(/</g, '&lt;').replace(/>/g, '&gt;');
+      const company = (item.company || '-').toString().replace(/</g, '&lt;').replace(/>/g, '&gt;');
+      const category = (item.category || '-').toString().replace(/</g, '&lt;').replace(/>/g, '&gt;');
+      const paymentMethod = (item.paymentMethod || '-').toString().replace(/</g, '&lt;').replace(/>/g, '&gt;');
+      const inOutCheque = (item.inOutCheque || '-').toString().replace(/</g, '&lt;').replace(/>/g, '&gt;');
+      const notes = (item.notes || '-').toString().replace(/</g, '&lt;').replace(/>/g, '&gt;');
+      
+      return `
+      <tr>
+        <td style="border: 1px solid #cccccc; padding: 5px 4px; font-size: 8pt; text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; vertical-align: middle;">${date}</td>
+        <td style="border: 1px solid #cccccc; padding: 5px 4px; font-size: 8pt; text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; vertical-align: middle;">${code}</td>
+        <td style="border: 1px solid #cccccc; padding: 5px 4px; font-size: 8pt; text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; vertical-align: middle;">${vendorName}</td>
+        <td style="border: 1px solid #cccccc; padding: 5px 4px; font-size: 8pt; text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; vertical-align: middle;">${description}</td>
+        <td style="border: 1px solid #cccccc; padding: 5px 4px; font-size: 8pt; text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; vertical-align: middle;">${location}</td>
+        <td style="border: 1px solid #cccccc; padding: 5px 4px; font-size: 8pt; text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; vertical-align: middle;">${company}</td>
+        <td style="border: 1px solid #cccccc; padding: 5px 4px; font-size: 8pt; text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; vertical-align: middle;">${category}</td>
+        <td style="border: 1px solid #cccccc; padding: 5px 4px; font-size: 8pt; text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; vertical-align: middle;">${paymentMethod}</td>
+        <td style="border: 1px solid #cccccc; padding: 5px 4px; font-size: 8pt; text-align: right; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; vertical-align: middle;">${item.weight ? item.weight.toFixed(2) + ' ct' : '-'}</td>
+        <td style="border: 1px solid #cccccc; padding: 5px 4px; font-size: 8pt; text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; vertical-align: middle;">${inOutCheque}</td>
+        <td style="border: 1px solid #cccccc; padding: 5px 4px; font-size: 8pt; text-align: right; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; vertical-align: middle;">${formatCurrency(item.amount, item.currency)}</td>
+        <td style="border: 1px solid #cccccc; padding: 5px 4px; font-size: 8pt; text-align: right; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; vertical-align: middle;">${item.convertedAmount ? `LKR ${item.convertedAmount.toLocaleString()}` : '-'}</td>
+        <td style="border: 1px solid #cccccc; padding: 5px 4px; font-size: 8pt; text-align: right; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; vertical-align: middle;">${item.exchangeRate ? item.exchangeRate.toFixed(4) : '-'}</td>
+        <td style="border: 1px solid #cccccc; padding: 5px 4px; font-size: 8pt; text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; vertical-align: middle;">${notes}</td>
+      </tr>
+    `;
+    }).join('');
+
+    const safeTabId = tabId.toString().replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+    const printOverlay = document.createElement('div');
+    printOverlay.id = 'print-overlay';
+    printOverlay.style.position = 'fixed';
+    printOverlay.style.top = '0';
+    printOverlay.style.left = '0';
+    printOverlay.style.width = '100%';
+    printOverlay.style.height = '100%';
+    printOverlay.style.backgroundColor = '#ffffff';
+    printOverlay.style.zIndex = '99999';
+    printOverlay.style.overflow = 'auto';
+    printOverlay.style.padding = '40px';
+    printOverlay.style.fontFamily = 'Arial, sans-serif';
+    
+    const style = document.createElement('style');
+    style.id = 'print-styles';
+    style.textContent = `
+      @media print {
+        body * {
+          visibility: hidden;
+        }
+        #print-overlay,
+        #print-overlay * {
+          visibility: visible;
+        }
+        #print-overlay {
+          position: absolute;
+          left: 0;
+          top: 0;
+          width: 100%;
+          height: 100%;
+          padding: 0;
+          margin: 0;
+          background: white;
+        }
+        @page {
+          size: landscape;
+          margin: 0.5in;
+        }
+        .no-print {
+          display: none !important;
+        }
+      }
+      @media screen {
+        #print-overlay {
+          display: block;
+        }
+      }
+    `;
+    document.head.appendChild(style);
+    
+    printOverlay.innerHTML = `
+      <div style="max-width: 100%; margin: 0 auto;">
+        <div style="margin-bottom: 15px; padding-bottom: 10px; border-bottom: 3px solid #000000;">
+          <h1 style="font-size: 24pt; font-weight: bold; margin-bottom: 5px; color: #000000; text-transform: uppercase; letter-spacing: 1px; margin: 0;">Vision Gems</h1>
+          <p style="font-size: 9pt; color: #333333; margin: 0;">Printed on: ${printDate} at ${printTime}</p>
+        </div>
+        <div style="font-size: 16pt; font-weight: bold; margin: 10px 0; text-transform: uppercase; color: #000000;">${safeTabId}</div>
+        <table style="width: 100%; table-layout: fixed; border-collapse: collapse; margin-top: 10px; font-size: 8pt;">
+          <colgroup>
+            <col style="width: 7%;">
+            <col style="width: 7%;">
+            <col style="width: 10%;">
+            <col style="width: 12%;">
+            <col style="width: 8%;">
+            <col style="width: 8%;">
+            <col style="width: 7%;">
+            <col style="width: 7%;">
+            <col style="width: 6%;">
+            <col style="width: 7%;">
+            <col style="width: 9%;">
+            <col style="width: 9%;">
+            <col style="width: 7%;">
+            <col style="width: 8%;">
+          </colgroup>
+          <thead>
+            <tr>
+              <th style="background-color: #f0f0f0; border: 1px solid #000000; padding: 6px 4px; text-align: left; font-weight: bold; font-size: 7pt; text-transform: uppercase; white-space: nowrap; color: #000000; vertical-align: middle;">Date</th>
+              <th style="background-color: #f0f0f0; border: 1px solid #000000; padding: 6px 4px; text-align: left; font-weight: bold; font-size: 7pt; text-transform: uppercase; white-space: nowrap; color: #000000; vertical-align: middle;">Code</th>
+              <th style="background-color: #f0f0f0; border: 1px solid #000000; padding: 6px 4px; text-align: left; font-weight: bold; font-size: 7pt; text-transform: uppercase; white-space: nowrap; color: #000000; vertical-align: middle;">Vendor</th>
+              <th style="background-color: #f0f0f0; border: 1px solid #000000; padding: 6px 4px; text-align: left; font-weight: bold; font-size: 7pt; text-transform: uppercase; white-space: nowrap; color: #000000; vertical-align: middle;">Description</th>
+              <th style="background-color: #f0f0f0; border: 1px solid #000000; padding: 6px 4px; text-align: left; font-weight: bold; font-size: 7pt; text-transform: uppercase; white-space: nowrap; color: #000000; vertical-align: middle;">Location</th>
+              <th style="background-color: #f0f0f0; border: 1px solid #000000; padding: 6px 4px; text-align: left; font-weight: bold; font-size: 7pt; text-transform: uppercase; white-space: nowrap; color: #000000; vertical-align: middle;">Company</th>
+              <th style="background-color: #f0f0f0; border: 1px solid #000000; padding: 6px 4px; text-align: left; font-weight: bold; font-size: 7pt; text-transform: uppercase; white-space: nowrap; color: #000000; vertical-align: middle;">Category</th>
+              <th style="background-color: #f0f0f0; border: 1px solid #000000; padding: 6px 4px; text-align: left; font-weight: bold; font-size: 7pt; text-transform: uppercase; white-space: nowrap; color: #000000; vertical-align: middle;">Payment Method</th>
+              <th style="background-color: #f0f0f0; border: 1px solid #000000; padding: 6px 4px; text-align: right; font-weight: bold; font-size: 7pt; text-transform: uppercase; white-space: nowrap; color: #000000; vertical-align: middle;">Weight</th>
+              <th style="background-color: #f0f0f0; border: 1px solid #000000; padding: 6px 4px; text-align: left; font-weight: bold; font-size: 7pt; text-transform: uppercase; white-space: nowrap; color: #000000; vertical-align: middle;">IN/OUT/CHEQUES</th>
+              <th style="background-color: #f0f0f0; border: 1px solid #000000; padding: 6px 4px; text-align: right; font-weight: bold; font-size: 7pt; text-transform: uppercase; white-space: nowrap; color: #000000; vertical-align: middle;">Amount</th>
+              <th style="background-color: #f0f0f0; border: 1px solid #000000; padding: 6px 4px; text-align: right; font-weight: bold; font-size: 7pt; text-transform: uppercase; white-space: nowrap; color: #000000; vertical-align: middle;">Converted (LKR)</th>
+              <th style="background-color: #f0f0f0; border: 1px solid #000000; padding: 6px 4px; text-align: right; font-weight: bold; font-size: 7pt; text-transform: uppercase; white-space: nowrap; color: #000000; vertical-align: middle;">Exchange Rate</th>
+              <th style="background-color: #f0f0f0; border: 1px solid #000000; padding: 6px 4px; text-align: left; font-weight: bold; font-size: 7pt; text-transform: uppercase; white-space: nowrap; color: #000000; vertical-align: middle;">Notes</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${tableRows || '<tr><td colspan="14" style="text-align: center; padding: 20px; border: 1px solid #cccccc;">No expenses found</td></tr>'}
+          </tbody>
+        </table>
+      </div>
+    `;
+
+    document.body.appendChild(printOverlay);
+
+    setTimeout(() => {
+      window.print();
+    }, 100);
+
+    const handleAfterPrint = () => {
+      if (document.body.contains(printOverlay)) {
+        document.body.removeChild(printOverlay);
+      }
+      const printStyles = document.getElementById('print-styles');
+      if (printStyles) {
+        printStyles.remove();
+      }
+      window.removeEventListener('afterprint', handleAfterPrint);
+    };
+
+    window.addEventListener('afterprint', handleAfterPrint);
+  };
+
   return (
     <div className="p-4 md:p-8 max-w-[1920px] mx-auto min-h-screen bg-stone-50/20 pb-32 md:pb-8">
       
@@ -389,7 +547,7 @@ export const UnifiedExpenseTemplate: React.FC<Props> = ({ moduleId, tabId, isRea
            <p className="text-stone-400 text-xs md:text-sm mt-1 font-medium">Unified Expense in use</p>
         </div>
         <div className="flex items-center gap-2.5 w-full lg:w-auto overflow-x-auto pb-1 lg:pb-0">
-           <button onClick={() => window.print()} className="flex-1 lg:flex-none flex items-center justify-center gap-2 px-5 py-3 bg-white border border-stone-200 text-stone-600 rounded-2xl text-xs font-bold shadow-sm hover:bg-stone-50 active:scale-95 whitespace-nowrap">
+           <button onClick={handlePrint} className="flex-1 lg:flex-none flex items-center justify-center gap-2 px-5 py-3 bg-white border border-stone-200 text-stone-600 rounded-2xl text-xs font-bold shadow-sm hover:bg-stone-50 active:scale-95 whitespace-nowrap">
              <Printer size={16} /> Print List
            </button>
            {!isReadOnly && (

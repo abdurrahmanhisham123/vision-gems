@@ -564,6 +564,143 @@ export const VisionGemsSpinelTemplate: React.FC<Props> = ({ moduleId, tabId, isR
     }
   };
 
+  const handlePrint = () => {
+    const now = new Date();
+    const printDate = now.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+    const printTime = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+
+    const tableRows = filteredStones.map(stone => {
+      const codeNo = (stone.codeNo || '-').toString().replace(/</g, '&lt;').replace(/>/g, '&gt;');
+      const variety = (stone.variety || '-').toString().replace(/</g, '&lt;').replace(/>/g, '&gt;');
+      const shape = (stone.shape || '-').toString().replace(/</g, '&lt;').replace(/>/g, '&gt;');
+      
+      // Get first photo if available
+      const photoUrl = stone.photos && stone.photos.length > 0 ? stone.photos[0] : null;
+      const photoCell = photoUrl 
+        ? `<img src="${photoUrl}" alt="Gem Photo" style="max-width: 80px; max-height: 80px; width: auto; height: auto; object-fit: contain; display: block; margin: 0 auto;" />`
+        : '<span style="color: #999;">-</span>';
+      
+      return `
+      <tr>
+        <td style="border: 1px solid #cccccc; padding: 5px 4px; font-size: 8pt; text-align: center; vertical-align: middle;">${photoCell}</td>
+        <td style="border: 1px solid #cccccc; padding: 5px 4px; font-size: 8pt; text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; vertical-align: middle;">${codeNo}</td>
+        <td style="border: 1px solid #cccccc; padding: 5px 4px; font-size: 8pt; text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; vertical-align: middle;">${variety}</td>
+        <td style="border: 1px solid #cccccc; padding: 5px 4px; font-size: 8pt; text-align: right; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; vertical-align: middle;">${stone.weight.toFixed(2)} ct</td>
+        <td style="border: 1px solid #cccccc; padding: 5px 4px; font-size: 8pt; text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; vertical-align: middle;">${shape}</td>
+        <td style="border: 1px solid #cccccc; padding: 5px 4px; font-size: 8pt; text-align: right; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; vertical-align: middle;">${stone.pieces}</td>
+      </tr>
+    `;
+    }).join('');
+
+    const safeTabId = tabId.toString().replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+    // Create print overlay that covers the page
+    const printOverlay = document.createElement('div');
+    printOverlay.id = 'print-overlay';
+    printOverlay.style.position = 'fixed';
+    printOverlay.style.top = '0';
+    printOverlay.style.left = '0';
+    printOverlay.style.width = '100%';
+    printOverlay.style.height = '100%';
+    printOverlay.style.backgroundColor = '#ffffff';
+    printOverlay.style.zIndex = '99999';
+    printOverlay.style.overflow = 'auto';
+    printOverlay.style.padding = '40px';
+    printOverlay.style.fontFamily = 'Arial, sans-serif';
+    
+    // Add print-specific styles
+    const style = document.createElement('style');
+    style.id = 'print-styles';
+    style.textContent = `
+      @media print {
+        body * {
+          visibility: hidden;
+        }
+        #print-overlay,
+        #print-overlay * {
+          visibility: visible;
+        }
+        #print-overlay {
+          position: absolute;
+          left: 0;
+          top: 0;
+          width: 100%;
+          height: 100%;
+          padding: 0;
+          margin: 0;
+          background: white;
+        }
+        @page {
+          size: landscape;
+          margin: 0.5in;
+        }
+        .no-print {
+          display: none !important;
+        }
+      }
+      @media screen {
+        #print-overlay {
+          display: block;
+        }
+      }
+    `;
+    document.head.appendChild(style);
+    
+    printOverlay.innerHTML = `
+      <div style="max-width: 100%; margin: 0 auto;">
+        <div style="margin-bottom: 15px; padding-bottom: 10px; border-bottom: 3px solid #000000;">
+          <h1 style="font-size: 24pt; font-weight: bold; margin-bottom: 5px; color: #000000; text-transform: uppercase; letter-spacing: 1px; margin: 0;">Vision Gems</h1>
+          <p style="font-size: 9pt; color: #333333; margin: 0;">Printed on: ${printDate} at ${printTime}</p>
+        </div>
+        <div style="font-size: 16pt; font-weight: bold; margin: 10px 0; text-transform: uppercase; color: #000000;">${safeTabId}</div>
+        <table style="width: 100%; table-layout: fixed; border-collapse: collapse; margin-top: 10px; font-size: 8pt;">
+          <colgroup>
+            <col style="width: 12%;">
+            <col style="width: 15%;">
+            <col style="width: 15%;">
+            <col style="width: 12%;">
+            <col style="width: 15%;">
+            <col style="width: 10%;">
+          </colgroup>
+          <thead>
+            <tr>
+              <th style="background-color: #f0f0f0; border: 1px solid #000000; padding: 6px 4px; text-align: center; font-weight: bold; font-size: 7pt; text-transform: uppercase; white-space: nowrap; color: #000000; vertical-align: middle;">Gem Photo</th>
+              <th style="background-color: #f0f0f0; border: 1px solid #000000; padding: 6px 4px; text-align: left; font-weight: bold; font-size: 7pt; text-transform: uppercase; white-space: nowrap; color: #000000; vertical-align: middle;">Code No</th>
+              <th style="background-color: #f0f0f0; border: 1px solid #000000; padding: 6px 4px; text-align: left; font-weight: bold; font-size: 7pt; text-transform: uppercase; white-space: nowrap; color: #000000; vertical-align: middle;">Variety</th>
+              <th style="background-color: #f0f0f0; border: 1px solid #000000; padding: 6px 4px; text-align: right; font-weight: bold; font-size: 7pt; text-transform: uppercase; white-space: nowrap; color: #000000; vertical-align: middle;">Weight</th>
+              <th style="background-color: #f0f0f0; border: 1px solid #000000; padding: 6px 4px; text-align: left; font-weight: bold; font-size: 7pt; text-transform: uppercase; white-space: nowrap; color: #000000; vertical-align: middle;">Shape</th>
+              <th style="background-color: #f0f0f0; border: 1px solid #000000; padding: 6px 4px; text-align: right; font-weight: bold; font-size: 7pt; text-transform: uppercase; white-space: nowrap; color: #000000; vertical-align: middle;">Pieces</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${tableRows || '<tr><td colspan="6" style="text-align: center; padding: 20px; border: 1px solid #cccccc;">No stones found</td></tr>'}
+          </tbody>
+        </table>
+      </div>
+    `;
+
+    document.body.appendChild(printOverlay);
+
+    // Wait for content to render, then trigger print
+    setTimeout(() => {
+      window.print();
+    }, 100);
+
+    // Clean up after print dialog closes
+    const handleAfterPrint = () => {
+      if (document.body.contains(printOverlay)) {
+        document.body.removeChild(printOverlay);
+      }
+      const printStyles = document.getElementById('print-styles');
+      if (printStyles) {
+        printStyles.remove();
+      }
+      window.removeEventListener('afterprint', handleAfterPrint);
+    };
+
+    window.addEventListener('afterprint', handleAfterPrint);
+  };
+
   if (loading) return <div className="flex flex-col items-center justify-center h-96 text-stone-400"><RefreshCw className="animate-spin mb-4" size={32} /><p className="text-sm font-bold uppercase tracking-widest">Loading Records...</p></div>;
 
   return (
@@ -578,7 +715,7 @@ export const VisionGemsSpinelTemplate: React.FC<Props> = ({ moduleId, tabId, isR
            <p className="text-stone-400 text-xs md:text-sm mt-1 font-medium">Rich Inventory (Template 1) in use</p>
         </div>
         <div className="flex items-center gap-2.5 w-full lg:w-auto overflow-x-auto pb-1 lg:pb-0">
-           <button onClick={() => window.print()} className="flex-1 lg:flex-none flex items-center justify-center gap-2 px-5 py-3 bg-white border border-stone-200 text-stone-600 rounded-2xl text-xs font-bold shadow-sm hover:bg-stone-50 active:scale-95 whitespace-nowrap"><Printer size={16} /> Print List</button>
+           <button onClick={handlePrint} className="flex-1 lg:flex-none flex items-center justify-center gap-2 px-5 py-3 bg-white border border-stone-200 text-stone-600 rounded-2xl text-xs font-bold shadow-sm hover:bg-stone-50 active:scale-95 whitespace-nowrap"><Printer size={16} /> Print List</button>
            {!isReadOnly && <button onClick={handleAddNewStone} className="flex-1 lg:flex-none flex items-center justify-center gap-2 px-6 py-3 bg-purple-600 text-white rounded-xl text-xs font-bold shadow-lg shadow-purple-900/20 hover:bg-purple-700 active:scale-95 whitespace-nowrap"><Plus size={18} /> Add Stone</button>}
         </div>
       </div>
