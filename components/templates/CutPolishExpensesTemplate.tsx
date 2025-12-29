@@ -288,8 +288,8 @@ export const CutPolishExpensesTemplate: React.FC<Props> = ({ moduleId, tabId, is
            <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] mb-1.5 text-emerald-600">
              {moduleId.replace('-', ' ')} <span className="text-stone-300">/</span> {tabId}
            </div>
-           <h2 className="text-2xl md:text-3xl font-black text-stone-900 tracking-tighter uppercase">{tabId} Dashboard</h2>
-           <p className="text-stone-400 text-xs md:text-sm mt-1 font-medium">{filteredItems.length} cut & polish jobs currently tracked</p>
+           <h2 className="text-2xl md:text-3xl font-black text-stone-900 tracking-tighter uppercase">{tabId}</h2>
+           <p className="text-stone-400 text-xs md:text-sm mt-1 font-medium">Cut & Polish Expenses in use</p>
         </div>
         <div className="flex items-center gap-2.5 w-full lg:w-auto overflow-x-auto pb-1 lg:pb-0">
            <button onClick={() => window.print()} className="flex-1 lg:flex-none flex items-center justify-center gap-2 px-5 py-3 bg-white border border-stone-200 text-stone-600 rounded-2xl text-xs font-bold shadow-sm hover:bg-stone-50 active:scale-95 whitespace-nowrap">
