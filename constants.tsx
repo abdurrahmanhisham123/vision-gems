@@ -39,7 +39,7 @@ export const APP_MODULES: ModuleConfig[] = [
       'DashboardGems', 'Spinel', 'TSV', 'Mandarin.Garnet', 'Garnet', 'Ruby', 
       'Blue.Sapphire', 'Green.Sapphire', 'Chrysoberyl', 'Zircon', 'Tourmaline', 
       'Aquamarine', 'Padparadscha', 'Pink.Sapphire', 'Violet.Sapphire', 
-      'Approval', 'Z', 'V G Old stock', 'Cut.polish', 'Stone Shape'
+      'Approval', 'Z', 'V G Old stock', 'Cut.polish'
     ]
   },
   // 3. In Stocks (New)
@@ -63,7 +63,7 @@ export const APP_MODULES: ModuleConfig[] = [
     tabs: [
       'DashboardGEMS', 'Mahenge', 'Spinel', 'Blue.Sapphire', 'Cut.polish', 
       'SL.Expenses', 'BKkticket', 'BKKExport', 'BKKExpenses', 'BKKHotel', 
-      'Purchasing', 'Capital', 'Stone Shapes', 'TExpenses', 'Important', 'Copy of Mahenge'
+      'Purchasing', 'Capital', 'TExpenses', 'Important'
     ]
   },
   // 5. AllExpenses
@@ -107,7 +107,7 @@ export const APP_MODULES: ModuleConfig[] = [
     icon: 'TrendingDown',
     tabs: [
       'Dashboard', 'Buying.Payments.Paid', 'Tanzania.Capital', 'BKK.Capital', 
-      'Beruwala', 'Colombo', 'Galle', 'Kisu', 'Bangkok', 'Bayer ruler'
+      'Beruwala', 'Colombo', 'Galle', 'Kisu', 'Bangkok'
     ]
   },
   // 8. BKK - Freshly Added Navigation Menu
@@ -138,7 +138,7 @@ export const APP_MODULES: ModuleConfig[] = [
     icon: 'MapPin',
     tabs: [
       'KDashboard', 'Instock', 'CutPolish', 'Export', 'Traveling.EX', 'BkkExpenses', 
-      'BkkHotel', 'KPurchasing', 'KExpenses', 'Capital', 'Sheet19'
+      'BkkHotel', 'KPurchasing', 'KExpenses', 'Capital'
     ]
   },
   // 10. Mahenge

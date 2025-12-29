@@ -159,7 +159,7 @@ export const getTemplateForTab = (moduleId: string, tabId: string): TemplateType
     if (tabNormal === 'bkktickets') return 'TicketsVisa';
     if (tabNormal === 'export.charge') return 'UnifiedExport';
     if (tabNormal === 'apartment') return 'HotelAccommodation';
-    if (tabNormal === 'bkkcapital') return 'BKKCapital';
+    if (tabNormal === 'bkkcapital') return 'UnifiedCapitalManagement';
     // bkk.statement now uses UnifiedStatement (mapped above)
   }
 
@@ -298,8 +298,13 @@ export const getTemplateForTab = (moduleId: string, tabId: string): TemplateType
   // --- TOP PRIORITY OVERRIDES ---
 
   if (moduleId === 'payable') {
-    if (tabNormal === 'beruwala' || tabNormal === 'bayer ruler') {
-      return 'SupplierLedger';
+    // Map supplier location tabs to UnifiedPaymentLedger
+    if (tabNormal === 'beruwala' || 
+        tabNormal === 'colombo' || 
+        tabNormal === 'galle' || 
+        tabNormal === 'kisu' || 
+        tabNormal === 'bangkok') {
+      return 'UnifiedPaymentLedger';
     }
   }
 
@@ -371,7 +376,10 @@ export const getTemplateForTab = (moduleId: string, tabId: string): TemplateType
     if (tabNormal === 'cut.polish') {
       return 'CutPolishExpenses';
     }
-    const excludedTabs = ['dashboardgems', 'z', 'stone shape', 'approval'];
+    if (tabNormal === 'approval') {
+      return 'VisionGemsSpinel';
+    }
+    const excludedTabs = ['dashboardgems', 'z', 'stone shape'];
     if (tabNormal === 'v g old stock') return 'VGOldStock';
     if (!excludedTabs.includes(tabNormal)) return 'VisionGemsSpinel';
     if (tabNormal === 'stone shape') return 'ReferenceData'; 
@@ -466,6 +474,11 @@ export const getTemplateForTab = (moduleId: string, tabId: string): TemplateType
     if (tabNormal === 'azeem') {
       return 'UnifiedExpense';
     }
+  }
+
+  // Override: Zcar should use UnifiedExpense, not SpecializedRecord
+  if (moduleId === 'all-expenses' && tabNormal === 'zcar') {
+    return 'UnifiedExpense';
   }
 
   const specializedConfig = getSpecializedRecordConfig(moduleId, tabId);
