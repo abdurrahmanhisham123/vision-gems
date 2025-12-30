@@ -89,6 +89,7 @@ const EMPTY_STONE: ExtendedSpinelStone = {
   paymentDueDate: '',
   salesPaymentStatus: '',
   paymentReceivedDate: '',
+  sellingPrice: 0,
   priceRMB: 0,
   priceTHB: 0,
   priceUSD: 0,
@@ -143,7 +144,7 @@ const Field: React.FC<{
           <select 
             value={value === undefined || value === null ? '' : value.toString()} 
             onChange={(e) => onInputChange(field, e.target.value)} 
-            className="w-full p-2 bg-stone-50 border border-stone-200 rounded-lg text-sm outline-none cursor-pointer"
+            className="w-full p-3 md:p-2 py-3 md:py-2 min-h-[44px] md:min-h-0 text-base md:text-sm bg-stone-50 border border-stone-200 rounded-lg outline-none cursor-pointer appearance-none"
           >
             {options.map(opt => <option key={opt} value={opt}>{opt}</option>)}
           </select>
@@ -389,6 +390,7 @@ const StoneDetailPanel: React.FC<{
                   <Field label="Date (Selling)" value={formData.sellDate} field="sellDate" isEditing={isEditing} onInputChange={handleInputChange} type="date" />
                   <Field label="Buyer" value={formData.buyer} field="buyer" isEditing={isEditing} onInputChange={handleInputChange} />
                   <Field label="Sold by" value={formData.soldBy} field="soldBy" isEditing={isEditing} onInputChange={handleInputChange} />
+                  <Field label="Selling Price" value={formData.sellingPrice} field="sellingPrice" isEditing={isEditing} onInputChange={handleInputChange} type="number" highlight isCurrency />
                   <Field label="Outstanding Names" value={formData.outstandingName} field="outstandingName" isEditing={isEditing} onInputChange={handleInputChange} />
                   <Field label="Payment Due Date" value={formData.paymentDueDate} field="paymentDueDate" isEditing={isEditing} onInputChange={handleInputChange} type="date" />
                   <Field label="Paid/Not Paid" value={formData.salesPaymentStatus} field="salesPaymentStatus" isEditing={isEditing} onInputChange={handleInputChange} options={['Paid', 'Not Paid', 'Partial']} />

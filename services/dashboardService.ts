@@ -156,22 +156,76 @@ export const getDashboardData = async (config: DashboardConfig): Promise<Dashboa
   // --- OUTSTANDING DASHBOARD (Aggregating 35 Tabs) ---
   if (config.dataKey === "outstanding_dashboard") {
     
-    // Simulate aggregating payment tabs (Tabs 2-7, 35)
-    const paymentData = [
-      { source: "SG Payment Received", total: 37372045.85, count: 287, lastDate: "2025-08-25" },
-      { source: "Madagascar Payment Received", total: 6323122.74, count: 45, lastDate: "2025-08-20" },
-      { source: "K Payment Received", total: 10835050.33, count: 120, lastDate: "2025-08-22" },
-      { source: "VG.R payment received", total: 18885926.00, count: 156, lastDate: "2025-08-18" },
-      { source: "VG Payment Received", total: 10640846.66, count: 98, lastDate: "2025-08-24" },
-      { source: "VG.T.Payment.Received", total: 12835260.31, count: 110, lastDate: "2025-08-21" },
-      { source: "General Payment Received", total: 1582200.00, count: 15, lastDate: "2025-08-10" }
-    ];
-    
-    const totalReceived = paymentData.reduce((acc, curr) => acc + curr.total, 0);
+    // Helper function to load data from localStorage
+    const loadTabData = (tabId: string): any[] => {
+      try {
+        const storageKey = `unified_payment_ledger_outstanding_${tabId}`;
+        const saved = localStorage.getItem(storageKey);
+        if (saved) {
+          return JSON.parse(saved);
+        }
+      } catch (e) {
+        console.error(`Error loading data for tab ${tabId}:`, e);
+      }
+      return [];
+    };
 
-    // Simulate aggregating customer tabs (Tabs 8-33)
-    // We generate some mock data based on names provided in constants.tsx
-    const customerNames = [
+    // Payment Received Tabs (7 tabs)
+    const paymentTabs = [
+      "SG.Payment.Received",
+      "Madagascar.Payment.Received",
+      "K.Payment.Received",
+      "VG.R.payment.received",
+      "VG.Payment.Received",
+      "VG.T.Payment.Received",
+      "Payment.received"
+    ];
+
+    const paymentData: { source: string; total: number; count: number; lastDate: string }[] = [];
+    let totalReceived = 0;
+
+    paymentTabs.forEach(tabId => {
+      const items = loadTabData(tabId);
+      if (items.length > 0) {
+        const total = items.reduce((sum: number, item: any) => {
+          // Sum paidAmount, converting to LKR if needed
+          const paid = item.paidAmount || 0;
+          const currency = item.currency || 'LKR';
+          if (currency === 'LKR') {
+            return sum + paid;
+          } else if (currency === 'USD') {
+            return sum + (paid * (item.exchangeRate || 300));
+          } else if (currency === 'THB') {
+            return sum + (paid * (item.exchangeRate || 8.5));
+          } else if (currency === 'RMB') {
+            return sum + (paid * (item.exchangeRate || 42));
+          }
+          return sum + paid;
+        }, 0);
+
+        // Find last payment date
+        const dates = items
+          .filter((item: any) => item.paymentDate)
+          .map((item: any) => new Date(item.paymentDate).getTime())
+          .sort((a: number, b: number) => b - a);
+        
+        const lastDate = dates.length > 0 
+          ? new Date(dates[0]).toISOString().split('T')[0]
+          : '';
+
+        paymentData.push({
+          source: tabId,
+          total,
+          count: items.length,
+          lastDate
+        });
+
+        totalReceived += total;
+      }
+    });
+
+    // Customer Ledger Tabs (27 tabs)
+    const customerTabs = [
       "Zahran", "RuzaikSales", "BeruwalaSales", "SajithOnline", "Ziyam",
       "InfazHaji", "NusrathAli", "Binara", "MikdarHaji", "RameesNana",
       "Shimar", "Ruqshan", "FaizeenHaj", "SharikHaj", "Fazeel",
@@ -179,45 +233,91 @@ export const getDashboardData = async (config: DashboardConfig): Promise<Dashboa
       "ChinaSales", "Eleven", "AndyBuyer", "FlightBuyer", "Bangkok", "Name", "Name1"
     ];
 
-    const customerRows = customerNames.map((name, i) => {
-      // Create somewhat realistic diverse data
-      const hasBalance = i % 3 !== 0; // 2/3 have balance
-      const baseAmount = Math.floor(Math.random() * 20000000) + 500000;
-      const received = hasBalance ? Math.floor(baseAmount * (Math.random() * 0.8)) : baseAmount;
-      const rmb = i === 20 ? 35000 : 0; // ChinaSales
-      const bath = i === 18 ? 450000 : 0; // Bangkok
-      const usd = i % 5 === 0 ? Math.floor(Math.random() * 5000) : 0;
-      
-      const balance = baseAmount - received;
-      let status: 'Cleared' | 'Pending' | 'Overdue' = 'Cleared';
-      if (balance > 0) status = 'Pending';
-      if (balance > 5000000) status = 'Overdue';
+    const customerRows: {
+      id: string;
+      name: string;
+      slAmount: number;
+      rmb: number;
+      bath: number;
+      usd: number;
+      finalAmount: number;
+      received: number;
+      balance: number;
+      status: 'Cleared' | 'Pending' | 'Overdue';
+    }[] = [];
 
-      return {
-        id: `cust-${i}`,
-        name: name,
-        slAmount: baseAmount,
-        rmb,
-        bath,
-        usd,
-        finalAmount: baseAmount + (usd * 300) + (bath * 8.5) + (rmb * 42), // rough conversion for total
-        received,
-        balance,
-        status
-      };
+    customerTabs.forEach((tabId, index) => {
+      const items = loadTabData(tabId);
+      if (items.length > 0) {
+        let totalInvoice = 0;
+        let totalPaid = 0;
+        let totalOutstanding = 0;
+        let rmb = 0;
+        let bath = 0;
+        let usd = 0;
+
+        items.forEach((item: any) => {
+          const invoice = item.invoiceAmount || item.finalAmount || 0;
+          const paid = item.paidAmount || 0;
+          const outstanding = item.outstandingAmount || (invoice - paid);
+          const currency = item.currency || 'LKR';
+
+          totalInvoice += invoice;
+          totalPaid += paid;
+          totalOutstanding += outstanding;
+
+          // Track currency amounts
+          if (currency === 'USD') {
+            usd += outstanding;
+          } else if (currency === 'RMB') {
+            rmb += outstanding;
+          } else if (currency === 'THB') {
+            bath += outstanding;
+          }
+        });
+
+        const balance = totalOutstanding;
+        let status: 'Cleared' | 'Pending' | 'Overdue' = 'Cleared';
+        if (balance > 0) {
+          status = balance > 5000000 ? 'Overdue' : 'Pending';
+        }
+
+        customerRows.push({
+          id: `cust-${index}`,
+          name: tabId,
+          slAmount: totalInvoice,
+          rmb,
+          bath,
+          usd,
+          finalAmount: totalInvoice,
+          received: totalPaid,
+          balance,
+          status
+        });
+      }
     });
 
-    const totalOutstandingLKR = customerRows.reduce((acc, curr) => acc + curr.balance, 0);
+    // Calculate totals
+    const totalOutstandingLKR = customerRows.reduce((acc, curr) => {
+      // Convert all currencies to LKR for total
+      return acc + curr.balance + (curr.usd * 300) + (curr.bath * 8.5) + (curr.rmb * 42);
+    }, 0);
+    
     const totalOutstandingUSD = customerRows.reduce((acc, curr) => acc + curr.usd, 0);
-    const activeCustomers = customerRows.filter(c => c.balance > 100).length;
+    const activeCustomers = customerRows.filter(c => c.balance > 0).length;
 
-    // Currency Breakdown Pie Chart Data
+    // Currency Breakdown
+    const lkrTotal = customerRows.reduce((acc, curr) => acc + curr.balance, 0);
+    const usdTotal = customerRows.reduce((acc, curr) => acc + (curr.usd * 300), 0);
+    const rmbTotal = customerRows.reduce((acc, curr) => acc + (curr.rmb * 42), 0);
+    const thbTotal = customerRows.reduce((acc, curr) => acc + (curr.bath * 8.5), 0);
+
     const currencyBreakdown = [
-        { name: 'LKR', value: totalOutstandingLKR, color: '#3B82F6' },
-        { name: 'USD', value: totalOutstandingUSD * 300, color: '#10B981' }, // Converted to LKR for pie scale
-        { name: 'RMB', value: 35000 * 42, color: '#EF4444' },
-        { name: 'THB', value: 450000 * 8.5, color: '#F59E0B' }
-    ];
+      { name: 'LKR', value: lkrTotal, color: '#3B82F6' },
+      { name: 'USD', value: usdTotal, color: '#10B981' },
+      { name: 'RMB', value: rmbTotal, color: '#EF4444' },
+      { name: 'THB', value: thbTotal, color: '#F59E0B' }
+    ].filter(item => item.value > 0);
 
     return {
       metrics: {
@@ -227,7 +327,7 @@ export const getDashboardData = async (config: DashboardConfig): Promise<Dashboa
         totalReceived
       },
       breakdowns: {
-        customerSummary: customerRows.sort((a,b) => b.balance - a.balance), // Sort by highest outstanding
+        customerSummary: customerRows.sort((a, b) => b.balance - a.balance),
         paymentTracking: paymentData,
         currencyBreakdown
       }
@@ -409,25 +509,134 @@ export const getDashboardData = async (config: DashboardConfig): Promise<Dashboa
   }
 
   if (config.dataKey === "bkk_dashboard") {
+    
+    // Helper function to load data from localStorage
+    const loadTabData = (tabId: string, storagePrefix: string): any[] => {
+      try {
+        const storageKey = `${storagePrefix}_bkk_${tabId}`;
+        const saved = localStorage.getItem(storageKey);
+        if (saved) {
+          return JSON.parse(saved);
+        }
+      } catch (e) {
+        console.error(`Error loading data for tab ${tabId}:`, e);
+      }
+      return [];
+    };
+
+    // Load data from all BKK tabs
+    const expenseItems = loadTabData('BkkExpenses', 'unified_expense');
+    const ticketItems = loadTabData('BKKTickets', 'tickets_visa');
+    const exportItems = loadTabData('Export.Charge', 'unified_export');
+    const apartmentItems = loadTabData('Apartment', 'hotel_accommodation');
+    const capitalItems = loadTabData('Bkkcapital', 'unified_capital_management');
+    const paymentItems = loadTabData('BKK.Payment', 'unified_payment_ledger');
+    const statementItems = loadTabData('BKK.statement', 'unified_statement');
+    
+    // Aggregate Expenses
+    const totalExpenses = expenseItems.reduce((sum: number, item: any) => {
+      return sum + (item.convertedAmount || item.amount || 0);
+    }, 0);
+    
+    const expensesByCategory: Record<string, number> = {};
+    expenseItems.forEach((item: any) => {
+      const category = item.category || 'Other';
+      expensesByCategory[category] = (expensesByCategory[category] || 0) + (item.convertedAmount || item.amount || 0);
+    });
+
+    // Aggregate Tickets
+    const totalTickets = ticketItems.reduce((sum: number, item: any) => {
+      return sum + (item.convertedAmount || item.amount || 0);
+    }, 0);
+    
+    const ticketsByRoute: Record<string, number> = {};
+    ticketItems.forEach((item: any) => {
+      const route = item.route || 'Other';
+      ticketsByRoute[route] = (ticketsByRoute[route] || 0) + (item.convertedAmount || item.amount || 0);
+    });
+
+    // Aggregate Export Charges
+    const totalExport = exportItems.reduce((sum: number, item: any) => {
+      return sum + (item.convertedAmount || item.amount || 0);
+    }, 0);
+    
+    const exportByAuthority: Record<string, number> = {};
+    exportItems.forEach((item: any) => {
+      const authority = item.authority || item.name || 'Other';
+      exportByAuthority[authority] = (exportByAuthority[authority] || 0) + (item.convertedAmount || item.amount || 0);
+    });
+
+    // Aggregate Apartment
+    const totalApartment = apartmentItems.reduce((sum: number, item: any) => {
+      return sum + (item.convertedAmount || item.amount || 0);
+    }, 0);
+    
+    const apartmentByLocation: Record<string, number> = {};
+    apartmentItems.forEach((item: any) => {
+      const location = item.location || 'Other';
+      apartmentByLocation[location] = (apartmentByLocation[location] || 0) + (item.convertedAmount || item.amount || 0);
+    });
+
+    // Aggregate Capital
+    const totalCapital = capitalItems.reduce((sum: number, item: any) => {
+      return sum + (item.convertedAmount || item.amount || 0);
+    }, 0);
+
+    // Aggregate Payments
+    const totalPayments = paymentItems.reduce((sum: number, item: any) => {
+      return sum + (item.paidAmount || 0);
+    }, 0);
+    const totalOutstanding = paymentItems.reduce((sum: number, item: any) => {
+      return sum + (item.outstandingAmount || 0);
+    }, 0);
+
+    // Aggregate Statements
+    const totalStatements = statementItems.reduce((sum: number, item: any) => {
+      return sum + (item.convertedAmount || item.amount || 0);
+    }, 0);
+
+    // Format expense breakdown
+    const expenseBreakdown = Object.entries(expensesByCategory)
+      .map(([category, value]) => ({ category, value }))
+      .sort((a, b) => b.value - a.value);
+
+    // Format ticket breakdown
+    const ticketBreakdown = Object.entries(ticketsByRoute)
+      .map(([route, value]) => ({ route, value }))
+      .sort((a, b) => b.value - a.value);
+
+    // Format export breakdown
+    const exportBreakdown = Object.entries(exportByAuthority)
+      .map(([authority, value]) => ({ authority, value }))
+      .sort((a, b) => b.value - a.value);
+
+    // Recent activity (last 10 items from all tabs)
+    const recentActivity = [
+      ...expenseItems.map((item: any) => ({ type: 'Expense', date: item.date, description: item.vendorName || item.description, amount: item.convertedAmount || item.amount })),
+      ...ticketItems.map((item: any) => ({ type: 'Ticket', date: item.date, description: item.route || item.description, amount: item.convertedAmount || item.amount })),
+      ...exportItems.map((item: any) => ({ type: 'Export', date: item.date, description: item.description || item.name, amount: item.convertedAmount || item.amount })),
+      ...apartmentItems.map((item: any) => ({ type: 'Apartment', date: item.date, description: item.location || item.description, amount: item.convertedAmount || item.amount }))
+    ]
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+      .slice(0, 10);
+
     return {
       metrics: {
-        totalExpenses: 5050425,
-        tickets: 1798475,
-        apartment: 1590250,
-        export: 557000
+        totalExpenses,
+        tickets: totalTickets,
+        apartment: totalApartment,
+        export: totalExport,
+        capital: totalCapital,
+        payments: totalPayments,
+        outstanding: totalOutstanding,
+        statements: totalStatements
       },
       breakdowns: {
-        expenses: [
-          { category: "Bkk Ticket", value: 1798475 },
-          { category: "Bkk Expenses", value: 1104700 },
-          { category: "Export Charge", value: 557000 },
-          { category: "Apartment", value: 1590250 }
-        ],
-        monthly: [
-          { month: "May 2024", capital: 550000, tickets: 64100, expenses: 50000 },
-          { month: "Aug 2024", capital: 136500, tickets: 133800, export: 32000 },
-          { month: "Sep 2024", capital: 434800, expenses: 200000, export: 75000 }
-        ]
+        expenses: expenseBreakdown,
+        tickets: ticketBreakdown,
+        export: exportBreakdown,
+        apartment: Object.entries(apartmentByLocation).map(([location, value]) => ({ location, value })),
+        recent: recentActivity
       }
     };
   }

@@ -134,7 +134,7 @@ const CapitalDetailPanel: React.FC<{
             <select
               value={value === undefined || value === null ? '' : value.toString()}
               onChange={(e) => onInputChange(field, e.target.value)}
-              className="w-full p-2 bg-stone-50 border border-stone-200 rounded-lg text-sm outline-none transition-all focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/10"
+              className="w-full p-3 md:p-2 py-3 md:py-2 min-h-[44px] md:min-h-0 text-base md:text-sm bg-stone-50 border border-stone-200 rounded-lg outline-none transition-all focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/10 appearance-none"
             >
               {options.map(opt => (
                 <option key={opt} value={opt}>{opt}</option>
@@ -900,7 +900,7 @@ const CapitalForm: React.FC<{
                 <select 
                    value={formData.transactionType} 
                    onChange={e => setFormData({...formData, transactionType: e.target.value as 'purchased' | 'exchange' | 'shares'})}
-                   className="w-full p-2.5 bg-stone-50 border border-stone-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none"
+                   className="w-full p-3 md:p-2.5 py-3 md:py-2.5 min-h-[44px] md:min-h-0 text-base md:text-sm bg-stone-50 border border-stone-200 rounded-xl outline-none transition-all focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 appearance-none"
                 >
                    <option value="purchased">Purchased</option>
                    <option value="exchange">Exchange</option>
@@ -925,7 +925,7 @@ const CapitalForm: React.FC<{
                    <select 
                       value={formData.currency} 
                       onChange={e => handleCurrencyChange(e.target.value)}
-                      className="w-full p-2.5 bg-stone-50 border border-stone-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none"
+                      className="w-full p-3 md:p-2.5 py-3 md:py-2.5 min-h-[44px] md:min-h-0 text-base md:text-sm bg-stone-50 border border-stone-200 rounded-xl outline-none transition-all focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 appearance-none"
                    >
                       {currencies.map(curr => (
                          <option key={curr} value={curr}>{curr}</option>
@@ -1005,7 +1005,7 @@ const CapitalForm: React.FC<{
                 <select 
                    value={formData.paymentMethod || ''} 
                    onChange={e => setFormData({...formData, paymentMethod: e.target.value})}
-                   className="w-full p-2.5 bg-stone-50 border border-stone-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none"
+                   className="w-full p-3 md:p-2.5 py-3 md:py-2.5 min-h-[44px] md:min-h-0 text-base md:text-sm bg-stone-50 border border-stone-200 rounded-xl outline-none transition-all focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 appearance-none"
                 >
                    <option value="">Select payment method</option>
                    {paymentMethods.map(method => (

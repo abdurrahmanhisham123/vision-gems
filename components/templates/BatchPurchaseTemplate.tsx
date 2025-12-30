@@ -376,7 +376,7 @@ const BatchForm: React.FC<{
              </div>
              <div>
                 <label className="block text-xs font-bold text-stone-500 mb-1">Variety</label>
-                <select value={formData.variety} onChange={e => setFormData({...formData, variety: e.target.value})} className="w-full p-2 border rounded-xl">
+                <select value={formData.variety} onChange={e => setFormData({...formData, variety: e.target.value})} className="w-full p-3 md:p-2 py-3 md:py-2 min-h-[44px] md:min-h-0 text-base md:text-sm border rounded-xl outline-none transition-all appearance-none">
                    {config.varieties.map(v => <option key={v} value={v}>{v}</option>)}
                 </select>
              </div>

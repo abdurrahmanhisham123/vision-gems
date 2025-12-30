@@ -62,7 +62,7 @@ export interface ExtendedSpinelStone {
   holder: string; // Stone with
   originalCategory?: string; // Original tab where stone was added (for filtering)
 
-  // Section 5: Sales Information (7)
+  // Section 5: Sales Information (8)
   outstandingName: string; // Outstanding Names
   sellDate: string; // Date (Selling)
   buyer: string;
@@ -70,6 +70,7 @@ export interface ExtendedSpinelStone {
   paymentDueDate: string;
   salesPaymentStatus: string; // Paid/Not Paid
   paymentReceivedDate: string; // Payment paid Date
+  sellingPrice?: number; // Selling Price
 
   // Section 6: Multi-Currency Pricing (4)
   priceRMB: number; // RMB Currency
@@ -234,4 +235,22 @@ export interface GenericStone {
   buyerName?: string;
   photos: string[];
   createdAt: string;
+}
+
+export interface StatementEntry {
+  id: string;
+  date: string;
+  moduleId: string;
+  moduleName: string;
+  tabId: string;
+  tabName: string;
+  transactionType: 'Expense' | 'Income' | 'Purchase' | 'Capital' | 'Export' | 'Statement' | 'Other';
+  description: string;
+  reference: string;
+  debitLKR: number; // 0 if credit transaction
+  creditLKR: number; // 0 if debit transaction
+  balanceLKR: number; // Running balance
+  originalCurrency?: string;
+  originalAmount?: number;
+  metadata?: Record<string, any>; // Additional fields for detail view
 }

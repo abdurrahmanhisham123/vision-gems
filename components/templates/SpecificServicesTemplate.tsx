@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { 
   Search, Plus, Download, Printer, 
   Trash2, Edit, Save, X, DollarSign, 
-  FileText, Globe, Briefcase, Building2, User
+  FileText, Globe, Briefcase, Building2, User, Tag
 } from 'lucide-react';
 
 // --- Types ---
@@ -18,6 +18,7 @@ interface SpecificServiceItem {
   exchangeRate?: number;
   vendorName?: string; // Vendor/Provider Name (optional)
   company?: string; // Optional, for some tabs like Gem.license
+  category?: string; // Category: Gem License, Audit Accounts, Office
   notes?: string;
 }
 
@@ -92,7 +93,7 @@ const SpecificServiceDetailPanel: React.FC<{
     field: keyof SpecificServiceItem, 
     isEditing: boolean, 
     onInputChange: (key: keyof SpecificServiceItem, value: any) => void,
-    type?: 'text' | 'number' | 'date', 
+    type?: 'text' | 'number' | 'date' | 'select', 
     highlight?: boolean, 
     isCurrency?: boolean,
     options?: string[]
@@ -101,13 +102,17 @@ const SpecificServiceDetailPanel: React.FC<{
       <div className="flex flex-col py-2 border-b border-stone-100 last:border-0 min-h-[50px] justify-center">
         <span className="text-[9px] font-bold text-stone-400 uppercase tracking-wider mb-0.5">{label}</span>
         {isEditing ? (
-          options.length > 0 ? (
+          (type === 'select' || options.length > 0) ? (
             <select 
               value={value === undefined || value === null ? '' : value.toString()} 
               onChange={(e) => onInputChange(field, e.target.value)} 
-              className="w-full p-2 bg-stone-50 border border-stone-200 rounded-lg text-sm outline-none transition-all focus:border-orange-500 focus:ring-2 focus:ring-orange-500/10"
+              className="w-full p-3 md:p-2 py-3 md:py-2 min-h-[44px] md:min-h-0 text-base md:text-sm bg-stone-50 border border-stone-200 rounded-lg outline-none transition-all focus:border-orange-500 focus:ring-2 focus:ring-orange-500/10 appearance-none"
             >
-              {options.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+              {options.length > 0 ? (
+                options.map(opt => <option key={opt} value={opt}>{opt}</option>)
+              ) : (
+                <option value="">Select...</option>
+              )}
             </select>
           ) : (
             <input 
@@ -177,6 +182,7 @@ const SpecificServiceDetailPanel: React.FC<{
                 <Field label="Date" value={formData.date} field="date" isEditing={isEditing} onInputChange={handleInputChange} type="date" />
                 <Field label="Code" value={formData.code} field="code" isEditing={isEditing} onInputChange={handleInputChange} highlight />
                 <Field label="Service Name" value={formData.serviceName} field="serviceName" isEditing={isEditing} onInputChange={handleInputChange} />
+                <Field label="Category" value={formData.category} field="category" isEditing={isEditing} onInputChange={handleInputChange} type="select" options={['Gem License', 'Audit Accounts', 'Office']} />
                 <Field label="Description" value={formData.description} field="description" isEditing={isEditing} onInputChange={handleInputChange} />
                 <Field label="Vendor/Provider" value={formData.vendorName} field="vendorName" isEditing={isEditing} onInputChange={handleInputChange} />
                 {hasCompany && (
@@ -231,6 +237,9 @@ export const SpecificServicesTemplate: React.FC<Props> = ({ moduleId, tabId, isR
   const [items, setItems] = useState<SpecificServiceItem[]>(generateMockData());
   const [searchQuery, setSearchQuery] = useState('');
   
+  // Filter State
+  const [categoryFilter, setCategoryFilter] = useState<string>('All');
+  
   // Panel State
   const [selectedItem, setSelectedItem] = useState<SpecificServiceItem | null>(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -270,6 +279,9 @@ export const SpecificServicesTemplate: React.FC<Props> = ({ moduleId, tabId, isR
     return { totalAmount, count: serviceCount, avgCost, servicesThisMonth };
   }, [items]);
 
+  // --- Filter Options ---
+  const uniqueCategories = useMemo(() => Array.from(new Set(items.map(i => i.category).filter(Boolean))).sort(), [items]);
+
   // --- Filtering ---
   const filteredItems = useMemo(() => {
     return items.filter(item => {
@@ -278,11 +290,14 @@ export const SpecificServicesTemplate: React.FC<Props> = ({ moduleId, tabId, isR
         item.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
         (item.code && item.code.toLowerCase().includes(searchQuery.toLowerCase())) ||
         (item.vendorName && item.vendorName.toLowerCase().includes(searchQuery.toLowerCase())) ||
-        (item.company && item.company.toLowerCase().includes(searchQuery.toLowerCase()));
+        (item.company && item.company.toLowerCase().includes(searchQuery.toLowerCase())) ||
+        (item.category && item.category.toLowerCase().includes(searchQuery.toLowerCase()));
+      
+      const matchesCategory = categoryFilter === 'All' || item.category === categoryFilter;
         
-      return matchesSearch;
+      return matchesSearch && matchesCategory;
     }).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-  }, [items, searchQuery]);
+  }, [items, searchQuery, categoryFilter]);
 
   // --- Handlers ---
   const handleDelete = (id: string, e?: React.MouseEvent) => {
@@ -594,7 +609,20 @@ export const SpecificServicesTemplate: React.FC<Props> = ({ moduleId, tabId, isR
                />
             </div>
             <div className="flex gap-2 overflow-x-auto hide-scrollbar pb-1 xl:pb-0">
-               <button className="px-4 py-3 bg-white border border-stone-200 rounded-[20px] text-stone-500 hover:text-stone-800 transition-colors shadow-sm">
+               <div className="flex items-center bg-stone-50 border border-stone-100 rounded-[20px] px-3 shrink-0">
+                  <Tag size={14} className="text-stone-300" />
+                  <select 
+                     value={categoryFilter} 
+                     onChange={(e) => setCategoryFilter(e.target.value)} 
+                     className="px-2 py-2.5 bg-transparent text-xs text-stone-600 font-bold focus:outline-none min-w-[120px]"
+                  >
+                     <option value="All">Category</option>
+                     {uniqueCategories.map(cat => (
+                        <option key={cat} value={cat}>{cat}</option>
+                     ))}
+                  </select>
+               </div>
+               <button className="px-4 py-3 bg-white border border-stone-200 rounded-[20px] text-stone-500 hover:text-stone-800 transition-colors shadow-sm shrink-0">
                  <Download size={18} />
                </button>
             </div>
@@ -757,6 +785,7 @@ const SpecificServiceForm: React.FC<{
     currency: initialData?.currency || 'LKR',
     vendorName: initialData?.vendorName || '',
     company: initialData?.company || '',
+    category: initialData?.category || '',
     notes: initialData?.notes || '',
     exchangeRate: initialData?.exchangeRate,
     convertedAmount: initialData?.convertedAmount,
@@ -800,6 +829,7 @@ const SpecificServiceForm: React.FC<{
       exchangeRate: formData.exchangeRate,
       vendorName: formData.vendorName || '',
       company: formData.company,
+      category: formData.category,
       notes: formData.notes,
     });
   };
@@ -847,6 +877,20 @@ const SpecificServiceForm: React.FC<{
              </div>
 
              <div>
+                <label className="block text-xs font-bold text-stone-500 uppercase mb-1.5 ml-1">Category</label>
+                <select 
+                   value={formData.category || ''} 
+                   onChange={e => setFormData({...formData, category: e.target.value})}
+                   className="w-full p-3 md:p-2.5 py-3 md:py-2.5 min-h-[44px] md:min-h-0 text-base md:text-sm bg-stone-50 border border-stone-200 rounded-xl outline-none transition-all focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 appearance-none"
+                >
+                   <option value="">Select category</option>
+                   <option value="Gem License">Gem License</option>
+                   <option value="Audit Accounts">Audit Accounts</option>
+                   <option value="Office">Office</option>
+                </select>
+             </div>
+
+             <div>
                 <label className="block text-xs font-bold text-stone-500 uppercase mb-1.5 ml-1">Description *</label>
                 <textarea 
                    rows={3}
@@ -887,7 +931,7 @@ const SpecificServiceForm: React.FC<{
                    <select 
                       value={formData.currency} 
                       onChange={e => setFormData({...formData, currency: e.target.value})}
-                      className="w-full p-2.5 bg-stone-50 border border-stone-200 rounded-xl text-sm focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 outline-none"
+                      className="w-full p-3 md:p-2.5 py-3 md:py-2.5 min-h-[44px] md:min-h-0 text-base md:text-sm bg-stone-50 border border-stone-200 rounded-xl outline-none transition-all focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 appearance-none"
                    >
                       {currencies.map(curr => (
                          <option key={curr} value={curr}>{curr}</option>

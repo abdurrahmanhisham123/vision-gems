@@ -83,6 +83,10 @@ export const ModuleView: React.FC = () => {
   const [addTabStep, setAddTabStep] = useState<1 | 2>(1);
   const [selectedTemplate, setSelectedTemplate] = useState<TemplateType | null>(null);
   const [newTabName, setNewTabName] = useState('');
+  
+  // --- Drag and Drop State ---
+  const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
+  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
 
   // --- Outstanding Group State ---
   const [isSLGroupExpanded, setIsSLGroupExpanded] = useState(() => {
@@ -135,6 +139,49 @@ export const ModuleView: React.FC = () => {
       setOrderedTabs(newTabs);
       localStorage.setItem(`tab_order_${moduleId}`, JSON.stringify(newTabs));
     }
+  };
+
+  // --- Drag and Drop Handlers ---
+  const handleDragStart = (index: number) => {
+    setDraggedIndex(index);
+  };
+
+  const handleDragOver = (e: React.DragEvent, index: number) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (draggedIndex === null || draggedIndex === index) return;
+    setDragOverIndex(index);
+  };
+
+  const handleDragLeave = () => {
+    setDragOverIndex(null);
+  };
+
+  const handleDrop = (e: React.DragEvent, dropIndex: number) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    if (draggedIndex === null || draggedIndex === dropIndex) {
+      setDraggedIndex(null);
+      setDragOverIndex(null);
+      return;
+    }
+
+    const newTabs = [...orderedTabs];
+    const draggedTab = newTabs[draggedIndex];
+    newTabs.splice(draggedIndex, 1);
+    newTabs.splice(dropIndex, 0, draggedTab);
+    
+    setOrderedTabs(newTabs);
+    localStorage.setItem(`tab_order_${moduleId}`, JSON.stringify(newTabs));
+    
+    setDraggedIndex(null);
+    setDragOverIndex(null);
+  };
+
+  const handleDragEnd = () => {
+    setDraggedIndex(null);
+    setDragOverIndex(null);
   };
 
   const handleAddTab = () => {
@@ -363,24 +410,120 @@ export const ModuleView: React.FC = () => {
 
       {isReorderOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-stone-900/60 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-sm flex flex-col max-h-[80vh] animate-in fade-in zoom-in-95 duration-200">
-            <div className="p-4 border-b border-stone-100 flex justify-between items-center bg-stone-50/50 rounded-t-2xl">
-              <div><h3 className="font-bold text-stone-900">Organize Tabs</h3><p className="text-xs text-stone-500">Reorder sub-menus</p></div>
-              <button onClick={() => setIsReorderOpen(false)} className="p-2 hover:bg-stone-100 rounded-full text-stone-400"><X size={20} /></button>
+          <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-2xl flex flex-col max-h-[85vh] animate-in fade-in zoom-in-95 duration-200">
+            {/* Header */}
+            <div className="p-6 border-b border-stone-100 flex justify-between items-center bg-gradient-to-r from-stone-50 to-white rounded-t-3xl">
+              <div>
+                <h3 className="font-bold text-xl text-stone-900 mb-1">Organize Tabs</h3>
+                <p className="text-xs text-stone-500 font-medium">Drag and drop to reorder sub-menus</p>
+              </div>
+              <button 
+                onClick={() => {
+                  setIsReorderOpen(false);
+                  setDraggedIndex(null);
+                  setDragOverIndex(null);
+                }} 
+                className="p-2 hover:bg-stone-100 rounded-full text-stone-400 hover:text-stone-600 transition-colors"
+              >
+                <X size={20} />
+              </button>
             </div>
-            <div className="flex-1 overflow-y-auto p-3 space-y-2 custom-scrollbar">
-              {orderedTabs.map((tab, idx) => (
-                <div key={tab} className="flex items-center justify-between p-3 bg-white border border-stone-200 rounded-xl shadow-sm hover:border-gem-purple/30 group">
-                  <div className="flex items-center gap-3 overflow-hidden"><div className="text-stone-300 cursor-grab active:cursor-grabbing shrink-0"><GripVertical size={16} /></div><span className="font-medium text-stone-700 text-sm truncate">{tab}</span></div>
-                  <div className="flex items-center gap-1 shrink-0">
-                    <button onClick={() => moveTab(idx, 'up')} disabled={idx === 0} className="p-1.5 rounded-lg text-stone-400 hover:text-gem-purple hover:bg-stone-50 disabled:opacity-30"><ArrowUp size={16} /></button>
-                    <button onClick={() => moveTab(idx, 'down')} disabled={idx === orderedTabs.length - 1} className="p-1.5 rounded-lg text-stone-400 hover:text-gem-purple hover:bg-stone-50 disabled:opacity-30"><ArrowDown size={16} /></button>
-                    {customTabs.includes(tab) && <button onClick={() => handleDeleteTab(tab)} className="p-1.5 rounded-lg text-stone-400 hover:text-red-600 hover:bg-red-50 ml-1"><Trash2 size={16} /></button>}
-                  </div>
-                </div>
-              ))}
+            
+            {/* Scrollable List */}
+            <div className="flex-1 overflow-y-auto p-6 custom-scrollbar bg-stone-50/30">
+              <div className="space-y-3">
+                {orderedTabs.map((tab, idx) => {
+                  const isDragging = draggedIndex === idx;
+                  const isDragOver = dragOverIndex === idx;
+                  const isCustom = customTabs.includes(tab);
+                  
+                  return (
+                    <div
+                      key={tab}
+                      draggable
+                      onDragStart={() => handleDragStart(idx)}
+                      onDragOver={(e) => handleDragOver(e, idx)}
+                      onDragLeave={handleDragLeave}
+                      onDrop={(e) => handleDrop(e, idx)}
+                      onDragEnd={handleDragEnd}
+                      className={`
+                        relative flex items-center justify-between p-4 
+                        bg-white border-2 rounded-2xl shadow-sm
+                        transition-all duration-200 ease-out
+                        ${isDragging 
+                          ? 'opacity-50 scale-95 cursor-grabbing shadow-lg border-gem-purple/50' 
+                          : isDragOver 
+                            ? 'border-gem-purple shadow-md scale-[1.02] bg-gem-purple/5' 
+                            : 'border-stone-200 hover:border-gem-purple/40 hover:shadow-md hover:scale-[1.01]'
+                        }
+                        ${isDragging ? 'cursor-grabbing' : 'cursor-grab'}
+                      `}
+                    >
+                      {/* Drop Indicator Line */}
+                      {isDragOver && draggedIndex !== null && draggedIndex < idx && (
+                        <div className="absolute -top-1.5 left-0 right-0 h-1 bg-gem-purple rounded-full animate-pulse" />
+                      )}
+                      {isDragOver && draggedIndex !== null && draggedIndex > idx && (
+                        <div className="absolute -bottom-1.5 left-0 right-0 h-1 bg-gem-purple rounded-full animate-pulse" />
+                      )}
+                      
+                      {/* Left Side: Grip + Tab Name */}
+                      <div className="flex items-center gap-4 overflow-hidden flex-1 min-w-0">
+                        <div className={`
+                          text-stone-400 shrink-0 transition-colors
+                          ${isDragging ? 'text-gem-purple' : 'group-hover:text-gem-purple'}
+                        `}>
+                          <GripVertical size={20} />
+                        </div>
+                        <div className="flex items-center gap-3 min-w-0 flex-1">
+                          <span className="text-xs font-bold text-stone-400 w-6 shrink-0 tabular-nums">
+                            {String(idx + 1).padStart(2, '0')}
+                          </span>
+                          <span className="font-semibold text-stone-800 text-sm truncate">
+                            {tab}
+                          </span>
+                          {isCustom && (
+                            <span className="text-[10px] font-bold bg-gem-purple/10 text-gem-purple px-2 py-0.5 rounded-full uppercase tracking-wide shrink-0">
+                              Custom
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      
+                      {/* Right Side: Delete Button */}
+                      <div className="flex items-center gap-2 shrink-0 ml-4">
+                        {isCustom && (
+                          <button 
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDeleteTab(tab);
+                            }} 
+                            className="p-2 rounded-xl text-stone-400 hover:text-red-600 hover:bg-red-50 transition-all duration-200 hover:scale-110 active:scale-95"
+                            title="Delete tab"
+                          >
+                            <Trash2 size={18} />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
-            <div className="p-4 border-t border-stone-100 bg-stone-50 rounded-b-2xl"><button onClick={() => setIsReorderOpen(false)} className="w-full py-2.5 bg-gem-purple text-white rounded-xl font-bold text-sm shadow-purple">Done</button></div>
+            
+            {/* Footer */}
+            <div className="p-6 border-t border-stone-100 bg-gradient-to-r from-white to-stone-50 rounded-b-3xl">
+              <button 
+                onClick={() => {
+                  setIsReorderOpen(false);
+                  setDraggedIndex(null);
+                  setDragOverIndex(null);
+                }} 
+                className="w-full py-3.5 bg-gem-purple text-white rounded-xl font-bold text-sm shadow-lg shadow-gem-purple/30 hover:bg-gem-purple/90 hover:shadow-xl hover:shadow-gem-purple/40 transition-all duration-200 active:scale-[0.98]"
+              >
+                Done
+              </button>
+            </div>
           </div>
         </div>
       )}

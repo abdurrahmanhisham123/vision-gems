@@ -313,10 +313,6 @@ export const getTemplateForTab = (moduleId: string, tabId: string): TemplateType
     if (tabNormal === 'payment due date') return 'PaymentDueDate'; 
   }
 
-  if (moduleId === 'all-expenses' && tabNormal === 'fawazwife.shares') {
-    return 'UnifiedExpense';
-  }
-
   if (moduleId === 'payable' && tabNormal === 'dashboard') {
     return 'PayableDashboard';
   }
@@ -324,39 +320,35 @@ export const getTemplateForTab = (moduleId: string, tabId: string): TemplateType
   // --- UNIFIED EXPENSE MAPPING FOR ALL-EXPENSES MODULE ---
   if (moduleId === 'all-expenses') {
     if (tabNormal === 'vgexpenses' || 
-        tabNormal === 'ziyam' || 
-        tabNormal === 'zcar' || 
-        tabNormal === 'zahran' || 
-        tabNormal === 'dad' || 
-        tabNormal === 'ramzanhaji.shares' || 
-        tabNormal === 'azeem.shares' ||
-        tabNormal === 'others.shares') {
+        tabNormal === 'personal expenses') {
       return 'UnifiedExpense';
     }
   }
 
-  // --- SPECIFIC SERVICES TEMPLATE MAPPING (3 tabs) ---
+  // --- UNIFIED EXPENSE MAPPING FOR ACCOUNTS MODULE ---
+  if (moduleId === 'accounts') {
+    if (tabNormal === 'shares' || tabNormal === 'investment') {
+      return 'UnifiedExpense';
+    }
+  }
+
+  // --- SPECIFIC SERVICES TEMPLATE MAPPING ---
   if (moduleId === 'all-expenses') {
-    if (tabNormal === 'office' || tabNormal === 'gem.license' || tabNormal === 'audit.accounts') {
+    if (tabNormal === 'office' || tabNormal === 'expenses') {
       return 'SpecificServices';
     }
   }
 
   // --- TICKETS & VISA TEMPLATE MAPPING ---
-  if (moduleId === 'all-expenses' && tabNormal === 'classictravel') {
-    return 'TicketsVisa';
-  }
-
   if (moduleId === 'all-expenses' && tabNormal === 'exdashboard') {
     return 'AllExpensesDashboard';
   }
-
 
   if (moduleId === 'all-expenses' && tabNormal === 'cut.polish') {
     return 'CutPolishExpenses';
   }
 
-  if (moduleId === 'all-expenses' && (tabNormal === 'online.ticket' || tabNormal === 'personal ticket visa')) {
+  if (moduleId === 'all-expenses' && tabNormal === 'ticket and visa') {
     return 'TicketsVisa';
   }
 

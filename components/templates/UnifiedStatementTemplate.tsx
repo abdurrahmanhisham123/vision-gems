@@ -70,7 +70,7 @@ const Field: React.FC<FieldProps> = React.memo(({ label, value, field, isEditing
           <select 
             value={value === undefined || value === null ? '' : value.toString()} 
             onChange={(e) => onInputChange(field, e.target.value)}
-            className="w-full p-2 bg-stone-50 border border-stone-200 rounded-lg text-sm outline-none transition-all focus:border-violet-500 focus:ring-2 focus:ring-violet-500/10"
+            className="w-full p-3 md:p-2 py-3 md:py-2 min-h-[44px] md:min-h-0 text-base md:text-sm bg-stone-50 border border-stone-200 rounded-lg outline-none transition-all focus:border-violet-500 focus:ring-2 focus:ring-violet-500/10 appearance-none"
           >
             {options?.map(opt => {
               const optionValue = typeof opt === 'string' ? opt : opt.value;

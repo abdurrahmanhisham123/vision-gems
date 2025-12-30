@@ -415,7 +415,7 @@ export const WorkingSheetTemplate: React.FC<Props> = ({ config, isReadOnly }) =>
                      {config.hasInOutColumns && (
                         <div>
                            <label className="block text-xs font-bold text-stone-500 uppercase mb-1">Type</label>
-                           <select className="w-full p-2.5 border rounded-xl">
+                           <select className="w-full p-3 md:p-2.5 py-3 md:py-2.5 min-h-[44px] md:min-h-0 text-base md:text-sm border rounded-xl outline-none transition-all appearance-none">
                               <option value="IN">Money IN</option>
                               <option value="OUT">Money OUT</option>
                            </select>

@@ -140,11 +140,11 @@ const MixedStoneForm: React.FC<{
           <div className="space-y-4">
              <div className="grid grid-cols-2 gap-4">
                 <div><label className="block text-xs font-bold text-stone-500 mb-1">Code</label><input type="text" value={formData.code} onChange={e => setFormData({...formData, code: e.target.value})} className="w-full p-2.5 bg-white border border-stone-200 rounded-xl" /></div>
-                <div><label className="block text-xs font-bold text-stone-500 mb-1">Variety</label><select value={formData.variety} onChange={e => setFormData({...formData, variety: e.target.value})} className="w-full p-2.5 bg-white border border-stone-200 rounded-xl">{config.varieties.map(v => <option key={v} value={v}>{v}</option>)}</select></div>
+                <div><label className="block text-xs font-bold text-stone-500 mb-1">Variety</label><select value={formData.variety} onChange={e => setFormData({...formData, variety: e.target.value})} className="w-full p-3 md:p-2.5 py-3 md:py-2.5 min-h-[44px] md:min-h-0 text-base md:text-sm bg-white border border-stone-200 rounded-xl outline-none transition-all appearance-none">{config.varieties.map(v => <option key={v} value={v}>{v}</option>)}</select></div>
              </div>
              <div className="grid grid-cols-2 gap-4">
                 <div><label className="block text-xs font-bold text-stone-500 mb-1">Weight (ct)</label><input type="number" step="0.01" value={formData.weight} onChange={e => setFormData({...formData, weight: Number(e.target.value)})} className="w-full p-2.5 bg-white border border-stone-200 rounded-xl" /></div>
-                <div><label className="block text-xs font-bold text-stone-500 mb-1">Status</label><select value={formData.status} onChange={e => setFormData({...formData, status: e.target.value as any})} className="w-full p-2.5 bg-white border border-stone-200 rounded-xl"><option value="available">Available</option><option value="sold">Sold</option><option value="approval">Approval</option></select></div>
+                <div><label className="block text-xs font-bold text-stone-500 mb-1">Status</label><select value={formData.status} onChange={e => setFormData({...formData, status: e.target.value as any})} className="w-full p-3 md:p-2.5 py-3 md:py-2.5 min-h-[44px] md:min-h-0 text-base md:text-sm bg-white border border-stone-200 rounded-xl outline-none transition-all appearance-none"><option value="available">Available</option><option value="sold">Sold</option><option value="approval">Approval</option></select></div>
              </div>
           </div>
           <div className="flex justify-end gap-3 pt-6 mt-6 border-t border-stone-100">

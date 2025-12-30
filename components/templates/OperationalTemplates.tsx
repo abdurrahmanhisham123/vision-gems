@@ -311,7 +311,7 @@ const InvoiceForm: React.FC<{
               </div>
               <div className="w-full md:w-1/3">
                  <label className="block text-xs font-semibold text-stone-500 mb-1">Status</label>
-                 <select value={formData.status} onChange={e => updateField('status', e.target.value)} className="w-full p-2.5 rounded-lg border border-stone-200 text-sm bg-white">
+                 <select value={formData.status} onChange={e => updateField('status', e.target.value)} className="w-full p-3 md:p-2.5 py-3 md:py-2.5 min-h-[44px] md:min-h-0 text-base md:text-sm rounded-lg border border-stone-200 bg-white outline-none transition-all appearance-none">
                     <option value="Pending">Pending</option>
                     <option value="Shipped">Shipped</option>
                     <option value="Delivered">Delivered</option>

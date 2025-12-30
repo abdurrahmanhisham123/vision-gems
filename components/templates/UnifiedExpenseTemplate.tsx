@@ -10,6 +10,7 @@ interface UnifiedExpenseItem {
   id: string;
   date: string;
   code: string;
+  title: string; // Required title for categorization
   vendorName: string; // Vendor/Payee Name
   description: string;
   amount: number;
@@ -49,7 +50,7 @@ const exchangeRates: Record<string, number> = {
 };
 
 const paymentMethods = ['Cash', 'Cheque', 'Bank Transfer', 'Credit Card', 'Online Payment', 'Other'];
-const expenseCategories = ['Transport', 'Office', 'Service', 'Material', 'Food', 'Utilities', 'Other'];
+const expenseCategories = ['Transport', 'Office', 'Service', 'Material', 'Food', 'Utilities', 'Personal', 'Car', 'Other'];
 const inOutChequeOptions = ['IN', 'OUT', 'CHEQUES'];
 
 // --- Side Panel Component ---
@@ -121,8 +122,8 @@ const ExpenseDetailPanel: React.FC<{
   };
 
   const handleSave = () => {
-    if (!formData.vendorName || !formData.amount || !formData.currency) {
-      return alert('Vendor Name, Amount, and Currency are required');
+    if (!formData.vendorName || !formData.amount || !formData.currency || !formData.title) {
+      return alert('Title, Vendor Name, Amount, and Currency are required');
     }
     onSave(formData);
   };
@@ -156,7 +157,7 @@ const ExpenseDetailPanel: React.FC<{
             <select
               value={value === undefined || value === null ? '' : value.toString()}
               onChange={(e) => onInputChange(field, e.target.value)}
-              className="w-full p-2 bg-stone-50 border border-stone-200 rounded-lg text-sm outline-none transition-all focus:border-red-500 focus:ring-2 focus:ring-red-500/10"
+              className="w-full p-3 md:p-2 py-3 md:py-2 min-h-[44px] md:min-h-0 text-base md:text-sm bg-stone-50 border border-stone-200 rounded-lg outline-none transition-all focus:border-red-500 focus:ring-2 focus:ring-red-500/10 appearance-none"
             >
               {options.map(opt => (
                 <option key={opt} value={opt}>{opt}</option>
@@ -229,6 +230,7 @@ const ExpenseDetailPanel: React.FC<{
               <div className="grid grid-cols-2 gap-x-4 md:gap-x-6">
                 <Field label="Date" value={formData.date} field="date" isEditing={isEditing} onInputChange={handleInputChange} type="date" />
                 <Field label="Code" value={formData.code} field="code" isEditing={isEditing} onInputChange={handleInputChange} highlight />
+                <Field label="Title *" value={formData.title} field="title" isEditing={isEditing} onInputChange={handleInputChange} highlight />
                 <Field label="Vendor/Payee Name *" value={formData.vendorName} field="vendorName" isEditing={isEditing} onInputChange={handleInputChange} />
                 <Field label="Description" value={formData.description} field="description" isEditing={isEditing} onInputChange={handleInputChange} />
                 <Field label="Currency *" value={formData.currency} field="currency" isEditing={isEditing} onInputChange={handleCurrencyChange} type="select" options={currencies} />
@@ -290,6 +292,7 @@ export const UnifiedExpenseTemplate: React.FC<Props> = ({ moduleId, tabId, isRea
   const [currencyFilter, setCurrencyFilter] = useState<string>('All');
   const [categoryFilter, setCategoryFilter] = useState<string>('All');
   const [companyFilter, setCompanyFilter] = useState<string>('All');
+  const [titleFilter, setTitleFilter] = useState<string>('All');
   
   // Panel State
   const [selectedItem, setSelectedItem] = useState<UnifiedExpenseItem | null>(null);
@@ -321,6 +324,7 @@ export const UnifiedExpenseTemplate: React.FC<Props> = ({ moduleId, tabId, isRea
   const uniqueCurrencies = useMemo(() => Array.from(new Set(items.map(i => i.currency))).sort(), [items]);
   const uniqueCategories = useMemo(() => Array.from(new Set(items.map(i => i.category).filter(Boolean))).sort(), [items]);
   const uniqueCompanies = useMemo(() => Array.from(new Set(items.map(i => i.company).filter(Boolean))).sort(), [items]);
+  const uniqueTitles = useMemo(() => Array.from(new Set(items.map(i => i.title).filter(Boolean))).sort(), [items]);
 
   // --- Filtering ---
   const filteredItems = useMemo(() => {
@@ -328,6 +332,7 @@ export const UnifiedExpenseTemplate: React.FC<Props> = ({ moduleId, tabId, isRea
       const matchesSearch = 
         item.vendorName.toLowerCase().includes(searchQuery.toLowerCase()) ||
         (item.code && item.code.toLowerCase().includes(searchQuery.toLowerCase())) ||
+        (item.title && item.title.toLowerCase().includes(searchQuery.toLowerCase())) ||
         (item.description && item.description.toLowerCase().includes(searchQuery.toLowerCase())) ||
         (item.location && item.location.toLowerCase().includes(searchQuery.toLowerCase())) ||
         (item.company && item.company.toLowerCase().includes(searchQuery.toLowerCase())) ||
@@ -336,10 +341,11 @@ export const UnifiedExpenseTemplate: React.FC<Props> = ({ moduleId, tabId, isRea
       const matchesCurrency = currencyFilter === 'All' || item.currency === currencyFilter;
       const matchesCategory = categoryFilter === 'All' || item.category === categoryFilter;
       const matchesCompany = companyFilter === 'All' || item.company === companyFilter;
+      const matchesTitle = titleFilter === 'All' || item.title === titleFilter;
         
-      return matchesSearch && matchesCurrency && matchesCategory && matchesCompany;
+      return matchesSearch && matchesCurrency && matchesCategory && matchesCompany && matchesTitle;
     }).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-  }, [items, searchQuery, currencyFilter, categoryFilter, companyFilter]);
+  }, [items, searchQuery, currencyFilter, categoryFilter, companyFilter, titleFilter]);
 
 
   // --- Handlers ---
@@ -384,6 +390,7 @@ export const UnifiedExpenseTemplate: React.FC<Props> = ({ moduleId, tabId, isRea
     const tableRows = filteredItems.map(item => {
       const date = (item.date || '-').toString().replace(/</g, '&lt;').replace(/>/g, '&gt;');
       const code = (item.code || '-').toString().replace(/</g, '&lt;').replace(/>/g, '&gt;');
+      const title = (item.title || '-').toString().replace(/</g, '&lt;').replace(/>/g, '&gt;');
       const vendorName = (item.vendorName || '-').toString().replace(/</g, '&lt;').replace(/>/g, '&gt;');
       const description = (item.description || '-').toString().replace(/</g, '&lt;').replace(/>/g, '&gt;');
       const location = (item.location || '-').toString().replace(/</g, '&lt;').replace(/>/g, '&gt;');
@@ -397,6 +404,7 @@ export const UnifiedExpenseTemplate: React.FC<Props> = ({ moduleId, tabId, isRea
       <tr>
         <td style="border: 1px solid #cccccc; padding: 5px 4px; font-size: 8pt; text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; vertical-align: middle;">${date}</td>
         <td style="border: 1px solid #cccccc; padding: 5px 4px; font-size: 8pt; text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; vertical-align: middle;">${code}</td>
+        <td style="border: 1px solid #cccccc; padding: 5px 4px; font-size: 8pt; text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; vertical-align: middle;">${title}</td>
         <td style="border: 1px solid #cccccc; padding: 5px 4px; font-size: 8pt; text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; vertical-align: middle;">${vendorName}</td>
         <td style="border: 1px solid #cccccc; padding: 5px 4px; font-size: 8pt; text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; vertical-align: middle;">${description}</td>
         <td style="border: 1px solid #cccccc; padding: 5px 4px; font-size: 8pt; text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; vertical-align: middle;">${location}</td>
@@ -474,25 +482,27 @@ export const UnifiedExpenseTemplate: React.FC<Props> = ({ moduleId, tabId, isRea
         <div style="font-size: 16pt; font-weight: bold; margin: 10px 0; text-transform: uppercase; color: #000000;">${safeTabId}</div>
         <table style="width: 100%; table-layout: fixed; border-collapse: collapse; margin-top: 10px; font-size: 8pt;">
           <colgroup>
-            <col style="width: 7%;">
-            <col style="width: 7%;">
-            <col style="width: 10%;">
-            <col style="width: 12%;">
+            <col style="width: 6%;">
+            <col style="width: 6%;">
             <col style="width: 8%;">
-            <col style="width: 8%;">
+            <col style="width: 9%;">
+            <col style="width: 11%;">
             <col style="width: 7%;">
             <col style="width: 7%;">
             <col style="width: 6%;">
-            <col style="width: 7%;">
-            <col style="width: 9%;">
-            <col style="width: 9%;">
-            <col style="width: 7%;">
+            <col style="width: 6%;">
+            <col style="width: 5%;">
+            <col style="width: 6%;">
             <col style="width: 8%;">
+            <col style="width: 8%;">
+            <col style="width: 6%;">
+            <col style="width: 7%;">
           </colgroup>
           <thead>
             <tr>
               <th style="background-color: #f0f0f0; border: 1px solid #000000; padding: 6px 4px; text-align: left; font-weight: bold; font-size: 7pt; text-transform: uppercase; white-space: nowrap; color: #000000; vertical-align: middle;">Date</th>
               <th style="background-color: #f0f0f0; border: 1px solid #000000; padding: 6px 4px; text-align: left; font-weight: bold; font-size: 7pt; text-transform: uppercase; white-space: nowrap; color: #000000; vertical-align: middle;">Code</th>
+              <th style="background-color: #f0f0f0; border: 1px solid #000000; padding: 6px 4px; text-align: left; font-weight: bold; font-size: 7pt; text-transform: uppercase; white-space: nowrap; color: #000000; vertical-align: middle;">Title</th>
               <th style="background-color: #f0f0f0; border: 1px solid #000000; padding: 6px 4px; text-align: left; font-weight: bold; font-size: 7pt; text-transform: uppercase; white-space: nowrap; color: #000000; vertical-align: middle;">Vendor</th>
               <th style="background-color: #f0f0f0; border: 1px solid #000000; padding: 6px 4px; text-align: left; font-weight: bold; font-size: 7pt; text-transform: uppercase; white-space: nowrap; color: #000000; vertical-align: middle;">Description</th>
               <th style="background-color: #f0f0f0; border: 1px solid #000000; padding: 6px 4px; text-align: left; font-weight: bold; font-size: 7pt; text-transform: uppercase; white-space: nowrap; color: #000000; vertical-align: middle;">Location</th>
@@ -508,7 +518,7 @@ export const UnifiedExpenseTemplate: React.FC<Props> = ({ moduleId, tabId, isRea
             </tr>
           </thead>
           <tbody>
-            ${tableRows || '<tr><td colspan="14" style="text-align: center; padding: 20px; border: 1px solid #cccccc;">No expenses found</td></tr>'}
+            ${tableRows || '<tr><td colspan="15" style="text-align: center; padding: 20px; border: 1px solid #cccccc;">No expenses found</td></tr>'}
           </tbody>
         </table>
       </div>
@@ -652,7 +662,7 @@ export const UnifiedExpenseTemplate: React.FC<Props> = ({ moduleId, tabId, isRea
                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-stone-300" size={18} />
                <input 
                   type="text" 
-                  placeholder="Search by vendor, code, description, location, company, category..." 
+                  placeholder="Search by title, vendor, code, description, location, company, category..." 
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="w-full pl-11 pr-4 py-3 bg-stone-50/50 border border-stone-100 rounded-[20px] text-sm focus:ring-4 focus:ring-red-500/5 focus:border-red-300 outline-none transition-all placeholder-stone-300 text-stone-700" 
@@ -695,6 +705,19 @@ export const UnifiedExpenseTemplate: React.FC<Props> = ({ moduleId, tabId, isRea
                      <option value="All">Company</option>
                      {uniqueCompanies.map(comp => (
                         <option key={comp} value={comp}>{comp}</option>
+                     ))}
+                  </select>
+               </div>
+               <div className="flex items-center bg-stone-50 border border-stone-100 rounded-[20px] px-3 shrink-0">
+                  <FileText size={14} className="text-stone-300" />
+                  <select 
+                     value={titleFilter} 
+                     onChange={(e) => setTitleFilter(e.target.value)} 
+                     className="px-2 py-2.5 bg-transparent text-xs text-stone-600 font-bold focus:outline-none min-w-[100px]"
+                  >
+                     <option value="All">Title</option>
+                     {uniqueTitles.map(title => (
+                        <option key={title} value={title}>{title}</option>
                      ))}
                   </select>
                </div>
@@ -879,6 +902,7 @@ const ExpenseForm: React.FC<{
   const [formData, setFormData] = useState<Partial<UnifiedExpenseItem>>({
     date: initialData?.date || new Date().toISOString().split('T')[0],
     code: initialData?.code || '',
+    title: initialData?.title || '',
     vendorName: initialData?.vendorName || '',
     description: initialData?.description || '',
     amount: initialData?.amount || 0,
@@ -941,14 +965,15 @@ const ExpenseForm: React.FC<{
   };
 
   const handleSubmit = () => {
-    if (!formData.vendorName || !formData.amount || !formData.currency) {
-      return alert('Vendor Name, Amount, and Currency are required');
+    if (!formData.title || !formData.vendorName || !formData.amount || !formData.currency) {
+      return alert('Title, Vendor Name, Amount, and Currency are required');
     }
     
     onSave({
       id: initialData?.id || `expense-${Date.now()}`,
       date: formData.date!,
       code: formData.code || `EXP-${Date.now().toString().slice(-4)}`,
+      title: formData.title!,
       vendorName: formData.vendorName!,
       description: formData.description || '',
       amount: Number(formData.amount),
@@ -997,6 +1022,17 @@ const ExpenseForm: React.FC<{
              </div>
 
              <div>
+                <label className="block text-xs font-bold text-stone-500 uppercase mb-1.5 ml-1">Title *</label>
+                <input 
+                   type="text" 
+                   value={formData.title || ''} 
+                   onChange={e => setFormData({...formData, title: e.target.value})}
+                   className="w-full p-2.5 bg-stone-50 border border-stone-200 rounded-xl text-sm focus:ring-2 focus:ring-red-500/20 focus:border-red-500 outline-none" 
+                   placeholder="Enter expense title"
+                />
+             </div>
+
+             <div>
                 <label className="block text-xs font-bold text-stone-500 uppercase mb-1.5 ml-1">Vendor/Payee Name *</label>
                 <input 
                    type="text" 
@@ -1024,7 +1060,7 @@ const ExpenseForm: React.FC<{
                    <select 
                       value={formData.currency} 
                       onChange={e => handleCurrencyChange(e.target.value)}
-                      className="w-full p-2.5 bg-stone-50 border border-stone-200 rounded-xl text-sm focus:ring-2 focus:ring-red-500/20 focus:border-red-500 outline-none"
+                      className="w-full p-3 md:p-2.5 py-3 md:py-2.5 min-h-[44px] md:min-h-0 text-base md:text-sm bg-stone-50 border border-stone-200 rounded-xl outline-none transition-all focus:ring-2 focus:ring-red-500/20 focus:border-red-500 appearance-none"
                    >
                       {currencies.map(curr => (
                          <option key={curr} value={curr}>{curr}</option>
@@ -1108,7 +1144,7 @@ const ExpenseForm: React.FC<{
                    <select 
                       value={formData.category || ''} 
                       onChange={e => setFormData({...formData, category: e.target.value})}
-                      className="w-full p-2.5 bg-stone-50 border border-stone-200 rounded-xl text-sm focus:ring-2 focus:ring-red-500/20 focus:border-red-500 outline-none"
+                      className="w-full p-3 md:p-2.5 py-3 md:py-2.5 min-h-[44px] md:min-h-0 text-base md:text-sm bg-stone-50 border border-stone-200 rounded-xl outline-none transition-all focus:ring-2 focus:ring-red-500/20 focus:border-red-500 appearance-none"
                    >
                       <option value="">Select category</option>
                       {expenseCategories.map(cat => (
@@ -1121,7 +1157,7 @@ const ExpenseForm: React.FC<{
                    <select 
                       value={formData.paymentMethod || ''} 
                       onChange={e => setFormData({...formData, paymentMethod: e.target.value})}
-                      className="w-full p-2.5 bg-stone-50 border border-stone-200 rounded-xl text-sm focus:ring-2 focus:ring-red-500/20 focus:border-red-500 outline-none"
+                      className="w-full p-3 md:p-2.5 py-3 md:py-2.5 min-h-[44px] md:min-h-0 text-base md:text-sm bg-stone-50 border border-stone-200 rounded-xl outline-none transition-all focus:ring-2 focus:ring-red-500/20 focus:border-red-500 appearance-none"
                    >
                       <option value="">Select method</option>
                       {paymentMethods.map(method => (
@@ -1136,7 +1172,7 @@ const ExpenseForm: React.FC<{
                 <select 
                    value={formData.inOutCheque || ''} 
                    onChange={e => setFormData({...formData, inOutCheque: e.target.value})}
-                   className="w-full p-2.5 bg-stone-50 border border-stone-200 rounded-xl text-sm focus:ring-2 focus:ring-red-500/20 focus:border-red-500 outline-none"
+                   className="w-full p-3 md:p-2.5 py-3 md:py-2.5 min-h-[44px] md:min-h-0 text-base md:text-sm bg-stone-50 border border-stone-200 rounded-xl outline-none transition-all focus:ring-2 focus:ring-red-500/20 focus:border-red-500 appearance-none"
                 >
                    <option value="">Select option</option>
                    {inOutChequeOptions.map(option => (

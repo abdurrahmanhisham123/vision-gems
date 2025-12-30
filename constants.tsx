@@ -74,10 +74,8 @@ export const APP_MODULES: ModuleConfig[] = [
     description: 'Comprehensive expense tracking',
     icon: 'Wallet',
     tabs: [
-      'ExDashboard', 'VGExpenses', 'Cut.polish', 'Ziyam', 'Zcar', 'Zahran', 'DAD', 
-      'Ramzanhaji.Shares', 'Azeem.Shares', 'Others.Shares', 'Classictravel', 
-      'Online.Ticket', 'Personal Ticket Visa', 'Office', 'Gem.license', 
-      'Audit.Accounts', 'Fawazwife.Shares'
+      'ExDashboard', 'VGExpenses', 'Cut.polish', 'Personal Expenses', 
+      'Ticket and Visa', 'Office', 'Expenses'
     ]
   },
   // 6. Outstanding
@@ -187,6 +185,17 @@ export const APP_MODULES: ModuleConfig[] = [
     tabs: [
       'VGRZ.Dashboard', 'Instock', 'VGR.purchase', 'Cut.polish', 'T.Expenses', 
       'T.export', 'T.Capital'
+    ]
+  },
+  // 14. Accounts
+  {
+    id: 'accounts',
+    name: 'Accounts',
+    type: 'financial',
+    description: 'Accounts management',
+    icon: 'Wallet',
+    tabs: [
+      'Shares', 'Investment'
     ]
   }
 ];

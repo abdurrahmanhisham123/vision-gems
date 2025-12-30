@@ -427,7 +427,7 @@ const StoneFormModal: React.FC<{ isOpen: boolean, onClose: () => void, onSave: (
        <div className="relative bg-white rounded-2xl w-full max-w-lg shadow-2xl p-6 overflow-y-auto max-h-[90vh]">
           <div className="flex justify-between mb-6"><h3 className="text-xl font-bold">{initialData ? 'Edit' : 'Add'} Stone</h3><button onClick={onClose}><X size={20}/></button></div>
           <div className="space-y-4">
-             <div><label className="block text-xs font-bold mb-1">Lot</label><select value={formData.lotId} onChange={e => setFormData({...formData, lotId: e.target.value})} className="w-full p-2 border rounded-xl" disabled={!!initialData}>{lots.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}</select></div>
+             <div><label className="block text-xs font-bold mb-1">Lot</label><select value={formData.lotId} onChange={e => setFormData({...formData, lotId: e.target.value})} className="w-full p-3 md:p-2 py-3 md:py-2 min-h-[44px] md:min-h-0 text-base md:text-sm border rounded-xl outline-none transition-all appearance-none" disabled={!!initialData}>{lots.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}</select></div>
              <div className="grid grid-cols-2 gap-4">
                <div><label className="block text-xs font-bold mb-1">Number</label><input value={`#${calculatedNumber}`} disabled className="w-full p-2 bg-stone-100 border rounded-xl" /></div>
                <div>
@@ -435,7 +435,7 @@ const StoneFormModal: React.FC<{ isOpen: boolean, onClose: () => void, onSave: (
                  {config.varietyFixed ? (
                    <input value={config.varieties[0]} disabled className="w-full p-2 bg-stone-100 border rounded-xl" />
                  ) : (
-                   <select value={formData.variety} onChange={e => setFormData({...formData, variety: e.target.value})} className="w-full p-2 border rounded-xl">{config.varieties.map(v => <option key={v} value={v}>{v}</option>)}</select>
+                   <select value={formData.variety} onChange={e => setFormData({...formData, variety: e.target.value})} className="w-full p-3 md:p-2 py-3 md:py-2 min-h-[44px] md:min-h-0 text-base md:text-sm border rounded-xl outline-none transition-all appearance-none">{config.varieties.map(v => <option key={v} value={v}>{v}</option>)}</select>
                  )}
                </div>
              </div>
@@ -453,7 +453,7 @@ const StoneFormModal: React.FC<{ isOpen: boolean, onClose: () => void, onSave: (
                 <div><label className="block text-xs font-bold mb-1">Pieces</label><input type="number" value={formData.pieces} onChange={e => setFormData({...formData, pieces: Number(e.target.value)})} disabled={config.piecesFixed} className="w-full p-2 border rounded-xl" /></div>
                 <div><label className="block text-xs font-bold mb-1">Price (USD)</label><input type="number" value={formData.sellingPrice || ''} onChange={e => setFormData({...formData, sellingPrice: Number(e.target.value)})} className="w-full p-2 border rounded-xl" /></div>
              </div>
-             <div><label className="block text-xs font-bold mb-1">Status</label><select value={formData.status} onChange={e => setFormData({...formData, status: e.target.value as any})} className="w-full p-2 border rounded-xl"><option value="available">Available</option><option value="sold">Sold</option></select></div>
+             <div><label className="block text-xs font-bold mb-1">Status</label><select value={formData.status} onChange={e => setFormData({...formData, status: e.target.value as any})} className="w-full p-3 md:p-2 py-3 md:py-2 min-h-[44px] md:min-h-0 text-base md:text-sm border rounded-xl outline-none transition-all appearance-none"><option value="available">Available</option><option value="sold">Sold</option></select></div>
           </div>
           <div className="mt-6 flex justify-end gap-3">
              <button onClick={onClose} className="px-4 py-2 text-stone-500 hover:bg-stone-100 rounded-lg">Cancel</button>

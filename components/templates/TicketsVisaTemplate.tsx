@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { 
   Search, Plus, Download, Printer, 
   Trash2, Edit, Save, X, DollarSign, 
-  FileText, Plane, Globe, Ticket, User, Building2
+  FileText, Plane, Globe, Ticket, User, Building2, MapPin
 } from 'lucide-react';
 
 // --- Types ---
@@ -11,14 +11,17 @@ interface TicketsVisaItem {
   date: string;
   code: string;
   passengerName: string;
+  description?: string; // Description field
   route?: string; // From → To
   airline?: string;
   ticketType?: 'One-way' | 'Round-trip' | 'Multi-city';
-  visaType?: string; // Tourist, Business, Transit, etc.
+  category?: string; // Classic Travel, Online Ticket, Personal Ticket Visa
   amount: number;
   currency: string; // "LKR", "TZS", "USD", etc.
   convertedAmount?: number; // Amount in LKR if foreign currency
   exchangeRate?: number;
+  location?: string; // Location field
+  payable?: number; // Payable amount
   company?: string;
   notes?: string;
 }
@@ -45,9 +48,12 @@ const TicketsVisaDetailPanel: React.FC<{
   exchangeRates: Record<string, number>;
   hasRouteInfo?: boolean;
   hasAirline?: boolean;
-  hasVisaType?: boolean;
   isReadOnly?: boolean;
-}> = ({ item: initialItem, initialIsEditing = false, onClose, onSave, onDelete, currencies, exchangeRates, hasRouteInfo = false, hasAirline = false, hasVisaType = false, isReadOnly }) => {
+}> = ({ item: initialItem, initialIsEditing = false, onClose, onSave, onDelete, currencies, exchangeRates, hasRouteInfo = false, hasAirline = false, isReadOnly }) => {
+  
+  if (!initialItem) {
+    return null;
+  }
   
   const [isEditing, setIsEditing] = useState(initialIsEditing);
   const [formData, setFormData] = useState<TicketsVisaItem>(initialItem);
@@ -58,18 +64,26 @@ const TicketsVisaDetailPanel: React.FC<{
   }, [initialItem, initialIsEditing]);
 
   const handleInputChange = (key: keyof TicketsVisaItem, value: any) => {
-    setFormData(prev => ({ ...prev, [key]: value }));
-    
-    // Auto-calculate converted amount for foreign currencies
-    if (key === 'currency' || key === 'amount' || key === 'exchangeRate') {
-      if (formData.currency && formData.currency !== 'LKR' && formData.amount) {
-        const rate = exchangeRates[formData.currency] || formData.exchangeRate || 1;
-        const converted = Math.floor(formData.amount * rate);
-        setFormData(prev => ({ ...prev, convertedAmount: converted, exchangeRate: rate }));
-      } else if (formData.currency === 'LKR') {
-        setFormData(prev => ({ ...prev, convertedAmount: undefined, exchangeRate: undefined }));
+    setFormData(prev => {
+      const updated = { ...prev, [key]: value };
+      
+      // Auto-calculate converted amount for foreign currencies
+      if (key === 'currency' || key === 'amount' || key === 'exchangeRate') {
+        const currency = key === 'currency' ? value : updated.currency;
+        const amount = key === 'amount' ? value : updated.amount;
+        const exchangeRate = key === 'exchangeRate' ? value : updated.exchangeRate;
+        
+        if (currency && currency !== 'LKR' && amount) {
+          const rate = exchangeRates[currency] || exchangeRate || 1;
+          const converted = Math.floor(amount * rate);
+          return { ...updated, convertedAmount: converted, exchangeRate: rate };
+        } else if (currency === 'LKR') {
+          return { ...updated, convertedAmount: undefined, exchangeRate: undefined };
+        }
       }
-    }
+      
+      return updated;
+    });
   };
 
   const handleSave = () => {
@@ -85,7 +99,8 @@ const TicketsVisaDetailPanel: React.FC<{
     }
   };
 
-  const formatCurrency = (amount: number, currency: string) => {
+  const formatCurrency = (amount: number | undefined, currency: string | undefined) => {
+    if (amount === undefined || amount === null || !currency) return 'N/A';
     return `${currency} ${amount.toLocaleString()}`;
   };
 
@@ -95,7 +110,7 @@ const TicketsVisaDetailPanel: React.FC<{
     field: keyof TicketsVisaItem, 
     isEditing: boolean, 
     onInputChange: (key: keyof TicketsVisaItem, value: any) => void,
-    type?: 'text' | 'number' | 'date', 
+    type?: 'text' | 'number' | 'date' | 'select', 
     highlight?: boolean, 
     isCurrency?: boolean, 
     options?: string[]
@@ -104,13 +119,17 @@ const TicketsVisaDetailPanel: React.FC<{
       <div className="flex flex-col py-2 border-b border-stone-100 last:border-0 min-h-[50px] justify-center">
         <span className="text-[9px] font-bold text-stone-400 uppercase tracking-wider mb-0.5">{label}</span>
         {isEditing ? (
-          options.length > 0 ? (
+          (type === 'select' || options.length > 0) ? (
             <select 
               value={value === undefined || value === null ? '' : value.toString()} 
               onChange={(e) => onInputChange(field, e.target.value)} 
-              className="w-full p-2 bg-stone-50 border border-stone-200 rounded-lg text-sm outline-none transition-all focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/10"
+              className="w-full p-3 md:p-2 py-3 md:py-2 min-h-[44px] md:min-h-0 text-base md:text-sm bg-stone-50 border border-stone-200 rounded-lg outline-none transition-all focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/10 appearance-none"
             >
-              {options.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+              {options.length > 0 ? (
+                options.map(opt => <option key={opt} value={opt}>{opt}</option>)
+              ) : (
+                <option value="">Select...</option>
+              )}
             </select>
           ) : (
             <input 
@@ -144,23 +163,23 @@ const TicketsVisaDetailPanel: React.FC<{
                 <span className="px-2 py-0.5 rounded-full text-[9px] font-extrabold uppercase border bg-emerald-50 text-emerald-700 border-emerald-100">
                   {formData.ticketType || 'Ticket'}
                 </span>
-                <span className="text-[10px] font-mono text-stone-400 bg-stone-50 px-1.5 py-0.5 rounded truncate">{formData.code}</span>
+                <span className="text-[10px] font-mono text-stone-400 bg-stone-50 px-1.5 py-0.5 rounded truncate">{formData.code || 'N/A'}</span>
               </div>
               {isEditing ? (
                 <input 
                   type="text" 
-                  value={formData.passengerName} 
+                  value={formData.passengerName || ''} 
                   onChange={(e) => handleInputChange('passengerName', e.target.value)} 
                   className="text-lg md:text-xl font-bold text-stone-900 border-b-2 border-cyan-200 focus:border-cyan-500 outline-none w-full" 
                   placeholder="Passenger Name" 
                   autoFocus 
                 />
               ) : (
-                <h2 className="text-lg md:text-xl font-bold text-stone-900 truncate leading-tight">{formData.passengerName}</h2>
+                <h2 className="text-lg md:text-xl font-bold text-stone-900 truncate leading-tight">{formData.passengerName || 'Unnamed'}</h2>
               )}
               <div className="flex items-center gap-1.5 mt-0.5 text-stone-500 font-medium text-xs md:text-sm">
                 <Plane size={14} className="text-stone-400" />
-                <p className="truncate">{formData.route || 'No route'} • {formatCurrency(formData.amount, formData.currency)}</p>
+                <p className="truncate">{formData.route || 'No route'} • {formData.amount ? formatCurrency(formData.amount, formData.currency || 'LKR') : 'N/A'}</p>
               </div>
             </div>
           </div>
@@ -174,13 +193,12 @@ const TicketsVisaDetailPanel: React.FC<{
               <div className="grid grid-cols-2 gap-x-4 md:gap-x-6">
                 <Field label="Date" value={formData.date} field="date" isEditing={isEditing} onInputChange={handleInputChange} type="date" />
                 <Field label="Code" value={formData.code} field="code" isEditing={isEditing} onInputChange={handleInputChange} highlight />
+                <Field label="Company" value={formData.company} field="company" isEditing={isEditing} onInputChange={handleInputChange} />
+                <Field label="Location" value={formData.location} field="location" isEditing={isEditing} onInputChange={handleInputChange} />
                 <Field label="Passenger Name" value={formData.passengerName} field="passengerName" isEditing={isEditing} onInputChange={handleInputChange} />
-                {hasRouteInfo && (
-                  <Field label="Route (From → To)" value={formData.route} field="route" isEditing={isEditing} onInputChange={handleInputChange} />
-                )}
-                {hasAirline && (
-                  <Field label="Airline" value={formData.airline} field="airline" isEditing={isEditing} onInputChange={handleInputChange} />
-                )}
+                <Field label="Description" value={formData.description} field="description" isEditing={isEditing} onInputChange={handleInputChange} />
+                <Field label="Route (From → To)" value={formData.route} field="route" isEditing={isEditing} onInputChange={handleInputChange} />
+                <Field label="Airline" value={formData.airline} field="airline" isEditing={isEditing} onInputChange={handleInputChange} />
                 <Field 
                   label="Ticket Type" 
                   value={formData.ticketType} 
@@ -189,16 +207,14 @@ const TicketsVisaDetailPanel: React.FC<{
                   onInputChange={handleInputChange} 
                   options={['One-way', 'Round-trip', 'Multi-city']}
                 />
-                {hasVisaType && (
-                  <Field 
-                    label="Visa Type" 
-                    value={formData.visaType} 
-                    field="visaType" 
-                    isEditing={isEditing} 
-                    onInputChange={handleInputChange}
-                    options={['Tourist', 'Business', 'Transit', 'Work', 'Student', 'Other']}
-                  />
-                )}
+                <Field 
+                  label="Category" 
+                  value={formData.category} 
+                  field="category" 
+                  isEditing={isEditing} 
+                  onInputChange={handleInputChange} 
+                  options={['Classic Travel', 'Online Ticket', 'Personal Ticket Visa']}
+                />
                 <Field label="Currency" value={formData.currency} field="currency" isEditing={isEditing} onInputChange={handleInputChange} options={currencies} />
                 <Field label="Amount" value={formData.amount} field="amount" isEditing={isEditing} onInputChange={handleInputChange} type="number" highlight isCurrency />
                 {formData.currency !== 'LKR' && (
@@ -207,9 +223,7 @@ const TicketsVisaDetailPanel: React.FC<{
                     <Field label="LKR Equivalent" value={formData.convertedAmount} field="convertedAmount" isEditing={false} onInputChange={handleInputChange} highlight isCurrency />
                   </>
                 )}
-                {formData.company && (
-                  <Field label="Company" value={formData.company} field="company" isEditing={isEditing} onInputChange={handleInputChange} />
-                )}
+                <Field label="Payable" value={formData.payable} field="payable" isEditing={isEditing} onInputChange={handleInputChange} type="number" highlight isCurrency />
                 <Field label="Notes" value={formData.notes} field="notes" isEditing={isEditing} onInputChange={handleInputChange} />
               </div>
             </div>
@@ -226,7 +240,7 @@ const TicketsVisaDetailPanel: React.FC<{
             </>
           ) : (
             <>
-              <button onClick={handlePrint} className="p-2.5 bg-stone-50 border border-stone-100 text-stone-500 rounded-xl hover:bg-stone-100">
+              <button onClick={() => window.print()} className="p-2.5 bg-stone-50 border border-stone-100 text-stone-500 rounded-xl hover:bg-stone-100">
                 <Printer size={18} />
               </button>
               {!isReadOnly && (
@@ -251,6 +265,8 @@ export const TicketsVisaTemplate: React.FC<Props> = ({ moduleId, tabId, isReadOn
   const [items, setItems] = useState<TicketsVisaItem[]>(generateMockData());
   const [searchQuery, setSearchQuery] = useState('');
   const [currencyFilter, setCurrencyFilter] = useState<string>('all');
+  const [categoryFilter, setCategoryFilter] = useState<string>('All');
+  const [payable, setPayable] = useState<number>(0);
   
   // Panel State
   const [selectedItem, setSelectedItem] = useState<TicketsVisaItem | null>(null);
@@ -262,8 +278,7 @@ export const TicketsVisaTemplate: React.FC<Props> = ({ moduleId, tabId, isReadOn
     const tabLower = tabId.toLowerCase();
     return {
       hasRouteInfo: tabLower.includes('ticket') || tabLower.includes('traveling') || tabLower === 'bkkticket',
-      hasAirline: tabLower.includes('online') || tabLower === 'bkktickets',
-      hasVisaType: tabLower.includes('visa') || tabLower.includes('personal ticket visa')
+      hasAirline: tabLower.includes('online') || tabLower === 'bkktickets'
     };
   }, [tabId]);
 
@@ -279,6 +294,9 @@ export const TicketsVisaTemplate: React.FC<Props> = ({ moduleId, tabId, isReadOn
     return { totalMain, totalLKR, count: ticketCount, foreignCount };
   }, [items]);
 
+  // --- Filter Options ---
+  const uniqueCategories = useMemo(() => Array.from(new Set(items.map(i => i.category).filter(Boolean))).sort(), [items]);
+
   // --- Filtering ---
   const filteredItems = useMemo(() => {
     return items.filter(item => {
@@ -286,14 +304,20 @@ export const TicketsVisaTemplate: React.FC<Props> = ({ moduleId, tabId, isReadOn
         item.passengerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
         (item.route && item.route.toLowerCase().includes(searchQuery.toLowerCase())) ||
         (item.code && item.code.toLowerCase().includes(searchQuery.toLowerCase())) ||
-        (item.airline && item.airline.toLowerCase().includes(searchQuery.toLowerCase()));
+        (item.airline && item.airline.toLowerCase().includes(searchQuery.toLowerCase())) ||
+        (item.location && item.location.toLowerCase().includes(searchQuery.toLowerCase())) ||
+        (item.category && item.category.toLowerCase().includes(searchQuery.toLowerCase())) ||
+        (item.description && item.description.toLowerCase().includes(searchQuery.toLowerCase())) ||
+        (item.company && item.company.toLowerCase().includes(searchQuery.toLowerCase()));
       
       const matchesCurrency = 
         currencyFilter === 'all' || item.currency === currencyFilter;
+      
+      const matchesCategory = categoryFilter === 'All' || item.category === categoryFilter;
         
-      return matchesSearch && matchesCurrency;
+      return matchesSearch && matchesCurrency && matchesCategory;
     }).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-  }, [items, searchQuery, currencyFilter]);
+  }, [items, searchQuery, currencyFilter, categoryFilter]);
 
   // --- Handlers ---
   const handleDelete = (id: string, e?: React.MouseEvent) => {
@@ -349,7 +373,6 @@ export const TicketsVisaTemplate: React.FC<Props> = ({ moduleId, tabId, isReadOn
       const route = (item.route || '-').toString().replace(/</g, '&lt;').replace(/>/g, '&gt;');
       const airline = (item.airline || '-').toString().replace(/</g, '&lt;').replace(/>/g, '&gt;');
       const ticketType = (item.ticketType || '-').toString().replace(/</g, '&lt;').replace(/>/g, '&gt;');
-      const visaType = (item.visaType || '-').toString().replace(/</g, '&lt;').replace(/>/g, '&gt;');
       const company = (item.company || '-').toString().replace(/</g, '&lt;').replace(/>/g, '&gt;');
       const notes = (item.notes || '-').toString().replace(/</g, '&lt;').replace(/>/g, '&gt;');
       
@@ -361,7 +384,6 @@ export const TicketsVisaTemplate: React.FC<Props> = ({ moduleId, tabId, isReadOn
         <td style="border: 1px solid #cccccc; padding: 5px 4px; font-size: 8pt; text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; vertical-align: middle;">${route}</td>
         <td style="border: 1px solid #cccccc; padding: 5px 4px; font-size: 8pt; text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; vertical-align: middle;">${airline}</td>
         <td style="border: 1px solid #cccccc; padding: 5px 4px; font-size: 8pt; text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; vertical-align: middle;">${ticketType}</td>
-        <td style="border: 1px solid #cccccc; padding: 5px 4px; font-size: 8pt; text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; vertical-align: middle;">${visaType}</td>
         <td style="border: 1px solid #cccccc; padding: 5px 4px; font-size: 8pt; text-align: right; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; vertical-align: middle;">${formatCurrency(item.amount, item.currency)}</td>
         <td style="border: 1px solid #cccccc; padding: 5px 4px; font-size: 8pt; text-align: right; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; vertical-align: middle;">${item.convertedAmount ? `LKR ${item.convertedAmount.toLocaleString()}` : '-'}</td>
         <td style="border: 1px solid #cccccc; padding: 5px 4px; font-size: 8pt; text-align: right; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; vertical-align: middle;">${item.exchangeRate ? item.exchangeRate.toFixed(4) : '-'}</td>
@@ -434,18 +456,17 @@ export const TicketsVisaTemplate: React.FC<Props> = ({ moduleId, tabId, isReadOn
         <div style="font-size: 16pt; font-weight: bold; margin: 10px 0; text-transform: uppercase; color: #000000;">${safeTabId}</div>
         <table style="width: 100%; table-layout: fixed; border-collapse: collapse; margin-top: 10px; font-size: 8pt;">
           <colgroup>
-            <col style="width: 7%;">
-            <col style="width: 7%;">
-            <col style="width: 10%;">
-            <col style="width: 10%;">
             <col style="width: 8%;">
             <col style="width: 8%;">
+            <col style="width: 11%;">
+            <col style="width: 11%;">
+            <col style="width: 9%;">
+            <col style="width: 9%;">
+            <col style="width: 11%;">
+            <col style="width: 11%;">
             <col style="width: 8%;">
-            <col style="width: 10%;">
-            <col style="width: 10%;">
-            <col style="width: 7%;">
-            <col style="width: 8%;">
-            <col style="width: 7%;">
+            <col style="width: 9%;">
+            <col style="width: 5%;">
           </colgroup>
           <thead>
             <tr>
@@ -455,7 +476,6 @@ export const TicketsVisaTemplate: React.FC<Props> = ({ moduleId, tabId, isReadOn
               <th style="background-color: #f0f0f0; border: 1px solid #000000; padding: 6px 4px; text-align: left; font-weight: bold; font-size: 7pt; text-transform: uppercase; white-space: nowrap; color: #000000; vertical-align: middle;">Route</th>
               <th style="background-color: #f0f0f0; border: 1px solid #000000; padding: 6px 4px; text-align: left; font-weight: bold; font-size: 7pt; text-transform: uppercase; white-space: nowrap; color: #000000; vertical-align: middle;">Airline</th>
               <th style="background-color: #f0f0f0; border: 1px solid #000000; padding: 6px 4px; text-align: left; font-weight: bold; font-size: 7pt; text-transform: uppercase; white-space: nowrap; color: #000000; vertical-align: middle;">Ticket Type</th>
-              <th style="background-color: #f0f0f0; border: 1px solid #000000; padding: 6px 4px; text-align: left; font-weight: bold; font-size: 7pt; text-transform: uppercase; white-space: nowrap; color: #000000; vertical-align: middle;">Visa Type</th>
               <th style="background-color: #f0f0f0; border: 1px solid #000000; padding: 6px 4px; text-align: right; font-weight: bold; font-size: 7pt; text-transform: uppercase; white-space: nowrap; color: #000000; vertical-align: middle;">Amount</th>
               <th style="background-color: #f0f0f0; border: 1px solid #000000; padding: 6px 4px; text-align: right; font-weight: bold; font-size: 7pt; text-transform: uppercase; white-space: nowrap; color: #000000; vertical-align: middle;">Converted (LKR)</th>
               <th style="background-color: #f0f0f0; border: 1px solid #000000; padding: 6px 4px; text-align: right; font-weight: bold; font-size: 7pt; text-transform: uppercase; white-space: nowrap; color: #000000; vertical-align: middle;">Exchange Rate</th>
@@ -464,7 +484,7 @@ export const TicketsVisaTemplate: React.FC<Props> = ({ moduleId, tabId, isReadOn
             </tr>
           </thead>
           <tbody>
-            ${tableRows || '<tr><td colspan="12" style="text-align: center; padding: 20px; border: 1px solid #cccccc;">No tickets/visas found</td></tr>'}
+            ${tableRows || '<tr><td colspan="11" style="text-align: center; padding: 20px; border: 1px solid #cccccc;">No tickets/visas found</td></tr>'}
           </tbody>
         </table>
       </div>
@@ -505,6 +525,18 @@ export const TicketsVisaTemplate: React.FC<Props> = ({ moduleId, tabId, isReadOn
            <p className="text-stone-400 text-xs md:text-sm mt-1 font-medium">Tickets & Visa in use</p>
         </div>
         <div className="flex items-center gap-2.5 w-full lg:w-auto overflow-x-auto pb-1 lg:pb-0">
+           <div className="flex items-center gap-2 bg-white border border-stone-200 rounded-2xl px-4 py-2.5 shadow-sm">
+              <span className="text-[10px] font-bold text-stone-500 uppercase tracking-wider">Payable</span>
+              <input
+                 type="number"
+                 value={payable || ''}
+                 onChange={(e) => setPayable(Number(e.target.value) || 0)}
+                 placeholder="0.00"
+                 className="w-24 md:w-32 px-2 py-1 text-sm font-bold text-stone-900 bg-stone-50 border border-stone-200 rounded-lg focus:ring-2 focus:ring-cyan-500/20 focus:border-cyan-500 outline-none"
+                 disabled={isReadOnly}
+              />
+              <span className="text-xs font-bold text-stone-400">LKR</span>
+           </div>
            <button onClick={handlePrint} className="flex-1 lg:flex-none flex items-center justify-center gap-2 px-5 py-3 bg-white border border-stone-200 text-stone-600 rounded-2xl text-xs font-bold shadow-sm hover:bg-stone-50 active:scale-95 whitespace-nowrap">
              <Printer size={16} /> Print List
            </button>
@@ -630,7 +662,20 @@ export const TicketsVisaTemplate: React.FC<Props> = ({ moduleId, tabId, isReadOn
                      ))}
                   </select>
                </div>
-               <button className="px-4 py-3 bg-white border border-stone-200 rounded-[20px] text-stone-500 hover:text-stone-800 transition-colors shadow-sm">
+               <div className="flex items-center bg-stone-50 border border-stone-100 rounded-[20px] px-3 shrink-0">
+                  <Ticket size={14} className="text-stone-300" />
+                  <select 
+                     value={categoryFilter} 
+                     onChange={(e) => setCategoryFilter(e.target.value)} 
+                     className="px-2 py-2.5 bg-transparent text-xs text-stone-600 font-bold focus:outline-none min-w-[140px]"
+                  >
+                     <option value="All">Category</option>
+                     {uniqueCategories.map(cat => (
+                        <option key={cat} value={cat}>{cat}</option>
+                     ))}
+                  </select>
+               </div>
+               <button className="px-4 py-3 bg-white border border-stone-200 rounded-[20px] text-stone-500 hover:text-stone-800 transition-colors shadow-sm shrink-0">
                  <Download size={18} />
                </button>
             </div>
@@ -640,18 +685,16 @@ export const TicketsVisaTemplate: React.FC<Props> = ({ moduleId, tabId, isReadOn
       {/* Desktop Table */}
       <div className="hidden lg:block bg-white rounded-[40px] border border-stone-200 shadow-sm overflow-hidden mb-24">
          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse min-w-[1200px]">
+            <table className="w-full text-left border-collapse min-w-[1000px]">
                <thead>
                   <tr className="bg-stone-50 border-b border-stone-200 text-[10px] font-black text-stone-400 uppercase tracking-[0.15em]">
-                     <th className="p-6 pl-10">Date</th>
-                     <th className="p-6">Code</th>
-                     <th className="p-6">Passenger</th>
-                     {tabConfig.hasRouteInfo && <th className="p-6">Route</th>}
-                     {tabConfig.hasAirline && <th className="p-6">Airline</th>}
-                     <th className="p-6">Type</th>
-                     {tabConfig.hasVisaType && <th className="p-6">Visa Type</th>}
-                     <th className="p-6 text-right">Amount</th>
-                     <th className="p-6 text-right pr-10">LKR Equivalent</th>
+                     <th className="p-6 pl-10">Company</th>
+                     <th className="p-6">Date</th>
+                     <th className="p-6">Location</th>
+                     <th className="p-6">Name</th>
+                     <th className="p-6">Description</th>
+                     <th className="p-6">Route</th>
+                     <th className="p-6 text-right pr-10">Amount</th>
                   </tr>
                </thead>
                <tbody className="divide-y divide-stone-100 text-sm">
@@ -661,15 +704,12 @@ export const TicketsVisaTemplate: React.FC<Props> = ({ moduleId, tabId, isReadOn
                         onClick={() => setSelectedItem(item)}
                         className="hover:bg-cyan-50/5 transition-colors cursor-pointer group"
                      >
-                        <td className="p-6 pl-10 font-mono text-stone-500 text-xs whitespace-nowrap">{item.date}</td>
-                        <td className="p-6">
-                           <span className="font-mono text-xs font-black text-cyan-600 bg-cyan-50 px-2.5 py-1 rounded-xl border border-cyan-100">
-                              {item.code}
-                           </span>
-                        </td>
+                        <td className="p-6 pl-10 text-stone-600">{item.company || <span className="text-stone-300">-</span>}</td>
+                        <td className="p-6 font-mono text-stone-500 text-xs whitespace-nowrap">{item.date}</td>
+                        <td className="p-6 text-stone-600">{item.location || <span className="text-stone-300">-</span>}</td>
                         <td className="p-6 font-bold text-stone-800">{item.passengerName}</td>
-                        {tabConfig.hasRouteInfo && (
-                          <td className="p-6 text-stone-600">
+                        <td className="p-6 text-stone-600 max-w-xs truncate" title={item.description}>{item.description || <span className="text-stone-300">-</span>}</td>
+                        <td className="p-6 text-stone-600">
                             {item.route ? (
                               <div className="flex items-center gap-1.5 text-stone-500 text-xs">
                                 <Plane size={14} />
@@ -678,38 +718,11 @@ export const TicketsVisaTemplate: React.FC<Props> = ({ moduleId, tabId, isReadOn
                             ) : (
                               <span className="text-stone-300">-</span>
                             )}
-                          </td>
-                        )}
-                        {tabConfig.hasAirline && (
-                          <td className="p-6 text-stone-600">{item.airline || <span className="text-stone-300">-</span>}</td>
-                        )}
-                        <td className="p-6">
-                          {item.ticketType && (
-                            <span className="px-2 py-1 rounded-lg text-xs font-bold bg-cyan-50 text-cyan-700 border border-cyan-100">
-                              {item.ticketType}
-                            </span>
-                          )}
-                        </td>
-                        {tabConfig.hasVisaType && (
-                          <td className="p-6 text-stone-600">{item.visaType || <span className="text-stone-300">-</span>}</td>
-                        )}
-                        <td className="p-6 text-right">
-                           <div className="font-black" style={{color: item.currency === 'LKR' ? '#0891b2' : '#7c3aed'}}>
-                              {formatCurrency(item.amount, item.currency)}
-                           </div>
                         </td>
                         <td className="p-6 text-right pr-10">
-                           {item.convertedAmount ? (
-                              <div className="font-black text-stone-900">
-                                 LKR {item.convertedAmount.toLocaleString()}
-                              </div>
-                           ) : item.currency === 'LKR' ? (
-                              <div className="font-black text-stone-900">
-                                 LKR {item.amount.toLocaleString()}
-                              </div>
-                           ) : (
-                              <span className="text-stone-300 text-xs">-</span>
-                           )}
+                           <div className="font-black text-cyan-700">
+                              {formatCurrency(item.amount, item.currency)}
+                           </div>
                         </td>
                      </tr>
                   ))}
@@ -731,58 +744,42 @@ export const TicketsVisaTemplate: React.FC<Props> = ({ moduleId, tabId, isReadOn
             >
                <div className="absolute top-0 right-0 w-32 h-32 bg-cyan-50 rounded-bl-[60px] -mr-16 -mt-16 opacity-30 pointer-events-none"></div>
                
-               <div className="flex justify-between items-start mb-4 relative z-10">
+               <div className="flex justify-between items-start mb-3 relative z-10">
                   <div className="flex flex-col">
+                     <span className="text-[10px] font-black text-stone-400 uppercase tracking-wider mb-1">{item.company || <span className="text-stone-300">-</span>}</span>
                      <span className="text-[10px] font-black text-stone-400 uppercase tracking-wider mb-1 flex items-center gap-1">
                         <Plane size={10} /> {item.date}
                      </span>
                      <h3 className="font-black text-stone-900 text-lg">{item.passengerName}</h3>
                   </div>
-                  <span className="font-mono text-xs font-black text-cyan-600 bg-cyan-50 px-2.5 py-1 rounded-xl border border-cyan-100">
-                     {item.code}
-                  </span>
                </div>
 
-               <div className="grid grid-cols-2 gap-y-3 gap-x-4 text-sm text-stone-600 mb-4 relative z-10">
+               <div className="mb-3 relative z-10 space-y-2">
+                  {item.location && (
+                     <div className="flex items-center gap-2 text-sm text-stone-600">
+                        <MapPin size={14} className="text-stone-400" />
+                        <span>{item.location}</span>
+                     </div>
+                  )}
+                  {item.description && (
+                     <div className="text-sm text-stone-600">
+                        <span className="font-medium">Description: </span>
+                        <span>{item.description}</span>
+                     </div>
+                  )}
                   {item.route && (
-                     <div className="flex items-center gap-2">
+                     <div className="flex items-center gap-2 text-sm text-stone-600">
                         <Plane size={14} className="text-stone-400" />
                         <span className="truncate font-medium">{item.route}</span>
                      </div>
                   )}
-                  {item.airline && (
-                     <div className="flex items-center gap-2">
-                        <Ticket size={14} className="text-stone-400" />
-                        <span className="truncate">{item.airline}</span>
-                     </div>
-                  )}
-                  {item.ticketType && (
-                     <div className="flex items-center gap-2">
-                        <FileText size={14} className="text-stone-400" />
-                        <span className="truncate">{item.ticketType}</span>
-                     </div>
-                  )}
-                  {item.visaType && (
-                     <div className="flex items-center gap-2">
-                        <User size={14} className="text-stone-400" />
-                        <span className="truncate">{item.visaType}</span>
-                     </div>
-                  )}
                </div>
 
-               <div className="pt-4 border-t border-stone-100 flex justify-between items-center relative z-10">
-                  <div>
-                     <div className="text-xs text-stone-400 font-medium mb-1">Original Amount</div>
-                     <div className="text-lg font-black" style={{color: item.currency === 'LKR' ? '#0891b2' : '#7c3aed'}}>
-                        {formatCurrency(item.amount, item.currency)}
-                     </div>
+               <div className="pt-4 border-t border-stone-100 relative z-10">
+                  <div className="text-xs text-stone-400 font-medium mb-1">Amount</div>
+                  <div className="text-xl font-black text-cyan-700">
+                     {formatCurrency(item.amount, item.currency)}
                   </div>
-                  {item.convertedAmount && (
-                     <div className="text-right">
-                        <div className="text-xs text-stone-400 font-medium mb-1">LKR Equivalent</div>
-                        <div className="text-xl font-black text-stone-900">LKR {item.convertedAmount.toLocaleString()}</div>
-                     </div>
-                  )}
                </div>
             </div>
          ))}
@@ -800,7 +797,6 @@ export const TicketsVisaTemplate: React.FC<Props> = ({ moduleId, tabId, isReadOn
             exchangeRates={exchangeRates}
             hasRouteInfo={tabConfig.hasRouteInfo}
             hasAirline={tabConfig.hasAirline}
-            hasVisaType={tabConfig.hasVisaType}
             isReadOnly={isReadOnly}
          />
       )}
@@ -813,7 +809,6 @@ export const TicketsVisaTemplate: React.FC<Props> = ({ moduleId, tabId, isReadOn
             exchangeRates={exchangeRates}
             hasRouteInfo={tabConfig.hasRouteInfo}
             hasAirline={tabConfig.hasAirline}
-            hasVisaType={tabConfig.hasVisaType}
             onSave={handleSave}
             onCancel={() => setIsFormOpen(false)}
          />
@@ -829,20 +824,22 @@ const TicketsVisaForm: React.FC<{
   exchangeRates: Record<string, number>;
   hasRouteInfo?: boolean;
   hasAirline?: boolean;
-  hasVisaType?: boolean;
   onSave: (item: TicketsVisaItem) => void;
   onCancel: () => void;
-}> = ({ initialData, currencies, exchangeRates, hasRouteInfo = false, hasAirline = false, hasVisaType = false, onSave, onCancel }) => {
+}> = ({ initialData, currencies, exchangeRates, hasRouteInfo = false, hasAirline = false, onSave, onCancel }) => {
   const [formData, setFormData] = useState<Partial<TicketsVisaItem>>({
     date: initialData?.date || new Date().toISOString().split('T')[0],
     code: initialData?.code || '',
     passengerName: initialData?.passengerName || '',
+    description: initialData?.description || '',
     route: initialData?.route || '',
     airline: initialData?.airline || '',
     ticketType: initialData?.ticketType || 'One-way',
-    visaType: initialData?.visaType || '',
+    category: initialData?.category || '',
     amount: initialData?.amount || 0,
     currency: initialData?.currency || 'LKR',
+    location: initialData?.location || '',
+    payable: initialData?.payable || 0,
     company: initialData?.company || '',
     notes: initialData?.notes || '',
     exchangeRate: initialData?.exchangeRate,
@@ -872,14 +869,17 @@ const TicketsVisaForm: React.FC<{
       date: formData.date!,
       code: formData.code || `TKT-${Date.now().toString().slice(-4)}`,
       passengerName: formData.passengerName!,
+      description: formData.description,
       route: formData.route,
       airline: formData.airline,
       ticketType: formData.ticketType,
-      visaType: formData.visaType,
+      category: formData.category,
       amount: Number(formData.amount),
       currency: formData.currency || 'LKR',
       convertedAmount: formData.convertedAmount,
       exchangeRate: formData.exchangeRate,
+      location: formData.location,
+      payable: formData.payable,
       company: formData.company,
       notes: formData.notes,
     });
@@ -927,6 +927,17 @@ const TicketsVisaForm: React.FC<{
                 />
              </div>
 
+             <div>
+                <label className="block text-xs font-bold text-stone-500 uppercase mb-1.5 ml-1">Description</label>
+                <textarea 
+                   rows={2}
+                   value={formData.description || ''} 
+                   onChange={e => setFormData({...formData, description: e.target.value})}
+                   className="w-full p-2.5 bg-stone-50 border border-stone-200 rounded-xl text-sm focus:ring-2 focus:ring-cyan-500/20 focus:border-cyan-500 outline-none resize-none" 
+                   placeholder="Description (optional)"
+                />
+             </div>
+
              {hasRouteInfo && (
                 <div>
                    <label className="block text-xs font-bold text-stone-500 uppercase mb-1.5 ml-1">Route (From → To)</label>
@@ -958,7 +969,7 @@ const TicketsVisaForm: React.FC<{
                 <select 
                    value={formData.ticketType} 
                    onChange={e => setFormData({...formData, ticketType: e.target.value as any})}
-                   className="w-full p-2.5 bg-stone-50 border border-stone-200 rounded-xl text-sm focus:ring-2 focus:ring-cyan-500/20 focus:border-cyan-500 outline-none"
+                   className="w-full p-3 md:p-2.5 py-3 md:py-2.5 min-h-[44px] md:min-h-0 text-base md:text-sm bg-stone-50 border border-stone-200 rounded-xl outline-none transition-all focus:ring-2 focus:ring-cyan-500/20 focus:border-cyan-500 appearance-none"
                 >
                    <option value="One-way">One-way</option>
                    <option value="Round-trip">Round-trip</option>
@@ -966,24 +977,19 @@ const TicketsVisaForm: React.FC<{
                 </select>
              </div>
 
-             {hasVisaType && (
-                <div>
-                   <label className="block text-xs font-bold text-stone-500 uppercase mb-1.5 ml-1">Visa Type</label>
-                   <select 
-                      value={formData.visaType} 
-                      onChange={e => setFormData({...formData, visaType: e.target.value})}
-                      className="w-full p-2.5 bg-stone-50 border border-stone-200 rounded-xl text-sm focus:ring-2 focus:ring-cyan-500/20 focus:border-cyan-500 outline-none"
-                   >
-                      <option value="">Select visa type</option>
-                      <option value="Tourist">Tourist</option>
-                      <option value="Business">Business</option>
-                      <option value="Transit">Transit</option>
-                      <option value="Work">Work</option>
-                      <option value="Student">Student</option>
-                      <option value="Other">Other</option>
-                   </select>
-                </div>
-             )}
+             <div>
+                <label className="block text-xs font-bold text-stone-500 uppercase mb-1.5 ml-1">Category</label>
+                <select 
+                   value={formData.category || ''} 
+                   onChange={e => setFormData({...formData, category: e.target.value})}
+                   className="w-full p-3 md:p-2.5 py-3 md:py-2.5 min-h-[44px] md:min-h-0 text-base md:text-sm bg-stone-50 border border-stone-200 rounded-xl outline-none transition-all focus:ring-2 focus:ring-cyan-500/20 focus:border-cyan-500 appearance-none"
+                >
+                   <option value="">Select category</option>
+                   <option value="Classic Travel">Classic Travel</option>
+                   <option value="Online Ticket">Online Ticket</option>
+                   <option value="Personal Ticket Visa">Personal Ticket Visa</option>
+                </select>
+             </div>
 
              <div className="grid grid-cols-2 gap-4">
                 <div>
@@ -1036,6 +1042,28 @@ const TicketsVisaForm: React.FC<{
                    </div>
                 </div>
              )}
+
+             <div>
+                <label className="block text-xs font-bold text-stone-500 uppercase mb-1.5 ml-1">Location</label>
+                <input 
+                   type="text" 
+                   value={formData.location || ''} 
+                   onChange={e => setFormData({...formData, location: e.target.value})}
+                   className="w-full p-2.5 bg-stone-50 border border-stone-200 rounded-xl text-sm focus:ring-2 focus:ring-cyan-500/20 focus:border-cyan-500 outline-none" 
+                   placeholder="Location (optional)"
+                />
+             </div>
+
+             <div>
+                <label className="block text-xs font-bold text-stone-500 uppercase mb-1.5 ml-1">Payable</label>
+                <input 
+                   type="number" 
+                   value={formData.payable || ''} 
+                   onChange={e => setFormData({...formData, payable: Number(e.target.value) || 0})}
+                   className="w-full p-2.5 bg-stone-50 border border-stone-200 rounded-xl text-sm font-bold focus:ring-2 focus:ring-cyan-500/20 focus:border-cyan-500 outline-none" 
+                   placeholder="0.00"
+                />
+             </div>
 
              <div>
                 <label className="block text-xs font-bold text-stone-500 uppercase mb-1.5 ml-1">Company</label>

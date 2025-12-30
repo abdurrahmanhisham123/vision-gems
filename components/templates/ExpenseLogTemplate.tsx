@@ -377,7 +377,7 @@ const ExpenseForm: React.FC<{
           <div className="space-y-4">
              <div className="grid grid-cols-2 gap-4">
                 <div><label className="block text-xs font-bold text-stone-500 mb-1">Date</label><input type="date" value={formData.date} onChange={e => setFormData({...formData, date: e.target.value})} className="w-full p-2.5 border rounded-xl" /></div>
-                {config.hasCompanyColumn && <div><label className="block text-xs font-bold text-stone-500 mb-1">Company</label><select value={formData.company} onChange={e => setFormData({...formData, company: e.target.value})} className="w-full p-2.5 border rounded-xl"><option>VG</option><option>SG</option><option>Kenya</option><option>Dad</option></select></div>}
+                {config.hasCompanyColumn && <div><label className="block text-xs font-bold text-stone-500 mb-1">Company</label><select value={formData.company} onChange={e => setFormData({...formData, company: e.target.value})} className="w-full p-3 md:p-2.5 py-3 md:py-2.5 min-h-[44px] md:min-h-0 text-base md:text-sm border rounded-xl outline-none transition-all appearance-none"><option>VG</option><option>SG</option><option>Kenya</option><option>Dad</option></select></div>}
              </div>
 
              <div><label className="block text-xs font-bold text-stone-500 mb-1">Description</label><input type="text" value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} className="w-full p-2.5 border rounded-xl" placeholder="What was paid for?" /></div>

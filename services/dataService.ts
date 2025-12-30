@@ -179,7 +179,13 @@ export const getExportedStones = (tabId?: string): ExtendedSpinelStone[] => {
       return allStones.filter(s => s.status === 'BKK');
     }
 
-    // 4. CATEGORY VIEW: Variety tabs (e.g. Spinel) show stones based on originalCategory
+    // 4. FUNCTIONAL VIEW: Approval tab shows all stones with Approval status
+    // This allows stones from any tab to appear in Approval tab when their status is Approval
+    if (normalizedTab === 'approval') {
+      return allStones.filter(s => s.status === 'Approval');
+    }
+
+    // 5. CATEGORY VIEW: Variety tabs (e.g. Spinel) show stones based on originalCategory
     // This allows stones to remain visible in their original tab regardless of status
     return allStones.filter(s => {
       const stoneOriginalCategory = s.originalCategory?.toLowerCase().trim();

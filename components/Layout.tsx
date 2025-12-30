@@ -29,18 +29,18 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
     <Link
       to={`/module/${module.id}/${module.tabs[0]}`}
       onClick={() => setMobileSidebarOpen(false)}
-      className={`group flex items-center gap-3 px-4 py-3 mx-2 rounded-xl transition-all duration-200 mb-1 relative overflow-hidden ${
+      className={`group flex items-center gap-3 px-4 py-3 mx-2 rounded-xl transition-all duration-200 mb-1.5 relative overflow-hidden ${
         isActive 
-          ? 'bg-gradient-to-r from-gem-purple-50 to-white text-gem-purple font-semibold shadow-sm border-l-4 border-gem-gold' 
-          : 'text-stone-500 hover:bg-stone-100 hover:text-gem-purple'
+          ? 'bg-white text-gem-purple font-semibold shadow-md border-l-4 border-gem-purple' 
+          : 'text-stone-600 hover:bg-white/60 hover:text-gem-purple hover:shadow-sm'
       }`}
     >
-      <div className={`transition-colors duration-200 ${isActive ? 'text-gem-gold' : 'text-stone-400 group-hover:text-gem-purple'}`}>
+      <div className={`transition-all duration-200 ${isActive ? 'text-gem-purple scale-110' : 'text-stone-400 group-hover:text-gem-purple group-hover:scale-105'}`}>
         {React.cloneElement(getIcon(module.icon), { size: 20 })}
       </div>
-      <span className="text-sm tracking-wide whitespace-nowrap">{module.name}</span>
+      <span className="text-sm font-medium tracking-wide whitespace-nowrap">{module.name}</span>
       {isActive && (
-        <div className="absolute right-3 w-1.5 h-1.5 rounded-full bg-gem-gold shadow-gold"></div>
+        <div className="absolute right-3 w-2 h-2 rounded-full bg-gem-purple shadow-lg shadow-gem-purple/50"></div>
       )}
     </Link>
   );
@@ -58,61 +58,63 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
     <div className="flex h-screen h-dvh bg-stone-50 overflow-hidden overscroll-none">
       {/* Desktop Sidebar - Hidden on tablets and below (lg breakpoint) */}
       <aside 
-        className={`hidden lg:flex flex-col bg-gradient-to-b from-stone-50 to-stone-100 border-r border-stone-200 shadow-sm z-20 transition-all duration-300 ease-in-out ${
+        className={`hidden lg:flex flex-col bg-white border-r border-stone-200/80 shadow-lg z-20 transition-all duration-300 ease-in-out ${
           desktopSidebarOpen ? 'w-[280px] opacity-100' : 'w-0 opacity-0 border-r-0'
         }`}
       >
         {/* Inner container with fixed width to prevent content squishing during transition */}
         <div className="w-[280px] flex flex-col h-full overflow-hidden">
-          <div className="p-6 pb-2">
-             <Link to="/" className="block p-4 rounded-2xl bg-gradient-to-br from-gem-purple to-gem-purple-light shadow-purple text-white mb-6 transform hover:scale-[1.02] transition-transform duration-300">
+          <div className="p-6 pb-4 border-b border-stone-100">
+             <Link to="/" className="block p-4 rounded-2xl bg-gradient-to-br from-gem-purple via-gem-purple to-indigo-600 shadow-lg shadow-gem-purple/20 text-white mb-4 transform hover:scale-[1.01] hover:shadow-xl hover:shadow-gem-purple/30 transition-all duration-300">
                <div className="flex items-center gap-3">
-                 <div className="w-10 h-10 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center border border-white/30">
-                   <Diamond size={20} className="text-white" fill="currentColor" fillOpacity={0.2} />
+                 <div className="w-11 h-11 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center border border-white/30 shadow-inner">
+                   <Diamond size={22} className="text-white" fill="currentColor" fillOpacity={0.3} />
                  </div>
                  <div>
-                   <div className="font-bold text-lg tracking-tight leading-tight">VISION GEMS</div>
-                   <div className="text-[10px] uppercase tracking-widest opacity-80 font-medium">Inventory System</div>
+                   <div className="font-black text-lg tracking-tight leading-tight">VISION GEMS</div>
+                   <div className="text-[10px] uppercase tracking-widest opacity-90 font-semibold">Inventory System</div>
                  </div>
                </div>
              </Link>
 
-             <div className="flex items-center gap-2 px-2 mb-2">
-                <Link 
-                  to="/" 
-                  className={`flex-1 flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${isHome ? 'bg-white shadow-sm text-gem-purple' : 'text-stone-500 hover:bg-stone-100'}`}
-                >
-                  <Home size={16} /> Home
-                </Link>
-             </div>
+             <Link 
+               to="/" 
+               className={`flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-sm font-medium transition-all ${
+                 isHome 
+                   ? 'bg-gem-purple/10 text-gem-purple font-semibold shadow-sm border border-gem-purple/20' 
+                   : 'text-stone-600 hover:bg-stone-50 hover:text-gem-purple'
+               }`}
+             >
+               <Home size={17} /> <span>Home</span>
+             </Link>
           </div>
 
           <nav className="flex-1 overflow-y-auto px-2 pb-6 custom-scrollbar overscroll-contain">
-            <div className="px-4 mt-2 mb-2">
-              <h3 className="text-[10px] font-bold uppercase tracking-widest text-stone-400">Main Operations</h3>
+            <div className="px-4 mt-3 mb-3">
+              <h3 className="text-[10px] font-black uppercase tracking-[0.15em] text-stone-400">Main Operations</h3>
             </div>
             {mainModules.map((module) => (
               <NavItem key={module.id} module={module} isActive={currentModuleId === module.id} />
             ))}
             
-            <div className="px-4 mt-6 mb-2">
-              <h3 className="text-[10px] font-bold uppercase tracking-widest text-stone-400">Trips & Locations</h3>
+            <div className="px-4 mt-6 mb-3">
+              <h3 className="text-[10px] font-black uppercase tracking-[0.15em] text-stone-400">Trips & Locations</h3>
             </div>
             {tripModules.map((module) => (
               <NavItem key={module.id} module={module} isActive={currentModuleId === module.id} />
             ))}
           </nav>
 
-          <div className="p-4 border-t border-stone-200 bg-stone-50">
-            <button className="flex items-center gap-3 w-full p-2 rounded-xl hover:bg-white hover:shadow-sm transition-all text-left group">
-               <div className="w-9 h-9 rounded-full bg-gradient-to-br from-stone-200 to-stone-300 flex items-center justify-center text-stone-600 group-hover:from-gem-purple-100 group-hover:to-gem-purple-200 group-hover:text-gem-purple transition-colors">
+          <div className="p-4 border-t border-stone-100 bg-gradient-to-b from-white to-stone-50/50">
+            <button className="flex items-center gap-3 w-full p-3 rounded-xl hover:bg-white hover:shadow-md transition-all text-left group border border-transparent hover:border-stone-200">
+               <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-gem-purple/10 to-indigo-100 flex items-center justify-center text-gem-purple group-hover:from-gem-purple/20 group-hover:to-indigo-200 transition-all shadow-sm">
                  <User size={18} />
                </div>
                <div className="flex-1 min-w-0">
-                 <div className="text-sm font-semibold text-stone-700 group-hover:text-gem-purple truncate">Admin User</div>
-                 <div className="text-xs text-stone-400 truncate">admin@visiongems.com</div>
+                 <div className="text-sm font-semibold text-stone-800 group-hover:text-gem-purple truncate">Admin User</div>
+                 <div className="text-xs text-stone-500 truncate">admin@visiongems.com</div>
                </div>
-               <Settings size={16} className="text-stone-400 group-hover:text-gem-purple" />
+               <Settings size={16} className="text-stone-400 group-hover:text-gem-purple transition-colors" />
             </button>
           </div>
         </div>
@@ -127,50 +129,64 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
       )}
 
       {/* Mobile/Tablet Sidebar (Drawer) - Hidden only on large screens */}
-      <div className={`fixed inset-y-0 left-0 w-[280px] bg-stone-50 z-50 transform transition-transform duration-300 lg:hidden shadow-2xl flex flex-col ${mobileSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
-         <div className="p-4 bg-white border-b border-stone-200 flex justify-between items-center">
-           <div className="flex items-center gap-2 text-gem-purple">
-             <div className="w-8 h-8 rounded-lg bg-gem-purple text-white flex items-center justify-center">VG</div>
-             <span className="font-bold text-lg tracking-tight">VISION GEMS</span>
+      <div className={`fixed inset-y-0 left-0 w-[280px] bg-white z-50 transform transition-transform duration-300 lg:hidden shadow-2xl flex flex-col ${mobileSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+         <div className="p-4 bg-gradient-to-br from-gem-purple via-gem-purple to-indigo-600 border-b border-gem-purple/20 flex justify-between items-center shadow-lg">
+           <div className="flex items-center gap-2.5 text-white">
+             <div className="w-9 h-9 rounded-xl bg-white/20 backdrop-blur-sm border border-white/30 flex items-center justify-center shadow-inner">
+               <Diamond size={20} className="text-white" fill="currentColor" fillOpacity={0.3} />
+             </div>
+             <span className="font-black text-lg tracking-tight">VISION GEMS</span>
            </div>
-           <button onClick={() => setMobileSidebarOpen(false)} className="p-2 bg-stone-100 rounded-full text-stone-500"><X size={20} /></button>
+           <button onClick={() => setMobileSidebarOpen(false)} className="p-2 bg-white/20 hover:bg-white/30 rounded-lg text-white transition-colors"><X size={20} /></button>
          </div>
-         <nav className="flex-1 overflow-y-auto py-4 px-2 custom-scrollbar overscroll-contain">
-            <Link to="/" onClick={() => setMobileSidebarOpen(false)} className="flex items-center gap-3 px-4 py-3 mx-2 rounded-xl text-stone-600 hover:bg-stone-100 mb-4">
+         <nav className="flex-1 overflow-y-auto py-4 px-2 custom-scrollbar overscroll-contain bg-white">
+            <Link 
+              to="/" 
+              onClick={() => setMobileSidebarOpen(false)} 
+              className={`flex items-center gap-3 px-4 py-3 mx-2 rounded-xl mb-3 transition-all ${
+                isHome 
+                  ? 'bg-gem-purple/10 text-gem-purple font-semibold shadow-sm border border-gem-purple/20' 
+                  : 'text-stone-600 hover:bg-stone-50 hover:text-gem-purple'
+              }`}
+            >
               <Home size={20} /> <span className="font-medium">Home Dashboard</span>
             </Link>
             
-            <div className="px-4 mb-2 text-xs font-bold uppercase tracking-wider text-stone-400">Main Operations</div>
+            <div className="px-4 mb-3 mt-4 text-[10px] font-black uppercase tracking-[0.15em] text-stone-400">Main Operations</div>
             {mainModules.map((module) => (
               <Link
                 key={module.id}
                 to={`/module/${module.id}/${module.tabs[0]}`}
                 onClick={() => setMobileSidebarOpen(false)}
-                className={`flex items-center gap-3 px-4 py-3 mx-2 rounded-xl mb-1 ${
+                className={`flex items-center gap-3 px-4 py-3 mx-2 rounded-xl mb-1.5 transition-all ${
                   currentModuleId === module.id 
-                    ? 'bg-gem-purple-50 text-gem-purple font-semibold' 
-                    : 'text-stone-500 hover:bg-stone-100'
+                    ? 'bg-white text-gem-purple font-semibold shadow-md border-l-4 border-gem-purple' 
+                    : 'text-stone-600 hover:bg-white/60 hover:text-gem-purple hover:shadow-sm'
                 }`}
               >
-                {React.cloneElement(getIcon(module.icon), { size: 20 })}
-                <span className="text-sm">{module.name}</span>
+                <div className={currentModuleId === module.id ? 'text-gem-purple' : 'text-stone-400'}>
+                  {React.cloneElement(getIcon(module.icon), { size: 20 })}
+                </div>
+                <span className="text-sm font-medium">{module.name}</span>
               </Link>
             ))}
 
-            <div className="px-4 mt-6 mb-2 text-xs font-bold uppercase tracking-wider text-stone-400">Trips & Locations</div>
+            <div className="px-4 mt-6 mb-3 text-[10px] font-black uppercase tracking-[0.15em] text-stone-400">Trips & Locations</div>
             {tripModules.map((module) => (
               <Link
                 key={module.id}
                 to={`/module/${module.id}/${module.tabs[0]}`}
                 onClick={() => setMobileSidebarOpen(false)}
-                className={`flex items-center gap-3 px-4 py-3 mx-2 rounded-xl mb-1 ${
+                className={`flex items-center gap-3 px-4 py-3 mx-2 rounded-xl mb-1.5 transition-all ${
                   currentModuleId === module.id 
-                    ? 'bg-gem-purple-50 text-gem-purple font-semibold' 
-                    : 'text-stone-500 hover:bg-stone-100'
+                    ? 'bg-white text-gem-purple font-semibold shadow-md border-l-4 border-gem-purple' 
+                    : 'text-stone-600 hover:bg-white/60 hover:text-gem-purple hover:shadow-sm'
                 }`}
               >
-                {React.cloneElement(getIcon(module.icon), { size: 20 })}
-                <span className="text-sm">{module.name}</span>
+                <div className={currentModuleId === module.id ? 'text-gem-purple' : 'text-stone-400'}>
+                  {React.cloneElement(getIcon(module.icon), { size: 20 })}
+                </div>
+                <span className="text-sm font-medium">{module.name}</span>
               </Link>
             ))}
          </nav>

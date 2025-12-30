@@ -19,6 +19,8 @@ interface CutPolishExpenseItem {
   company?: string;
   type?: 'Cutting' | 'Polishing';
   paymentMethod?: string; // Cash / Cheque
+  sourceModule?: string; // For aggregated data: which module this came from
+  sourceTab?: string; // For aggregated data: which tab this came from
 }
 
 interface Props {
@@ -74,6 +76,10 @@ const CutPolishDetailPanel: React.FC<{
     }
   };
 
+  const handlePrint = () => {
+    window.print();
+  };
+
   const Field: React.FC<{ 
     label: string, 
     value: any, 
@@ -93,7 +99,7 @@ const CutPolishDetailPanel: React.FC<{
             <select 
               value={value === undefined || value === null ? '' : value.toString()} 
               onChange={(e) => onInputChange(field, e.target.value)} 
-              className="w-full p-2 bg-stone-50 border border-stone-200 rounded-lg text-sm outline-none transition-all focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/10"
+              className="w-full p-3 md:p-2 py-3 md:py-2 min-h-[44px] md:min-h-0 text-base md:text-sm bg-stone-50 border border-stone-200 rounded-lg outline-none transition-all focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/10 appearance-none"
             >
               {options.map(opt => <option key={opt} value={opt}>{opt}</option>)}
             </select>
@@ -207,11 +213,93 @@ export const CutPolishExpensesTemplate: React.FC<Props> = ({ moduleId, tabId, is
   const [items, setItems] = useState<CutPolishExpenseItem[]>(generateMockData());
   const [searchQuery, setSearchQuery] = useState('');
   const [typeFilter, setTypeFilter] = useState<string>('all');
+  const [isDataLoaded, setIsDataLoaded] = useState(false);
   
   // Modal State
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<CutPolishExpenseItem | null>(null);
   const [selectedItem, setSelectedItem] = useState<CutPolishExpenseItem | null>(null);
+
+  // Check if this is the mother tab (all-expenses / Cut.polish)
+  const isMotherTab = moduleId === 'all-expenses' && tabId.toLowerCase() === 'cut.polish';
+
+  // Define all cut polish tabs to aggregate from (memoized to avoid dependency issues)
+  const cutPolishTabs = useMemo(() => [
+    { moduleId: 'vision-gems', tabId: 'Cut.polish' },
+    { moduleId: 'spinel-gallery', tabId: 'Cut.polish' },
+    { moduleId: 'kenya', tabId: 'CutPolish' },
+    { moduleId: 'vgtz', tabId: 'Cut.and.polish' },
+    { moduleId: 'madagascar', tabId: 'Cut.polish' },
+    { moduleId: 'vg-ramazan', tabId: 'Cut.polish' },
+  ], []);
+
+  // Load data from localStorage
+  useEffect(() => {
+    if (isMotherTab) {
+      // Aggregate data from all cut polish tabs
+      const allItems: CutPolishExpenseItem[] = [];
+      
+      cutPolishTabs.forEach(({ moduleId: sourceModule, tabId: sourceTab }) => {
+        const storageKey = `cut_polish_expenses_${sourceModule}_${sourceTab}`;
+        const saved = localStorage.getItem(storageKey);
+        if (saved) {
+          try {
+            const sourceItems: CutPolishExpenseItem[] = JSON.parse(saved);
+            // Add source information to each item
+            const itemsWithSource = sourceItems.map(item => ({
+              ...item,
+              sourceModule,
+              sourceTab,
+            }));
+            allItems.push(...itemsWithSource);
+          } catch (e) {
+            console.error(`Failed to load cut polish data from ${sourceModule}/${sourceTab}:`, e);
+          }
+        }
+      });
+      
+      // Also load data from the mother tab itself
+      const motherTabKey = `cut_polish_expenses_${moduleId}_${tabId}`;
+      const motherTabSaved = localStorage.getItem(motherTabKey);
+      if (motherTabSaved) {
+        try {
+          const motherTabItems: CutPolishExpenseItem[] = JSON.parse(motherTabSaved);
+          allItems.push(...motherTabItems);
+        } catch (e) {
+          console.error('Failed to load mother tab data:', e);
+        }
+      }
+      
+      setItems(allItems);
+      setIsDataLoaded(true);
+    } else {
+      // Load data for individual tabs
+      const storageKey = `cut_polish_expenses_${moduleId}_${tabId}`;
+      const saved = localStorage.getItem(storageKey);
+      if (saved) {
+        try {
+          setItems(JSON.parse(saved));
+        } catch (e) {
+          console.error('Failed to load cut polish data:', e);
+        }
+      }
+      // Set flag to true even if no data was found, to allow future saves
+      setIsDataLoaded(true);
+    }
+  }, [moduleId, tabId, isMotherTab, cutPolishTabs]);
+
+  // Save data to localStorage (only for non-mother tabs, and only after initial load)
+  useEffect(() => {
+    if (!isMotherTab && isDataLoaded) {
+      const storageKey = `cut_polish_expenses_${moduleId}_${tabId}`;
+      try {
+        localStorage.setItem(storageKey, JSON.stringify(items));
+        console.log(`Saved ${items.length} items to localStorage: ${storageKey}`);
+      } catch (e) {
+        console.error('Failed to save to localStorage:', e);
+      }
+    }
+  }, [items, moduleId, tabId, isMotherTab, isDataLoaded]);
 
   // --- Statistics ---
   const stats = useMemo(() => {
@@ -241,12 +329,146 @@ export const CutPolishExpensesTemplate: React.FC<Props> = ({ moduleId, tabId, is
     }).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   }, [items, searchQuery, typeFilter]);
 
+  // Helper function to save item to the correct localStorage location
+  const saveItemToStorage = (item: CutPolishExpenseItem, isNew: boolean = false) => {
+    const targetModule = item.sourceModule || moduleId;
+    const targetTab = item.sourceTab || tabId;
+    const storageKey = `cut_polish_expenses_${targetModule}_${targetTab}`;
+    
+    // Load existing items from that location
+    const saved = localStorage.getItem(storageKey);
+    let existingItems: CutPolishExpenseItem[] = [];
+    if (saved) {
+      try {
+        existingItems = JSON.parse(saved);
+      } catch (e) {
+        console.error('Failed to load existing items:', e);
+      }
+    }
+    
+    if (isNew) {
+      existingItems.push(item);
+      console.log(`Adding new item to localStorage: ${storageKey}`, item);
+    } else {
+      existingItems = existingItems.map(i => i.id === item.id ? item : i);
+      console.log(`Updating item in localStorage: ${storageKey}`, item);
+    }
+    
+    try {
+      localStorage.setItem(storageKey, JSON.stringify(existingItems));
+      console.log(`Successfully saved ${existingItems.length} items to localStorage: ${storageKey}`);
+    } catch (e) {
+      console.error('Failed to save to localStorage:', e);
+    }
+    
+    // If we're in the mother tab, reload all aggregated data
+    if (isMotherTab) {
+      const allItems: CutPolishExpenseItem[] = [];
+      cutPolishTabs.forEach(({ moduleId: sourceModule, tabId: sourceTab }) => {
+        const sourceKey = `cut_polish_expenses_${sourceModule}_${sourceTab}`;
+        const sourceSaved = localStorage.getItem(sourceKey);
+        if (sourceSaved) {
+          try {
+            const sourceItems: CutPolishExpenseItem[] = JSON.parse(sourceSaved);
+            const itemsWithSource = sourceItems.map(i => ({
+              ...i,
+              sourceModule,
+              sourceTab,
+            }));
+            allItems.push(...itemsWithSource);
+          } catch (e) {
+            console.error(`Failed to load from ${sourceModule}/${sourceTab}:`, e);
+          }
+        }
+      });
+      const motherTabKey = `cut_polish_expenses_${moduleId}_${tabId}`;
+      const motherTabSaved = localStorage.getItem(motherTabKey);
+      if (motherTabSaved) {
+        try {
+          const motherTabItems: CutPolishExpenseItem[] = JSON.parse(motherTabSaved);
+          allItems.push(...motherTabItems);
+        } catch (e) {
+          console.error('Failed to load mother tab data:', e);
+        }
+      }
+      setItems(allItems);
+    }
+  };
+
+  // Helper function to delete item from the correct localStorage location
+  const deleteItemFromStorage = (id: string, sourceModule?: string, sourceTab?: string) => {
+    const targetModule = sourceModule || moduleId;
+    const targetTab = sourceTab || tabId;
+    const storageKey = `cut_polish_expenses_${targetModule}_${targetTab}`;
+    
+    const saved = localStorage.getItem(storageKey);
+    if (saved) {
+      try {
+        const existingItems: CutPolishExpenseItem[] = JSON.parse(saved);
+        const filteredItems = existingItems.filter(i => i.id !== id);
+        localStorage.setItem(storageKey, JSON.stringify(filteredItems));
+        console.log(`Successfully deleted item from localStorage: ${storageKey}. Remaining items: ${filteredItems.length}`);
+      } catch (e) {
+        console.error('Failed to delete item:', e);
+      }
+    }
+    
+    // If we're in the mother tab, reload all aggregated data
+    if (isMotherTab) {
+      const allItems: CutPolishExpenseItem[] = [];
+      cutPolishTabs.forEach(({ moduleId: sourceModule, tabId: sourceTab }) => {
+        const sourceKey = `cut_polish_expenses_${sourceModule}_${sourceTab}`;
+        const sourceSaved = localStorage.getItem(sourceKey);
+        if (sourceSaved) {
+          try {
+            const sourceItems: CutPolishExpenseItem[] = JSON.parse(sourceSaved);
+            const itemsWithSource = sourceItems.map(i => ({
+              ...i,
+              sourceModule,
+              sourceTab,
+            }));
+            allItems.push(...itemsWithSource);
+          } catch (e) {
+            console.error(`Failed to load from ${sourceModule}/${sourceTab}:`, e);
+          }
+        }
+      });
+      const motherTabKey = `cut_polish_expenses_${moduleId}_${tabId}`;
+      const motherTabSaved = localStorage.getItem(motherTabKey);
+      if (motherTabSaved) {
+        try {
+          const motherTabItems: CutPolishExpenseItem[] = JSON.parse(motherTabSaved);
+          allItems.push(...motherTabItems);
+        } catch (e) {
+          console.error('Failed to load mother tab data:', e);
+        }
+      }
+      setItems(allItems);
+    }
+  };
+
   // --- Handlers ---
   const handleDelete = (id: string, e?: React.MouseEvent) => {
     e?.stopPropagation();
+    const item = items.find(i => i.id === id);
     if (confirm('Are you sure you want to delete this expense?')) {
-      setItems(prev => prev.filter(i => i.id !== id));
-      if (selectedItem?.id === id) setSelectedItem(null);
+      if (isMotherTab && item) {
+        deleteItemFromStorage(id, item.sourceModule, item.sourceTab);
+      } else {
+        setItems(prev => {
+          const updated = prev.filter(i => i.id !== id);
+          // Immediately save to localStorage
+          const storageKey = `cut_polish_expenses_${moduleId}_${tabId}`;
+          try {
+            localStorage.setItem(storageKey, JSON.stringify(updated));
+            console.log(`Deleted item and saved to localStorage: ${storageKey}`);
+          } catch (e) {
+            console.error('Failed to save to localStorage:', e);
+          }
+          return updated;
+        });
+        if (selectedItem?.id === id) setSelectedItem(null);
+      }
     }
   };
 
@@ -256,10 +478,84 @@ export const CutPolishExpensesTemplate: React.FC<Props> = ({ moduleId, tabId, is
       item.perCaratCost = Number((item.amount / item.weight).toFixed(2));
     }
     
-    if (editingItem) {
-      setItems(prev => prev.map(i => i.id === item.id ? item : i));
+    if (isMotherTab) {
+      // If editing an existing item, save to its source location
+      // If creating a new item (no source), save to mother tab
+      const isNew = !editingItem || !items.find(i => i.id === item.id);
+      if (isNew && !item.sourceModule && !item.sourceTab) {
+        // New item in mother tab - save to mother tab
+        const motherTabKey = `cut_polish_expenses_${moduleId}_${tabId}`;
+        const saved = localStorage.getItem(motherTabKey);
+        let motherTabItems: CutPolishExpenseItem[] = [];
+        if (saved) {
+          try {
+            motherTabItems = JSON.parse(saved);
+          } catch (e) {
+            console.error('Failed to load mother tab items:', e);
+          }
+        }
+        motherTabItems.push(item);
+        try {
+          localStorage.setItem(motherTabKey, JSON.stringify(motherTabItems));
+          console.log(`Successfully saved new item to mother tab localStorage: ${motherTabKey}`, item);
+        } catch (e) {
+          console.error('Failed to save to mother tab localStorage:', e);
+        }
+        
+        // Reload aggregated data
+        const allItems: CutPolishExpenseItem[] = [];
+        cutPolishTabs.forEach(({ moduleId: sourceModule, tabId: sourceTab }) => {
+          const sourceKey = `cut_polish_expenses_${sourceModule}_${sourceTab}`;
+          const sourceSaved = localStorage.getItem(sourceKey);
+          if (sourceSaved) {
+            try {
+              const sourceItems: CutPolishExpenseItem[] = JSON.parse(sourceSaved);
+              const itemsWithSource = sourceItems.map(i => ({
+                ...i,
+                sourceModule,
+                sourceTab,
+              }));
+              allItems.push(...itemsWithSource);
+            } catch (e) {
+              console.error(`Failed to load from ${sourceModule}/${sourceTab}:`, e);
+            }
+          }
+        });
+        allItems.push(...motherTabItems);
+        setItems(allItems);
+      } else {
+        // Existing item or item with source - save to source location
+        saveItemToStorage(item, isNew);
+      }
     } else {
-      setItems(prev => [item, ...prev]);
+      // Normal save for individual tabs - update state (useEffect will save to localStorage)
+      if (editingItem) {
+        setItems(prev => {
+          const updated = prev.map(i => i.id === item.id ? item : i);
+          // Immediately save to localStorage
+          const storageKey = `cut_polish_expenses_${moduleId}_${tabId}`;
+          try {
+            localStorage.setItem(storageKey, JSON.stringify(updated));
+            console.log(`Saved updated item to localStorage: ${storageKey}`);
+          } catch (e) {
+            console.error('Failed to save to localStorage:', e);
+          }
+          return updated;
+        });
+      } else {
+        setItems(prev => {
+          const updated = [item, ...prev];
+          // Immediately save to localStorage
+          const storageKey = `cut_polish_expenses_${moduleId}_${tabId}`;
+          try {
+            localStorage.setItem(storageKey, JSON.stringify(updated));
+            console.log(`Saved new item to localStorage: ${storageKey}`);
+          } catch (e) {
+            console.error('Failed to save to localStorage:', e);
+          }
+          return updated;
+        });
+      }
     }
     setIsFormOpen(false);
     setEditingItem(null);
@@ -270,13 +566,91 @@ export const CutPolishExpensesTemplate: React.FC<Props> = ({ moduleId, tabId, is
     if (item.weight > 0 && item.amount > 0) {
       item.perCaratCost = Number((item.amount / item.weight).toFixed(2));
     }
-    setItems(prev => prev.map(i => i.id === item.id ? item : i));
-    setSelectedItem(item);
+    
+    if (isMotherTab) {
+      // Check if this is a new item (no source) or existing item
+      const existingItem = items.find(i => i.id === item.id);
+      const isNew = !existingItem || (!existingItem.sourceModule && !existingItem.sourceTab);
+      
+      if (isNew && !item.sourceModule && !item.sourceTab) {
+        // New item in mother tab - save to mother tab
+        const motherTabKey = `cut_polish_expenses_${moduleId}_${tabId}`;
+        const saved = localStorage.getItem(motherTabKey);
+        let motherTabItems: CutPolishExpenseItem[] = [];
+        if (saved) {
+          try {
+            motherTabItems = JSON.parse(saved);
+          } catch (e) {
+            console.error('Failed to load mother tab items:', e);
+          }
+        }
+        const existingIndex = motherTabItems.findIndex(i => i.id === item.id);
+        if (existingIndex >= 0) {
+          motherTabItems[existingIndex] = item;
+          console.log(`Updating item in mother tab localStorage: ${motherTabKey}`, item);
+        } else {
+          motherTabItems.push(item);
+          console.log(`Adding new item to mother tab localStorage: ${motherTabKey}`, item);
+        }
+        try {
+          localStorage.setItem(motherTabKey, JSON.stringify(motherTabItems));
+          console.log(`Successfully saved ${motherTabItems.length} items to mother tab localStorage: ${motherTabKey}`);
+        } catch (e) {
+          console.error('Failed to save to mother tab localStorage:', e);
+        }
+        
+        // Reload aggregated data
+        const allItems: CutPolishExpenseItem[] = [];
+        cutPolishTabs.forEach(({ moduleId: sourceModule, tabId: sourceTab }) => {
+          const sourceKey = `cut_polish_expenses_${sourceModule}_${sourceTab}`;
+          const sourceSaved = localStorage.getItem(sourceKey);
+          if (sourceSaved) {
+            try {
+              const sourceItems: CutPolishExpenseItem[] = JSON.parse(sourceSaved);
+              const itemsWithSource = sourceItems.map(i => ({
+                ...i,
+                sourceModule,
+                sourceTab,
+              }));
+              allItems.push(...itemsWithSource);
+            } catch (e) {
+              console.error(`Failed to load from ${sourceModule}/${sourceTab}:`, e);
+            }
+          }
+        });
+        allItems.push(...motherTabItems);
+        setItems(allItems);
+        setSelectedItem(item);
+      } else {
+        // Existing item with source - save to source location
+        saveItemToStorage(item, false);
+        setSelectedItem(item);
+      }
+    } else {
+      setItems(prev => {
+        const updated = prev.map(i => i.id === item.id ? item : i);
+        // Immediately save to localStorage
+        const storageKey = `cut_polish_expenses_${moduleId}_${tabId}`;
+        try {
+          localStorage.setItem(storageKey, JSON.stringify(updated));
+          console.log(`Saved updated item from panel to localStorage: ${storageKey}`);
+        } catch (e) {
+          console.error('Failed to save to localStorage:', e);
+        }
+        return updated;
+      });
+      setSelectedItem(item);
+    }
   };
 
   const handleDeleteFromPanel = (id: string) => {
-    setItems(prev => prev.filter(i => i.id !== id));
-    setSelectedItem(null);
+    const item = items.find(i => i.id === id);
+    if (isMotherTab && item) {
+      deleteItemFromStorage(id, item.sourceModule, item.sourceTab);
+    } else {
+      setItems(prev => prev.filter(i => i.id !== id));
+      setSelectedItem(null);
+    }
   };
 
   const formatCurrency = (amount: number, currency: string) => {
@@ -581,6 +955,7 @@ export const CutPolishExpensesTemplate: React.FC<Props> = ({ moduleId, tabId, is
                      <th className="p-6">Code</th>
                      <th className="p-6">Worker</th>
                      <th className="p-6">Description</th>
+                     {isMotherTab && <th className="p-6">Source</th>}
                      <th className="p-6">Type</th>
                      <th className="p-6 text-right">Weight (ct)</th>
                      <th className="p-6 text-right">Amount (LKR)</th>
@@ -605,6 +980,17 @@ export const CutPolishExpensesTemplate: React.FC<Props> = ({ moduleId, tabId, is
                         <td className="p-6 text-stone-600 max-w-xs truncate" title={item.description}>
                            {item.description}
                         </td>
+                        {isMotherTab && (
+                           <td className="p-6">
+                              {item.sourceModule && item.sourceTab ? (
+                                 <span className="px-2.5 py-1 rounded-full text-[10px] font-bold uppercase border bg-purple-50 text-purple-700 border-purple-100" title={`${item.sourceModule} / ${item.sourceTab}`}>
+                                    {item.sourceModule.replace('-', ' ').split(' ').map(w => w.charAt(0).toUpperCase()).join('')}
+                                 </span>
+                              ) : (
+                                 <span className="text-stone-300">-</span>
+                              )}
+                           </td>
+                        )}
                         <td className="p-6">
                            <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase border ${
                               item.type === 'Cutting' ? 'bg-blue-50 text-blue-700 border-blue-100' : 'bg-emerald-50 text-emerald-700 border-emerald-100'
@@ -675,6 +1061,14 @@ export const CutPolishExpensesTemplate: React.FC<Props> = ({ moduleId, tabId, is
                            item.type === 'Cutting' ? 'bg-blue-50 text-blue-700 border-blue-100' : 'bg-emerald-50 text-emerald-700 border-emerald-100'
                         }`}>
                            {item.type}
+                        </span>
+                     </div>
+                  )}
+                  {isMotherTab && item.sourceModule && item.sourceTab && (
+                     <div className="flex items-center gap-2 col-span-2">
+                        <span className="text-[10px] text-stone-400 uppercase">Source:</span>
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase border bg-purple-50 text-purple-700 border-purple-100">
+                           {item.sourceModule.replace('-', ' ')} / {item.sourceTab}
                         </span>
                      </div>
                   )}
@@ -826,7 +1220,7 @@ const CutPolishExpenseForm: React.FC<{
                    <select 
                       value={formData.type} 
                       onChange={e => setFormData({...formData, type: e.target.value as 'Cutting' | 'Polishing'})}
-                      className="w-full p-2.5 bg-stone-50 border border-stone-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none"
+                      className="w-full p-3 md:p-2.5 py-3 md:py-2.5 min-h-[44px] md:min-h-0 text-base md:text-sm bg-stone-50 border border-stone-200 rounded-xl outline-none transition-all focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 appearance-none"
                    >
                       <option value="Cutting">Cutting</option>
                       <option value="Polishing">Polishing</option>
@@ -894,7 +1288,7 @@ const CutPolishExpenseForm: React.FC<{
                    <select 
                       value={formData.paymentMethod || ''} 
                       onChange={e => setFormData({...formData, paymentMethod: e.target.value})}
-                      className="w-full p-2.5 bg-stone-50 border border-stone-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none"
+                      className="w-full p-3 md:p-2.5 py-3 md:py-2.5 min-h-[44px] md:min-h-0 text-base md:text-sm bg-stone-50 border border-stone-200 rounded-xl outline-none transition-all focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 appearance-none"
                    >
                       <option value="">Select method</option>
                       <option value="Cash">Cash</option>

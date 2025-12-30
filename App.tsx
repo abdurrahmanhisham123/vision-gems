@@ -3,8 +3,9 @@ import React from 'react';
 import { HashRouter as Router, Routes, Route, Link } from 'react-router-dom';
 import { Layout } from './components/Layout';
 import { ModuleView } from './components/ModuleView';
+import { StatementView } from './components/StatementView';
 import { APP_MODULES, getIcon } from './constants';
-import { ArrowRight } from 'lucide-react';
+import { ArrowRight, FileText } from 'lucide-react';
 
 const Home = () => {
   // Group modules for display
@@ -47,8 +48,18 @@ const Home = () => {
   return (
     <div className="p-4 md:p-10 max-w-[1600px] mx-auto">
       <div className="mb-10 text-center md:text-left">
-        <h1 className="text-3xl md:text-4xl font-bold text-stone-900 tracking-tight">Welcome to Vision Gems</h1>
-        <p className="text-stone-500 mt-2 text-lg">Select a module to manage your inventory and operations</p>
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
+          <div>
+            <h1 className="text-3xl md:text-4xl font-bold text-stone-900 tracking-tight">Welcome to Vision Gems</h1>
+            <p className="text-stone-500 mt-2 text-lg">Select a module to manage your inventory and operations</p>
+          </div>
+          <Link 
+            to="/statement"
+            className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-purple-600 to-purple-700 text-white rounded-2xl text-sm font-bold shadow-lg shadow-purple-900/20 hover:from-purple-700 hover:to-purple-800 transition-all active:scale-95"
+          >
+            <FileText size={18} /> View Complete Statement
+          </Link>
+        </div>
       </div>
 
       <div className="mb-12">
@@ -84,6 +95,7 @@ const App = () => {
       <Layout>
         <Routes>
           <Route path="/" element={<Home />} />
+          <Route path="/statement" element={<StatementView />} />
           <Route path="/module/:moduleId/:tabId" element={<ModuleView />} />
         </Routes>
       </Layout>
