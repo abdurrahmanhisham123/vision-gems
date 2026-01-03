@@ -48,11 +48,13 @@ export const DASHBOARD_CONFIGS: DashboardConfig[] = [
     hasInventoryMetrics: true,
     hasExpenseBreakdown: true,
     hasMultiCurrency: true,
+    hasProfitCalculation: true,
     kpiCards: [
       { title: "In Stock Cost", key: "inStockCost", sourceTab: "Instock" },
       { title: "Total Sales", key: "totalSales", sourceTab: "Sold" },
       { title: "Outstanding", key: "outstanding", sourceTab: "Outstanding" },
-      { title: "Payment Received", key: "received", sourceTab: "Payment" }
+      { title: "Payment Received", key: "received", sourceTab: "Payment" },
+      { title: "Net Profit", key: "netProfit", currency: "LKR", trend: "auto" }
     ]
   },
   {
@@ -65,11 +67,13 @@ export const DASHBOARD_CONFIGS: DashboardConfig[] = [
     hasInventoryMetrics: true,
     hasExpenseBreakdown: true,
     hasMultiCurrency: true,
+    hasProfitCalculation: true,
     kpiCards: [
       { title: "In Stock Cost", key: "inStockCost", sourceTab: "VG.T.Instock" },
       { title: "Total Sales", key: "totalSales", sourceTab: "Sold" },
       { title: "Outstanding", key: "outstanding", sourceTab: "Outstanding" },
-      { title: "Payment Received", key: "received", sourceTab: "Payment" }
+      { title: "Payment Received", key: "received", sourceTab: "Payment" },
+      { title: "Net Profit", key: "netProfit", currency: "LKR", trend: "auto" }
     ]
   },
   {
@@ -82,11 +86,13 @@ export const DASHBOARD_CONFIGS: DashboardConfig[] = [
     hasInventoryMetrics: true,
     hasExpenseBreakdown: true,
     hasShareDistribution: true,
+    hasProfitCalculation: true,
     kpiCards: [
       { title: "In Stock Cost", key: "inStockCost", currency: "LKR" },
       { title: "Total Sales", key: "totalSales", currency: "LKR" },
       { title: "Payment Received", key: "received", currency: "LKR" },
-      { title: "VG Commission", key: "commission", currency: "LKR", note: "10%" }
+      { title: "VG Commission", key: "commission", currency: "LKR", note: "10%" },
+      { title: "Net Profit", key: "netProfit", currency: "LKR", trend: "auto" }
     ]
   },
   {
@@ -98,11 +104,13 @@ export const DASHBOARD_CONFIGS: DashboardConfig[] = [
     dataKey: "vgrz_dashboard",
     hasInventoryMetrics: true,
     hasExpenseBreakdown: true,
+    hasProfitCalculation: true,
     kpiCards: [
       { title: "Cost (In Stock)", key: "inStockCost", sourceTab: "Instock" },
       { title: "Total Sales", key: "totalSales", sourceTab: "Sold" },
       { title: "Outstanding", key: "outstanding", sourceTab: "Outstanding" },
-      { title: "Payment Received", key: "received", sourceTab: "Payment" }
+      { title: "Payment Received", key: "received", sourceTab: "Payment" },
+      { title: "Net Profit", key: "netProfit", currency: "LKR", trend: "auto" }
     ]
   },
   {
@@ -114,11 +122,13 @@ export const DASHBOARD_CONFIGS: DashboardConfig[] = [
     dataKey: "madagascar_dashboard",
     hasInventoryMetrics: true,
     hasExpenseBreakdown: true,
+    hasProfitCalculation: true,
     kpiCards: [
       { title: "Cost (In Stock)", key: "inStockCost", currency: "LKR" },
       { title: "Total Sales", key: "totalSales", currency: "LKR" },
       { title: "Outstanding", key: "outstanding", sourceTab: "Outstanding" },
-      { title: "Payment Received", key: "received", currency: "LKR" }
+      { title: "Payment Received", key: "received", currency: "LKR" },
+      { title: "Net Profit", key: "netProfit", currency: "LKR", trend: "auto" }
     ]
   },
 
@@ -167,6 +177,7 @@ export const DASHBOARD_CONFIGS: DashboardConfig[] = [
       { title: "Inventory Cost", key: "cost", currency: "LKR" },
       { title: "Sales Revenue", key: "rsSales", currency: "LKR" },
       { title: "Est. Profit", key: "profit", currency: "LKR", trend: "up" },
+      { title: "Net Profit", key: "netProfit", currency: "LKR", trend: "auto" },
       { title: "Volume", key: "weight", note: "Total Carats" }
     ]
   },

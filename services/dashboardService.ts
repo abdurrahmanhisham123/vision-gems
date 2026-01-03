@@ -1,6 +1,7 @@
 
 import { DashboardConfig } from '../utils/dashboardConfig';
 import { getVisionGemsSpinelData } from './dataService';
+import { APP_MODULES } from '../constants';
 
 interface DashboardData {
   metrics: Record<string, number | string>;
@@ -45,6 +46,134 @@ interface DashboardData {
     }[];
   };
 }
+
+// Helper function to load all expenses from a module
+const loadModuleExpenses = (moduleId: string): number => {
+  let totalExpenses = 0;
+  const module = APP_MODULES.find(m => m.id === moduleId);
+  if (!module) return 0;
+
+  module.tabs.forEach(tabId => {
+    // Skip dashboard tabs
+    if (tabId.toLowerCase().includes('dashboard')) return;
+
+    // UnifiedExpense - check multiple possible key patterns
+    const expenseKeys = [
+      `unified_expense_${moduleId}_${tabId}`,
+      `expense_${moduleId}_${tabId}`,
+      `unified_expenses_${moduleId}_${tabId}`
+    ];
+    for (const expenseKey of expenseKeys) {
+      const expenseData = localStorage.getItem(expenseKey);
+      if (expenseData) {
+        try {
+          const items: any[] = JSON.parse(expenseData);
+          items.forEach(item => {
+            totalExpenses += item.convertedAmount || item.amount || 0;
+          });
+          break; // Found data, no need to check other keys
+        } catch (e) {
+          console.error(`Failed to parse unified_expense for ${moduleId}/${tabId}:`, e);
+        }
+      }
+    }
+
+    // CutPolishExpenses
+    const cutPolishKey = `cut_polish_expenses_${moduleId}_${tabId}`;
+    const cutPolishData = localStorage.getItem(cutPolishKey);
+    if (cutPolishData) {
+      try {
+        const items: any[] = JSON.parse(cutPolishData);
+        items.forEach(item => {
+          totalExpenses += item.convertedAmount || item.amount || 0;
+        });
+      } catch (e) {
+        console.error(`Failed to parse cut_polish_expenses for ${moduleId}/${tabId}:`, e);
+      }
+    }
+
+    // TicketsVisa - check multiple possible key patterns
+    const ticketsKeys = [
+      `tickets_visa_${moduleId}_${tabId}`,
+      `ticket_visa_${moduleId}_${tabId}`,
+      `tickets_${moduleId}_${tabId}`
+    ];
+    for (const ticketsKey of ticketsKeys) {
+      const ticketsData = localStorage.getItem(ticketsKey);
+      if (ticketsData) {
+        try {
+          const items: any[] = JSON.parse(ticketsData);
+          items.forEach(item => {
+            totalExpenses += item.convertedAmount || item.amount || 0;
+          });
+          break; // Found data, no need to check other keys
+        } catch (e) {
+          console.error(`Failed to parse tickets_visa for ${moduleId}/${tabId}:`, e);
+        }
+      }
+    }
+
+    // HotelAccommodation
+    const hotelKey = `hotel_accommodation_${moduleId}_${tabId}`;
+    const hotelData = localStorage.getItem(hotelKey);
+    if (hotelData) {
+      try {
+        const items: any[] = JSON.parse(hotelData);
+        items.forEach(item => {
+          totalExpenses += item.convertedAmount || item.amount || 0;
+        });
+      } catch (e) {
+        console.error(`Failed to parse hotel_accommodation for ${moduleId}/${tabId}:`, e);
+      }
+    }
+
+    // UnifiedExport (export charges are expenses)
+    const exportKey = `unified_export_${moduleId}_${tabId}`;
+    const exportData = localStorage.getItem(exportKey);
+    if (exportData) {
+      try {
+        const items: any[] = JSON.parse(exportData);
+        items.forEach(item => {
+          totalExpenses += item.convertedAmount || item.amount || 0;
+        });
+      } catch (e) {
+        console.error(`Failed to parse unified_export for ${moduleId}/${tabId}:`, e);
+      }
+    }
+  });
+
+  return totalExpenses;
+};
+
+// Helper function to calculate profit from inventory data
+const calculateProfitFromInventory = async (
+  moduleId: string,
+  tabsToAggregate: string[]
+): Promise<{ salesRevenue: number; inventoryCost: number; profit: number }> => {
+  let salesRevenue = 0;
+  let inventoryCost = 0;
+
+  // Fetch data from all inventory tabs
+  const results = await Promise.all(
+    tabsToAggregate.map(tab => getVisionGemsSpinelData(tab, moduleId))
+  );
+
+  results.flat().forEach(stone => {
+    const cost = stone.slCost || 0;
+    const price = stone.finalPrice || stone.amountLKR || 0;
+    const status = stone.status || 'In Stock';
+
+    // Add to inventory cost (all stones)
+    inventoryCost += cost;
+
+    // Add to sales revenue (only sold stones)
+    if (status.toLowerCase().includes('sold')) {
+      salesRevenue += price;
+    }
+  });
+
+  return { salesRevenue, inventoryCost, profit: salesRevenue - inventoryCost };
+};
 
 export const getDashboardData = async (config: DashboardConfig): Promise<DashboardData> => {
   
@@ -136,12 +265,22 @@ export const getDashboardData = async (config: DashboardConfig): Promise<Dashboa
       .sort((a, b) => (b.slCost || 0) - (a.slCost || 0))
       .slice(0, 5);
 
+    // Calculate expenses from vision-gems and all-expenses modules
+    const visionGemsExpenses = loadModuleExpenses('vision-gems');
+    const allExpensesExpenses = loadModuleExpenses('all-expenses');
+    const totalExpenses = visionGemsExpenses + allExpensesExpenses;
+
+    // Calculate net profit: Sales Revenue - Inventory Cost - Expenses
+    const netProfit = totalSalesLKR - totalCost - totalExpenses;
+
     return {
       metrics: {
         cost: totalCost,
         rsSales: totalSalesLKR,
         rmbSales: totalSalesRMB,
         profit: totalProfit,
+        netProfit: netProfit,
+        totalExpenses: totalExpenses,
         weight: totalWeight,
         count: totalItems
       },
@@ -424,12 +563,19 @@ export const getDashboardData = async (config: DashboardConfig): Promise<Dashboa
   // --- Data Mocks for Other Dashboards ---
 
   if (config.dataKey === "dada_dashboard") {
+    // Load inventory data
+    const inventoryData = await calculateProfitFromInventory('dada', ['Instock']);
+    const moduleExpenses = loadModuleExpenses('dada');
+    const netProfit = inventoryData.salesRevenue - inventoryData.inventoryCost - moduleExpenses;
+
     return {
       metrics: {
-        inStockCost: 4673217,
-        totalSales: 10840000,
+        inStockCost: inventoryData.inventoryCost || 4673217,
+        totalSales: inventoryData.salesRevenue || 10840000,
         outstanding: 6840000,
-        received: 4000000
+        received: 4000000,
+        netProfit: netProfit,
+        totalExpenses: moduleExpenses
       },
       breakdowns: {
         expenses: [
@@ -443,12 +589,19 @@ export const getDashboardData = async (config: DashboardConfig): Promise<Dashboa
   }
 
   if (config.dataKey === "vgtz_dashboard") {
+    // Load inventory data
+    const inventoryData = await calculateProfitFromInventory('vgtz', ['VG.T.Instock']);
+    const moduleExpenses = loadModuleExpenses('vgtz');
+    const netProfit = inventoryData.salesRevenue - inventoryData.inventoryCost - moduleExpenses;
+
     return {
       metrics: {
-        inStockCost: 12500000,
-        totalSales: 8900000,
+        inStockCost: inventoryData.inventoryCost || 12500000,
+        totalSales: inventoryData.salesRevenue || 8900000,
         outstanding: 4200000,
-        received: 4700000
+        received: 4700000,
+        netProfit: netProfit,
+        totalExpenses: moduleExpenses
       },
       breakdowns: {
         expenses: [
@@ -462,12 +615,19 @@ export const getDashboardData = async (config: DashboardConfig): Promise<Dashboa
   }
 
   if (config.dataKey === "kenya_dashboard") {
+    // Load inventory data
+    const inventoryData = await calculateProfitFromInventory('kenya', ['Instock']);
+    const moduleExpenses = loadModuleExpenses('kenya');
+    const netProfit = inventoryData.salesRevenue - inventoryData.inventoryCost - moduleExpenses;
+
     return {
       metrics: {
-        inStockCost: 4673217.39,
-        totalSales: 10835050.33,
+        inStockCost: inventoryData.inventoryCost || 4673217.39,
+        totalSales: inventoryData.salesRevenue || 10835050.33,
         received: 10835050.33,
-        commission: 9751545.30
+        commission: 9751545.30,
+        netProfit: netProfit,
+        totalExpenses: moduleExpenses
       },
       breakdowns: {
         expenses: [
@@ -641,6 +801,48 @@ export const getDashboardData = async (config: DashboardConfig): Promise<Dashboa
     };
   }
 
+  if (config.dataKey === "madagascar_dashboard") {
+    // Load inventory data
+    const inventoryData = await calculateProfitFromInventory('madagascar', ['Instock']);
+    const moduleExpenses = loadModuleExpenses('madagascar');
+    const netProfit = inventoryData.salesRevenue - inventoryData.inventoryCost - moduleExpenses;
+
+    return {
+      metrics: {
+        inStockCost: inventoryData.inventoryCost || 0,
+        totalSales: inventoryData.salesRevenue || 0,
+        outstanding: 0,
+        received: 0,
+        netProfit: netProfit,
+        totalExpenses: moduleExpenses
+      },
+      breakdowns: {
+        expenses: []
+      }
+    };
+  }
+
+  if (config.dataKey === "vgrz_dashboard") {
+    // Load inventory data
+    const inventoryData = await calculateProfitFromInventory('vg-ramazan', ['Instock']);
+    const moduleExpenses = loadModuleExpenses('vg-ramazan');
+    const netProfit = inventoryData.salesRevenue - inventoryData.inventoryCost - moduleExpenses;
+
+    return {
+      metrics: {
+        inStockCost: inventoryData.inventoryCost || 0,
+        totalSales: inventoryData.salesRevenue || 0,
+        outstanding: 0,
+        received: 0,
+        netProfit: netProfit,
+        totalExpenses: moduleExpenses
+      },
+      breakdowns: {
+        expenses: []
+      }
+    };
+  }
+
   if (config.dataKey === "payable_dashboard") {
     return {
       metrics: {
@@ -659,13 +861,47 @@ export const getDashboardData = async (config: DashboardConfig): Promise<Dashboa
     };
   }
 
+  // Fallback / Generic - for in-stocks and other dashboards
+  // Try to calculate profit if it's an inventory module
+  if (config.module && ['in-stocks', 'vision-gems'].includes(config.module)) {
+    const moduleId = config.module === 'in-stocks' ? 'in-stocks' : 'vision-gems';
+    const tabsToAggregate = config.module === 'in-stocks' ? ['All Stones'] : ['Spinel', 'TSV'];
+    
+    try {
+      const inventoryData = await calculateProfitFromInventory(moduleId, tabsToAggregate);
+      const moduleExpenses = loadModuleExpenses(moduleId);
+      const netProfit = inventoryData.salesRevenue - inventoryData.inventoryCost - moduleExpenses;
+
+      return {
+        metrics: {
+          inStockCost: inventoryData.inventoryCost || 1500000,
+          totalSales: inventoryData.salesRevenue || 2200000,
+          outstanding: 500000,
+          received: 1700000,
+          netProfit: netProfit,
+          totalExpenses: moduleExpenses
+        },
+        breakdowns: {
+          expenses: [
+            { category: "Operations", value: 150000 },
+            { category: "Travel", value: 75000 }
+          ]
+        }
+      };
+    } catch (e) {
+      console.error('Error calculating profit for fallback:', e);
+    }
+  }
+
   // Fallback / Generic
   return {
     metrics: {
       inStockCost: 1500000,
       totalSales: 2200000,
       outstanding: 500000,
-      received: 1700000
+      received: 1700000,
+      netProfit: 0,
+      totalExpenses: 0
     },
     breakdowns: {
       expenses: [

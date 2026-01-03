@@ -106,7 +106,7 @@ const SpecificServiceDetailPanel: React.FC<{
             <select 
               value={value === undefined || value === null ? '' : value.toString()} 
               onChange={(e) => onInputChange(field, e.target.value)} 
-              className="w-full p-3 md:p-2 py-3 md:py-2 min-h-[44px] md:min-h-0 text-base md:text-sm bg-stone-50 border border-stone-200 rounded-lg outline-none transition-all focus:border-orange-500 focus:ring-2 focus:ring-orange-500/10 appearance-none"
+              className="w-full p-3 md:p-2 py-3 md:py-2 min-h-[44px] md:min-h-0 text-base md:text-sm bg-stone-50 border border-stone-200 rounded-lg outline-none transition-all focus:border-purple-500 focus:ring-2 focus:ring-purple-500/10 appearance-none"
             >
               {options.length > 0 ? (
                 options.map(opt => <option key={opt} value={opt}>{opt}</option>)
@@ -124,11 +124,11 @@ const SpecificServiceDetailPanel: React.FC<{
                   e.target.select();
                 }
               }}
-              className="w-full p-2 bg-stone-50 border border-stone-200 rounded-lg text-sm outline-none transition-all focus:border-orange-500 focus:ring-2 focus:ring-orange-500/10" 
+              className="w-full p-2 bg-stone-50 border border-stone-200 rounded-lg text-sm outline-none transition-all focus:border-purple-500 focus:ring-2 focus:ring-purple-500/10" 
             />
           )
         ) : (
-          <span className={`text-sm ${highlight ? 'font-bold text-orange-700' : 'font-medium text-stone-700'} ${isCurrency ? 'font-mono' : ''}`}>
+          <span className={`text-sm ${highlight ? 'font-bold text-purple-700' : 'font-medium text-stone-700'} ${isCurrency ? 'font-mono' : ''}`}>
             {value === undefined || value === null || value === '' ? '-' : (typeof value === 'number' ? value.toLocaleString() : value)}
           </span>
         )}
@@ -143,7 +143,7 @@ const SpecificServiceDetailPanel: React.FC<{
         
         <div className="px-4 py-4 md:px-6 md:py-5 bg-white border-b border-stone-100 flex justify-between items-start z-10">
           <div className="flex gap-3 md:gap-4 items-center min-w-0">
-            <div className="w-12 h-12 md:w-16 md:h-16 rounded-2xl bg-orange-50 border border-orange-100 flex items-center justify-center text-orange-600 shrink-0">
+              <div className="w-12 h-12 md:w-16 md:h-16 rounded-2xl bg-purple-50 border border-purple-100 flex items-center justify-center text-purple-600 shrink-0">
               <Briefcase size={24} />
             </div>
             <div className="min-w-0">
@@ -158,7 +158,7 @@ const SpecificServiceDetailPanel: React.FC<{
                   type="text" 
                   value={formData.serviceName} 
                   onChange={(e) => handleInputChange('serviceName', e.target.value)} 
-                  className="text-lg md:text-xl font-bold text-stone-900 border-b-2 border-orange-200 focus:border-orange-500 outline-none w-full" 
+                  className="text-lg md:text-xl font-bold text-stone-900 border-b-2 border-purple-200 focus:border-purple-500 outline-none w-full" 
                   placeholder="Service Name" 
                   autoFocus 
                 />
@@ -177,7 +177,7 @@ const SpecificServiceDetailPanel: React.FC<{
         <div className="flex-1 overflow-y-auto p-4 md:p-6 custom-scrollbar bg-stone-50/20">
           <div className="space-y-4 md:space-y-6 animate-in fade-in zoom-in-95 duration-200">
             <div className="bg-white p-4 md:p-5 rounded-3xl border border-stone-200 shadow-sm">
-              <h3 className="text-[10px] font-bold text-stone-400 uppercase tracking-widest mb-4 flex items-center gap-2"><Briefcase size={14} className="text-orange-500" /> Service Details</h3>
+                  <h3 className="text-[10px] font-bold text-stone-400 uppercase tracking-widest mb-4 flex items-center gap-2"><Briefcase size={14} className="text-purple-500" /> Service Details</h3>
               <div className="grid grid-cols-2 gap-x-4 md:gap-x-6">
                 <Field label="Date" value={formData.date} field="date" isEditing={isEditing} onInputChange={handleInputChange} type="date" />
                 <Field label="Code" value={formData.code} field="code" isEditing={isEditing} onInputChange={handleInputChange} highlight />
@@ -206,7 +206,7 @@ const SpecificServiceDetailPanel: React.FC<{
           {isEditing ? (
             <>
               <button onClick={() => setIsEditing(false)} className="px-4 py-2 bg-stone-50 text-stone-600 rounded-xl text-sm font-bold hover:bg-stone-100">Cancel</button>
-              <button onClick={handleSave} className="flex items-center gap-2 px-6 py-2 bg-orange-600 text-white rounded-xl text-sm font-bold shadow-lg hover:bg-orange-700 transition-all">
+              <button onClick={handleSave} className="flex items-center gap-2 px-6 py-2 bg-purple-600 text-white rounded-xl text-sm font-bold shadow-lg hover:bg-purple-700 transition-all">
                 <Save size={16} /> Save
               </button>
             </>
@@ -220,7 +220,7 @@ const SpecificServiceDetailPanel: React.FC<{
                   <button onClick={handleDelete} className="p-2.5 bg-red-50 text-red-600 rounded-xl hover:bg-red-100">
                     <Trash2 size={18} />
                   </button>
-                  <button onClick={() => setIsEditing(true)} className="flex-1 md:flex-none flex items-center justify-center gap-2 px-8 py-2.5 bg-orange-600 text-white rounded-xl text-sm font-bold shadow-lg hover:bg-orange-700 transition-all">
+                  <button onClick={() => setIsEditing(true)} className="flex-1 md:flex-none flex items-center justify-center gap-2 px-8 py-2.5 bg-purple-600 text-white rounded-xl text-sm font-bold shadow-lg hover:bg-purple-700 transition-all">
                     <Edit size={16} /> Edit Record
                   </button>
                 </>
@@ -490,7 +490,7 @@ export const SpecificServicesTemplate: React.FC<Props> = ({ moduleId, tabId, isR
       {/* Header Section */}
       <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6 mb-8">
         <div className="w-full lg:w-auto">
-           <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] mb-1.5 text-orange-600">
+           <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] mb-1.5 text-purple-600">
              {moduleId.replace('-', ' ')} <span className="text-stone-300">/</span> {tabId}
            </div>
            <h2 className="text-2xl md:text-3xl font-black text-stone-900 tracking-tighter uppercase">{tabId}</h2>
@@ -503,7 +503,7 @@ export const SpecificServicesTemplate: React.FC<Props> = ({ moduleId, tabId, isR
            {!isReadOnly && (
              <button 
                onClick={() => { setEditingItem(null); setIsFormOpen(true); }}
-               className="flex-1 lg:flex-none flex items-center justify-center gap-2 px-6 py-3 bg-orange-600 text-white rounded-xl text-xs font-bold shadow-lg shadow-orange-900/20 hover:bg-orange-700 active:scale-95 whitespace-nowrap"
+               className="flex-1 lg:flex-none flex items-center justify-center gap-2 px-6 py-3 bg-purple-600 text-white rounded-xl text-xs font-bold shadow-lg shadow-purple-900/20 hover:bg-purple-700 active:scale-95 whitespace-nowrap"
              >
                <Plus size={18} /> Add Service
              </button>
@@ -515,7 +515,7 @@ export const SpecificServicesTemplate: React.FC<Props> = ({ moduleId, tabId, isR
       <div className="lg:hidden grid grid-cols-2 gap-3 mb-6">
         <div className="bg-white p-3 rounded-2xl border border-stone-200 shadow-sm">
            <div className="flex items-center gap-2 mb-2">
-              <div className="w-8 h-8 rounded-xl bg-orange-50 flex items-center justify-center text-orange-600 border border-orange-100 shrink-0">
+              <div className="w-8 h-8 rounded-xl bg-purple-50 flex items-center justify-center text-purple-600 border border-purple-100 shrink-0">
                  <DollarSign size={16} />
               </div>
               <div className="text-[9px] font-black text-stone-400 uppercase tracking-wider truncate">Total Amount</div>
@@ -560,7 +560,7 @@ export const SpecificServicesTemplate: React.FC<Props> = ({ moduleId, tabId, isR
               <div className="text-[10px] font-black text-stone-400 uppercase tracking-[0.15em] mb-1">Total Amount</div>
               <div className="text-2xl font-black text-stone-900">LKR {stats.totalAmount.toLocaleString()}</div>
            </div>
-           <div className="w-14 h-14 rounded-2xl bg-orange-50 flex items-center justify-center text-orange-600 border border-orange-100">
+           <div className="w-14 h-14 rounded-2xl bg-purple-50 flex items-center justify-center text-purple-600 border border-purple-100">
               <DollarSign size={28} />
            </div>
         </div>
@@ -605,7 +605,7 @@ export const SpecificServicesTemplate: React.FC<Props> = ({ moduleId, tabId, isR
                   placeholder="Search by service, description, code, vendor, company..." 
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-11 pr-4 py-3 bg-stone-50/50 border border-stone-100 rounded-[20px] text-sm focus:ring-4 focus:ring-orange-500/5 focus:border-orange-300 outline-none transition-all placeholder-stone-300 text-stone-700" 
+                  className="w-full pl-11 pr-4 py-3 bg-stone-50/50 border border-stone-100 rounded-[20px] text-sm focus:ring-4 focus:ring-purple-500/5 focus:border-purple-300 outline-none transition-all placeholder-stone-300 text-stone-700" 
                />
             </div>
             <div className="flex gap-2 overflow-x-auto hide-scrollbar pb-1 xl:pb-0">
@@ -649,11 +649,11 @@ export const SpecificServicesTemplate: React.FC<Props> = ({ moduleId, tabId, isR
                      <tr 
                         key={item.id} 
                         onClick={() => setSelectedItem(item)}
-                        className="hover:bg-orange-50/5 transition-colors cursor-pointer group"
+                        className="hover:bg-purple-50/5 transition-colors cursor-pointer group"
                      >
                         <td className="p-6 pl-10 font-mono text-stone-500 text-xs whitespace-nowrap">{item.date}</td>
                         <td className="p-6">
-                           <span className="font-mono text-xs font-black text-orange-600 bg-orange-50 px-2.5 py-1 rounded-xl border border-orange-100">
+                           <span className="font-mono text-xs font-black text-purple-600 bg-purple-50 px-2.5 py-1 rounded-xl border border-purple-100">
                               {item.code}
                            </span>
                         </td>
@@ -693,7 +693,7 @@ export const SpecificServicesTemplate: React.FC<Props> = ({ moduleId, tabId, isR
                onClick={() => setSelectedItem(item)}
                className="bg-white p-5 rounded-3xl border border-stone-200 shadow-sm active:scale-[0.98] transition-transform relative overflow-hidden group"
             >
-               <div className="absolute top-0 right-0 w-32 h-32 bg-orange-50 rounded-bl-[60px] -mr-16 -mt-16 opacity-30 pointer-events-none"></div>
+               <div className="absolute top-0 right-0 w-32 h-32 bg-purple-50 rounded-bl-[60px] -mr-16 -mt-16 opacity-30 pointer-events-none"></div>
                
                <div className="flex justify-between items-start mb-4 relative z-10">
                   <div className="flex flex-col">
@@ -702,7 +702,7 @@ export const SpecificServicesTemplate: React.FC<Props> = ({ moduleId, tabId, isR
                      </span>
                      <h3 className="font-black text-stone-900 text-lg">{item.serviceName}</h3>
                   </div>
-                  <span className="font-mono text-xs font-black text-orange-600 bg-orange-50 px-2.5 py-1 rounded-xl border border-orange-100">
+                  <span className="font-mono text-xs font-black text-purple-600 bg-purple-50 px-2.5 py-1 rounded-xl border border-purple-100">
                      {item.code}
                   </span>
                </div>
@@ -729,7 +729,7 @@ export const SpecificServicesTemplate: React.FC<Props> = ({ moduleId, tabId, isR
                <div className="pt-4 border-t border-stone-100 flex justify-between items-center relative z-10">
                   <div>
                      <div className="text-xs text-stone-400 font-medium mb-1">Amount</div>
-                     <div className="text-xl font-black text-orange-700">
+                     <div className="text-xl font-black text-purple-700">
                         {formatCurrency(item.amount, item.currency)}
                      </div>
                   </div>
@@ -850,7 +850,7 @@ const SpecificServiceForm: React.FC<{
                       type="date" 
                       value={formData.date} 
                       onChange={e => setFormData({...formData, date: e.target.value})}
-                      className="w-full p-2.5 bg-stone-50 border border-stone-200 rounded-xl text-sm focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 outline-none" 
+                      className="w-full p-2.5 bg-stone-50 border border-stone-200 rounded-xl text-sm focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-none" 
                    />
                 </div>
                 <div>
@@ -881,7 +881,7 @@ const SpecificServiceForm: React.FC<{
                 <select 
                    value={formData.category || ''} 
                    onChange={e => setFormData({...formData, category: e.target.value})}
-                   className="w-full p-3 md:p-2.5 py-3 md:py-2.5 min-h-[44px] md:min-h-0 text-base md:text-sm bg-stone-50 border border-stone-200 rounded-xl outline-none transition-all focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 appearance-none"
+                   className="w-full p-3 md:p-2.5 py-3 md:py-2.5 min-h-[44px] md:min-h-0 text-base md:text-sm bg-stone-50 border border-stone-200 rounded-xl outline-none transition-all focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 appearance-none"
                 >
                    <option value="">Select category</option>
                    <option value="Gem License">Gem License</option>
@@ -919,7 +919,7 @@ const SpecificServiceForm: React.FC<{
                       type="text" 
                       value={formData.company || ''} 
                       onChange={e => setFormData({...formData, company: e.target.value})}
-                      className="w-full p-2.5 bg-stone-50 border border-stone-200 rounded-xl text-sm focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 outline-none" 
+                      className="w-full p-2.5 bg-stone-50 border border-stone-200 rounded-xl text-sm focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-none" 
                       placeholder="Company name"
                    />
                 </div>
@@ -931,7 +931,7 @@ const SpecificServiceForm: React.FC<{
                    <select 
                       value={formData.currency} 
                       onChange={e => setFormData({...formData, currency: e.target.value})}
-                      className="w-full p-3 md:p-2.5 py-3 md:py-2.5 min-h-[44px] md:min-h-0 text-base md:text-sm bg-stone-50 border border-stone-200 rounded-xl outline-none transition-all focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 appearance-none"
+                      className="w-full p-3 md:p-2.5 py-3 md:py-2.5 min-h-[44px] md:min-h-0 text-base md:text-sm bg-stone-50 border border-stone-200 rounded-xl outline-none transition-all focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 appearance-none"
                    >
                       {currencies.map(curr => (
                          <option key={curr} value={curr}>{curr}</option>
@@ -956,8 +956,8 @@ const SpecificServiceForm: React.FC<{
              </div>
 
              {formData.currency !== 'LKR' && formData.convertedAmount && (
-                <div className="p-4 bg-orange-50 rounded-xl border border-orange-100">
-                   <div className="text-xs font-bold text-orange-600 uppercase mb-2">Currency Conversion</div>
+                <div className="p-4 bg-purple-50 rounded-xl border border-purple-100">
+                   <div className="text-xs font-bold text-purple-600 uppercase mb-2">Currency Conversion</div>
                    <div className="grid grid-cols-2 gap-4">
                       <div>
                          <label className="block text-xs text-stone-500 mb-1">Exchange Rate</label>
@@ -1001,7 +1001,7 @@ const SpecificServiceForm: React.FC<{
 
           <div className="flex justify-end gap-3 mt-8">
              <button onClick={onCancel} className="px-6 py-3 text-stone-600 font-bold hover:bg-stone-100 rounded-xl transition-colors">Cancel</button>
-             <button onClick={handleSubmit} className="px-8 py-3 bg-orange-600 text-white font-bold rounded-xl shadow-lg hover:bg-orange-700 transition-all flex items-center gap-2">
+             <button onClick={handleSubmit} className="px-8 py-3 bg-purple-600 text-white font-bold rounded-xl shadow-lg hover:bg-purple-700 transition-all flex items-center gap-2">
                 <Save size={18} /> Save Service
              </button>
           </div>

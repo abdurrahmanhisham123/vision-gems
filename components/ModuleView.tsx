@@ -317,7 +317,19 @@ export const ModuleView: React.FC = () => {
       }
       if (isOutstanding && !isSLGroupExpanded && slStartIndex !== -1 && althafIdx !== -1 && index >= slStartIndex && index <= althafIdx) return;
       const isActive = tabId === tab;
-      items.push(<button key={tab} onClick={() => navigate(`/module/${module.id}/${tab}`)} className={`relative px-5 py-4 text-sm font-medium whitespace-nowrap transition-all duration-300 flex-shrink-0 ${isActive ? 'text-gem-purple font-bold' : 'text-stone-500 hover:text-stone-800 hover:bg-stone-50 rounded-t-lg'}`}>{tab}{isActive && (<span className="absolute bottom-0 left-0 w-full h-0.5 bg-gem-gold shadow-[0_-2px_6px_rgba(217,119,6,0.4)]"></span>)}{isActive && (<span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-0 h-0 border-l-[6px] border-l-transparent border-r-[6px] border-r-transparent border-b-[6px] border-b-gem-gold"></span>)}</button>);
+      items.push(
+        <button 
+          key={tab} 
+          onClick={() => navigate(`/module/${module.id}/${tab}`)} 
+          className={`px-4 py-2 mx-1 text-sm font-medium whitespace-nowrap transition-all duration-200 flex-shrink-0 rounded-full ${
+            isActive 
+              ? 'bg-purple-100 text-purple-700 border border-purple-200 shadow-sm scale-105 font-semibold' 
+              : 'bg-stone-100 text-stone-600 hover:bg-stone-200 hover:text-stone-900'
+          }`}
+        >
+          {tab}
+        </button>
+      );
       if (isOutstanding && index === althafIdx && isSLGroupExpanded) items.push(<div key="group-end-divider" className="flex items-center self-center shrink-0 px-2"><div className="w-px h-6 bg-stone-200"></div></div>);
     });
     return items;
@@ -326,8 +338,8 @@ export const ModuleView: React.FC = () => {
   return (
     <div className="flex flex-col h-full relative">
       <div className="bg-white border-b border-stone-200 sticky top-0 z-20 shadow-[0_1px_2px_rgba(0,0,0,0.02)] flex items-center">
-        <div className="flex-1 overflow-x-auto hide-scrollbar px-4 pt-1 flex">{renderTabItems()}</div>
-        <div className="flex items-center h-full border-l border-stone-100 bg-white shadow-[-4px_0_12px_rgba(0,0,0,0.02)] z-10"><button onClick={() => { setAddTabStep(1); setIsAddTabOpen(true); }} className="p-3 text-stone-400 hover:text-gem-purple hover:bg-stone-50 transition-colors" title="Add New Tab"><Plus size={18} /></button><div className="w-px h-6 bg-stone-200 mx-1"></div><button onClick={() => setIsReorderOpen(true)} className="p-3 text-stone-400 hover:text-gem-purple hover:bg-stone-50 transition-colors" title="Organize Tabs"><Settings2 size={18} /></button></div>
+        <div className="flex-1 overflow-x-auto hide-scrollbar px-4 py-3 flex items-center gap-2">{renderTabItems()}</div>
+        <div className="flex items-center h-full border-l border-stone-100 bg-white shadow-[-4px_0_12px_rgba(0,0,0,0.02)] z-10"><button onClick={() => { setAddTabStep(1); setIsAddTabOpen(true); }} className="p-3 text-stone-400 hover:text-purple-600 hover:bg-purple-50 transition-colors" title="Add New Tab"><Plus size={18} /></button><div className="w-px h-6 bg-stone-200 mx-1"></div><button onClick={() => setIsReorderOpen(true)} className="p-3 text-stone-400 hover:text-purple-600 hover:bg-purple-50 transition-colors" title="Organize Tabs"><Settings2 size={18} /></button></div>
       </div>
 
       <div ref={contentRef} className="flex-1 bg-stone-50 min-h-0 overflow-y-auto custom-scrollbar">{isReadOnly && (<div className="mx-6 mt-6 mb-2 bg-stone-100 text-stone-500 border border-stone-200 px-4 py-2 rounded-lg text-xs font-bold inline-flex items-center gap-2 tracking-wide uppercase"><Eye size={14} /> View Only Access</div>)}{renderTemplate()}</div>
@@ -350,7 +362,7 @@ export const ModuleView: React.FC = () => {
                       { id: 'VisionGemsSpinel', name: 'Rich Inventory (Template 1)', desc: 'Full 41-column master inventory with multi-currency & rich details.', icon: <Gem className="text-purple-600"/> },
                       { id: 'CutPolishExpenses', name: 'Cut & Polish Expenses', desc: 'Track cutting and polishing jobs with weight-based calculations and per-carat costs.', icon: <Scissors className="text-emerald-600"/> },
                       { id: 'TicketsVisa', name: 'Tickets & Visa', desc: 'Track flight tickets and visa expenses with route, airline, and visa type tracking.', icon: <Ticket className="text-cyan-600"/> },
-                      { id: 'SpecificServices', name: 'Specific Services', desc: 'Track service expenses like travel, office rent, licenses, and accounting with vendor tracking.', icon: <Briefcase className="text-orange-600"/> },
+                      { id: 'SpecificServices', name: 'Specific Services', desc: 'Track service expenses like travel, office rent, licenses, and accounting with vendor tracking.', icon: <Briefcase className="text-purple-600"/> },
                       { id: 'HotelAccommodation', name: 'Hotel & Accommodation', desc: 'Track hotel stays and accommodations with check-in/out dates, nights calculation, and cost per night.', icon: <Hotel className="text-pink-600"/> },
                       { id: 'UnifiedCapitalManagement', name: 'Unified Capital Management', desc: 'Track capital injections and investments with multi-currency support and exchange rate tracking.', icon: <TrendingUp className="text-indigo-600"/> },
                       { id: 'UnifiedPaymentLedger', name: 'Unified Payment Ledger', desc: 'Track payments received with invoice amounts, outstanding balances, and payment status tracking.', icon: <CreditCard className="text-violet-600"/> },

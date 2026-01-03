@@ -24,8 +24,7 @@ export const APP_MODULES: ModuleConfig[] = [
     description: 'Export management & invoices',
     icon: 'Package',
     tabs: [
-      'Export', 'Export -invoice', 'Spinel bkk', 'Tsv bkk', 'Tsv sold', 'Mix semi bkk', 
-      'Sapphire bkk', 'Ru- bkk 1', 'Ru-bkk2', 'Ru-bkk-16042025'
+      'Export', 'Export -invoice'
     ]
   },
   // 2. Vision Gems (Main)
@@ -92,8 +91,7 @@ export const APP_MODULES: ModuleConfig[] = [
       'SajithOnline', 'Ziyam', 'InfazHaji', 'NusrathAli', 'Binara', 'MikdarHaji', 
       'RameesNana', 'Shimar', 'Ruqshan', 'FaizeenHaj', 'SharikHaj', 'Fazeel', 
       'AzeemColo', 'Kadarhaj.colo', 'AlthafHaj', 'BangkokSales', 'Sadam bkk', 
-      'ChinaSales', 'Eleven', 'AndyBuyer', 'FlightBuyer', 'Name', 'Name1', 
-      'Bangkok', 'Payment.received'
+      'ChinaSales', 'Eleven', 'AndyBuyer', 'FlightBuyer'
     ]
   },
   // 7. Payable
@@ -104,7 +102,7 @@ export const APP_MODULES: ModuleConfig[] = [
     description: 'Accounts payable',
     icon: 'TrendingDown',
     tabs: [
-      'Dashboard', 'Buying.Payments.Paid', 'Tanzania.Capital', 'BKK.Capital', 
+      'Dashboard', 'Buying.Payments.Paid', 'Capital', 'BKK.Capital', 
       'Beruwala', 'Colombo', 'Galle', 'Kisu', 'Bangkok'
     ]
   },
@@ -216,4 +214,9 @@ export const getIcon = (name: string) => {
     Layers: <Layers size={24} />
   };
   return icons[name] || <Diamond size={24} />;
+};
+
+export const getModuleName = (moduleId: string): string => {
+  const module = APP_MODULES.find(m => m.id === moduleId);
+  return module?.name || moduleId;
 };

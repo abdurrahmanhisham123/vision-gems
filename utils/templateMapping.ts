@@ -290,7 +290,7 @@ export const getTemplateForTab = (moduleId: string, tabId: string): TemplateType
     return 'UnifiedCapitalManagement';
   }
   if (moduleId === 'payable') {
-    if (tabNormal === 'tanzania.capital' || tabNormal === 'bkk.capital') {
+    if (tabNormal === 'capital' || tabNormal === 'bkk.capital') {
       return 'UnifiedCapitalManagement';
     }
   }

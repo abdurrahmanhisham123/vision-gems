@@ -9,6 +9,103 @@ import { getVisionGemsSpinelData } from '../../services/dataService';
 import { ExtendedSpinelStone } from '../../types';
 import { APP_MODULES } from '../../constants';
 
+// Helper function to load module expenses
+const loadModuleExpenses = (moduleId: string): number => {
+  let totalExpenses = 0;
+  const module = APP_MODULES.find(m => m.id === moduleId);
+  if (!module) return 0;
+
+  module.tabs.forEach(tabId => {
+    if (tabId.toLowerCase().includes('dashboard')) return;
+
+    // UnifiedExpense
+    const expenseKeys = [
+      `unified_expense_${moduleId}_${tabId}`,
+      `expense_${moduleId}_${tabId}`,
+      `unified_expenses_${moduleId}_${tabId}`
+    ];
+    for (const expenseKey of expenseKeys) {
+      const expenseData = localStorage.getItem(expenseKey);
+      if (expenseData) {
+        try {
+          const items: any[] = JSON.parse(expenseData);
+          items.forEach(item => {
+            totalExpenses += item.convertedAmount || item.amount || 0;
+          });
+          break;
+        } catch (e) {
+          console.error(`Failed to parse unified_expense for ${moduleId}/${tabId}:`, e);
+        }
+      }
+    }
+
+    // CutPolishExpenses
+    const cutPolishKey = `cut_polish_expenses_${moduleId}_${tabId}`;
+    const cutPolishData = localStorage.getItem(cutPolishKey);
+    if (cutPolishData) {
+      try {
+        const items: any[] = JSON.parse(cutPolishData);
+        items.forEach(item => {
+          totalExpenses += item.convertedAmount || item.amount || 0;
+        });
+      } catch (e) {
+        console.error(`Failed to parse cut_polish_expenses for ${moduleId}/${tabId}:`, e);
+      }
+    }
+
+    // TicketsVisa
+    const ticketsKeys = [
+      `tickets_visa_${moduleId}_${tabId}`,
+      `ticket_visa_${moduleId}_${tabId}`,
+      `tickets_${moduleId}_${tabId}`
+    ];
+    for (const ticketsKey of ticketsKeys) {
+      const ticketsData = localStorage.getItem(ticketsKey);
+      if (ticketsData) {
+        try {
+          const items: any[] = JSON.parse(ticketsData);
+          items.forEach(item => {
+            totalExpenses += item.convertedAmount || item.amount || 0;
+          });
+          break;
+        } catch (e) {
+          console.error(`Failed to parse tickets_visa for ${moduleId}/${tabId}:`, e);
+        }
+      }
+    }
+
+    // HotelAccommodation
+    const hotelKey = `hotel_accommodation_${moduleId}_${tabId}`;
+    const hotelData = localStorage.getItem(hotelKey);
+    if (hotelData) {
+      try {
+        const items: any[] = JSON.parse(hotelData);
+        items.forEach(item => {
+          totalExpenses += item.convertedAmount || item.amount || 0;
+        });
+      } catch (e) {
+        console.error(`Failed to parse hotel_accommodation for ${moduleId}/${tabId}:`, e);
+      }
+    }
+
+    // UnifiedExport
+    const exportKey = `unified_export_${moduleId}_${tabId}`;
+    const exportData = localStorage.getItem(exportKey);
+    if (exportData) {
+      try {
+        const items: any[] = JSON.parse(exportData);
+        items.forEach(item => {
+          totalExpenses += item.convertedAmount || item.amount || 0;
+        });
+      } catch (e) {
+        console.error(`Failed to parse unified_export for ${moduleId}/${tabId}:`, e);
+      }
+    }
+  });
+
+  return totalExpenses;
+};
+
 interface Props {
   moduleId: string;
   tabId: string;
@@ -94,6 +191,17 @@ export const UnifiedDashboardTemplate: React.FC<Props> = ({ moduleId, tabId, isR
     const totalCost = stones.reduce((sum, s) => sum + (s.slCost || 0), 0);
     const totalValue = stones.reduce((sum, s) => sum + (s.amountLKR || s.finalPrice || 0), 0);
     
+    // Calculate sales revenue (only from sold stones)
+    const salesRevenue = stones
+      .filter(s => s.status && s.status.toLowerCase().includes('sold'))
+      .reduce((sum, s) => sum + (s.finalPrice || s.amountLKR || 0), 0);
+
+    // Calculate expenses from module
+    const moduleExpenses = loadModuleExpenses(moduleId);
+    
+    // Calculate net profit: Sales Revenue - Inventory Cost - Expenses
+    const netProfit = salesRevenue - totalCost - moduleExpenses;
+    
     // Status breakdown
     const statusCounts: Record<string, number> = {};
     stones.forEach(s => {
@@ -150,6 +258,9 @@ export const UnifiedDashboardTemplate: React.FC<Props> = ({ moduleId, tabId, isR
       totalWeight,
       totalCost,
       totalValue,
+      salesRevenue,
+      moduleExpenses,
+      netProfit,
       statusCounts,
       varietyCounts,
       companyCounts,
@@ -161,7 +272,7 @@ export const UnifiedDashboardTemplate: React.FC<Props> = ({ moduleId, tabId, isR
       valueByStatus,
       recentStones
     };
-  }, [stones]);
+  }, [stones, moduleId]);
 
   if (loading) {
     return (
@@ -207,8 +318,8 @@ export const UnifiedDashboardTemplate: React.FC<Props> = ({ moduleId, tabId, isR
         </div>
       </div>
 
-      {/* Main KPI Cards - Mobile: Compact 2x2, Desktop: 4 columns */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 lg:gap-6 mb-6 md:mb-8">
+      {/* Main KPI Cards - Mobile: Compact 2x2, Desktop: 5 columns */}
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 md:gap-4 lg:gap-6 mb-6 md:mb-8">
         <div className="bg-white p-3 md:p-4 lg:p-6 rounded-2xl md:rounded-3xl border border-stone-200 shadow-sm flex flex-col md:flex-row md:items-center md:justify-between">
            <div className="flex-1">
               <div className="text-[9px] md:text-[10px] font-black text-stone-400 uppercase tracking-[0.15em] mb-1">Total Stones</div>
@@ -247,6 +358,20 @@ export const UnifiedDashboardTemplate: React.FC<Props> = ({ moduleId, tabId, isR
            </div>
            <div className="w-10 h-10 md:w-12 md:h-14 rounded-xl md:rounded-2xl bg-amber-50 flex items-center justify-center text-amber-600 border border-amber-100 shrink-0 mt-2 md:mt-0">
               <TrendingUp size={20} className="md:w-7 md:h-7" />
+           </div>
+        </div>
+        <div className={`bg-white p-3 md:p-4 lg:p-6 rounded-2xl md:rounded-3xl border border-stone-200 shadow-sm flex flex-col md:flex-row md:items-center md:justify-between ${stats.netProfit >= 0 ? 'border-emerald-200' : 'border-red-200'}`}>
+           <div className="flex-1 min-w-0">
+              <div className="text-[9px] md:text-[10px] font-black text-stone-400 uppercase tracking-[0.15em] mb-1">Net Profit</div>
+              <div className={`text-lg md:text-2xl lg:text-3xl font-black leading-tight truncate ${stats.netProfit >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
+                {formatCurrency(stats.netProfit)}
+              </div>
+              <div className="text-[10px] md:text-xs text-stone-500 mt-0.5 md:mt-1 hidden md:block">
+                {stats.netProfit >= 0 ? 'Profit' : 'Loss'}
+              </div>
+           </div>
+           <div className={`w-10 h-10 md:w-12 md:h-14 rounded-xl md:rounded-2xl flex items-center justify-center border shrink-0 mt-2 md:mt-0 ${stats.netProfit >= 0 ? 'bg-emerald-50 border-emerald-100 text-emerald-600' : 'bg-red-50 border-red-100 text-red-600'}`}>
+              {stats.netProfit >= 0 ? <TrendingUp size={20} className="md:w-7 md:h-7" /> : <TrendingDown size={20} className="md:w-7 md:h-7" />}
            </div>
         </div>
       </div>

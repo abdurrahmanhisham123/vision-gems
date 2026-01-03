@@ -56,7 +56,16 @@ export const KPIDashboardTemplate: React.FC<Props> = ({ config, moduleId, tabId 
     return `${currency} ${num.toLocaleString(undefined, { maximumFractionDigits: 0 })}`;
   };
 
-  const getTrendIcon = (trend?: string) => {
+  const getTrendIcon = (trend?: string, value?: number | string) => {
+    // Auto trend: determine based on value (positive = up, negative = down)
+    if (trend === 'auto' && value !== undefined) {
+      const numValue = typeof value === 'string' ? parseFloat(value) : value;
+      if (!isNaN(numValue)) {
+        return numValue >= 0 
+          ? <TrendingUp size={16} className="text-emerald-500" />
+          : <TrendingDown size={16} className="text-red-500" />;
+      }
+    }
     if (trend === 'up') return <TrendingUp size={16} className="text-emerald-500" />;
     if (trend === 'down') return <TrendingDown size={16} className="text-red-500" />;
     return <Minus size={16} className="text-stone-400" />;
@@ -103,24 +112,62 @@ export const KPIDashboardTemplate: React.FC<Props> = ({ config, moduleId, tabId 
         </div>
 
         {/* Main KPI Cards */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 lg:gap-6 mb-6 md:mb-8">
+        <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 md:gap-4 lg:gap-6 mb-6 md:mb-8">
           {config.kpiCards.map((card, idx) => {
             const value = data?.metrics?.[card.key] || 0;
-            const currency = card.title.includes('USD') ? '$' : 'LKR';
-            const iconColors = ['#6366F1', '#10B981', '#F59E0B', '#3B82F6'];
-            const icons = [DollarSign, Users, TrendingUp, Wallet];
+            const currency = card.currency || (card.title.includes('USD') ? '$' : 'LKR');
+            const iconColors = ['#6366F1', '#10B981', '#F59E0B', '#3B82F6', '#EC4899'];
+            const icons = [DollarSign, Users, TrendingUp, Wallet, TrendingUp];
             const Icon = icons[idx] || DollarSign;
             
+            // Special styling for profit cards
+            const isProfitCard = card.key === 'netProfit' || card.key === 'totalProfit' || card.title.toLowerCase().includes('profit');
+            const profitValue = typeof value === 'number' ? value : parseFloat(String(value)) || 0;
+            const isPositive = profitValue >= 0;
+            
             return (
-              <div key={idx} className="bg-white p-3 md:p-4 lg:p-6 rounded-2xl md:rounded-3xl border border-stone-200 shadow-sm flex flex-col md:flex-row md:items-center md:justify-between">
+              <div 
+                key={idx} 
+                className={`bg-white p-3 md:p-4 lg:p-6 rounded-2xl md:rounded-3xl border shadow-sm flex flex-col md:flex-row md:items-center md:justify-between ${
+                  isProfitCard 
+                    ? isPositive 
+                      ? 'border-emerald-200' 
+                      : 'border-red-200'
+                    : 'border-stone-200'
+                }`}
+              >
                 <div className="flex-1 min-w-0">
                   <div className="text-[9px] md:text-[10px] font-black text-stone-400 uppercase tracking-[0.15em] mb-1">{card.title}</div>
-                  <div className="text-lg md:text-2xl lg:text-3xl font-black text-stone-900 leading-tight truncate">{fmt(value, currency)}</div>
+                  <div className={`text-lg md:text-2xl lg:text-3xl font-black leading-tight truncate ${
+                    isProfitCard 
+                      ? isPositive 
+                        ? 'text-emerald-600' 
+                        : 'text-red-600'
+                      : 'text-stone-900'
+                  }`}>
+                    {fmt(value, currency)}
+                  </div>
                   {card.note && <div className="text-[10px] md:text-xs text-stone-500 mt-0.5 md:mt-1 hidden md:block">{card.note}</div>}
                 </div>
-                <div className={`w-10 h-10 md:w-12 md:h-14 rounded-xl md:rounded-2xl flex items-center justify-center border shrink-0 mt-2 md:mt-0`}
-                     style={{ backgroundColor: `${iconColors[idx]}15`, borderColor: `${iconColors[idx]}30`, color: iconColors[idx] }}>
-                  <Icon size={20} className="md:w-7 md:h-7" />
+                <div 
+                  className={`w-10 h-10 md:w-12 md:h-14 rounded-xl md:rounded-2xl flex items-center justify-center border shrink-0 mt-2 md:mt-0 ${
+                    isProfitCard
+                      ? isPositive
+                        ? 'bg-emerald-50 border-emerald-100 text-emerald-600'
+                        : 'bg-red-50 border-red-100 text-red-600'
+                      : ''
+                  }`}
+                  style={!isProfitCard ? { 
+                    backgroundColor: `${iconColors[idx]}15`, 
+                    borderColor: `${iconColors[idx]}30`, 
+                    color: iconColors[idx] 
+                  } : {}}
+                >
+                  {isProfitCard ? (
+                    isPositive ? <TrendingUp size={20} className="md:w-7 md:h-7" /> : <TrendingDown size={20} className="md:w-7 md:h-7" />
+                  ) : (
+                    <Icon size={20} className="md:w-7 md:h-7" />
+                  )}
                 </div>
               </div>
             );
@@ -627,18 +674,42 @@ export const KPIDashboardTemplate: React.FC<Props> = ({ config, moduleId, tabId 
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
-        {config.kpiCards.map((card, idx) => (
-          <div key={idx} className="bg-white p-6 rounded-2xl border border-stone-200 shadow-sm relative overflow-hidden group hover:shadow-md transition-all">
-             <div className="absolute top-0 left-0 w-1 h-full" style={{backgroundColor: config.themeColor, opacity: 0.7}}></div>
-             <div className="flex justify-between items-start mb-3">
-                <span className="text-[10px] font-bold text-stone-400 uppercase tracking-wider">{card.title}</span>
-                {getTrendIcon(card.trend)}
-             </div>
-             <div className="text-2xl font-bold text-stone-900 mb-1 truncate">{fmt(data.metrics[card.key], card.currency)}</div>
-             {card.note && <div className="text-[10px] text-stone-400 font-medium">{card.note}</div>}
-          </div>
-        ))}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-10">
+        {config.kpiCards.map((card, idx) => {
+          const value = data?.metrics?.[card.key] || 0;
+          const isProfitCard = card.key === 'netProfit' || card.key === 'totalProfit' || card.title.toLowerCase().includes('profit');
+          const profitValue = typeof value === 'number' ? value : parseFloat(String(value)) || 0;
+          const isPositive = profitValue >= 0;
+          
+          return (
+            <div 
+              key={idx} 
+              className={`bg-white p-6 rounded-2xl border shadow-sm relative overflow-hidden group hover:shadow-md transition-all ${
+                isProfitCard 
+                  ? isPositive 
+                    ? 'border-emerald-200' 
+                    : 'border-red-200'
+                  : 'border-stone-200'
+              }`}
+            >
+               <div className="absolute top-0 left-0 w-1 h-full" style={{backgroundColor: config.themeColor, opacity: 0.7}}></div>
+               <div className="flex justify-between items-start mb-3">
+                  <span className="text-[10px] font-bold text-stone-400 uppercase tracking-wider">{card.title}</span>
+                  {getTrendIcon(card.trend, value)}
+               </div>
+               <div className={`text-2xl font-bold mb-1 truncate ${
+                 isProfitCard 
+                   ? isPositive 
+                     ? 'text-emerald-600' 
+                     : 'text-red-600'
+                   : 'text-stone-900'
+               }`}>
+                 {fmt(value, card.currency)}
+               </div>
+               {card.note && <div className="text-[10px] text-stone-400 font-medium">{card.note}</div>}
+            </div>
+          );
+        })}
       </div>
     </div>
   );

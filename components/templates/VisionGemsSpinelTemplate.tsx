@@ -485,10 +485,13 @@ export const VisionGemsSpinelTemplate: React.FC<Props> = ({ moduleId, tabId, isR
       let matchesWeight = true;
       if (filterWeight !== 'All') {
         const w = stone.weight;
-        if (filterWeight === '0-1') matchesWeight = w < 1;
-        else if (filterWeight === '1-2') matchesWeight = w >= 1 && w < 2;
+        if (filterWeight === '0-0.5') matchesWeight = w >= 0 && w < 0.5;
+        else if (filterWeight === '0.5-1') matchesWeight = w >= 0.5 && w < 1;
+        else if (filterWeight === '1-1.5') matchesWeight = w >= 1 && w < 1.5;
+        else if (filterWeight === '1.5-2') matchesWeight = w >= 1.5 && w < 2;
         else if (filterWeight === '2-5') matchesWeight = w >= 2 && w < 5;
-        else if (filterWeight === '5+') matchesWeight = w >= 5;
+        else if (filterWeight === '5-10') matchesWeight = w >= 5 && w < 10;
+        else if (filterWeight === '10+') matchesWeight = w >= 10;
       }
       return matchesSearch && matchesColor && matchesWeight && matchesStatus && matchesCompany && matchesVariety;
     });
@@ -732,7 +735,7 @@ export const VisionGemsSpinelTemplate: React.FC<Props> = ({ moduleId, tabId, isR
                <div className="flex items-center bg-stone-50 border border-stone-100 rounded-[20px] px-3 shrink-0"><Building2 size={14} className="text-stone-300" /><select value={filterCompany} onChange={(e) => setFilterCompany(e.target.value)} className="px-2 py-2.5 bg-transparent text-xs text-stone-600 font-bold focus:outline-none min-w-[100px]"><option value="All">Company</option>{uniqueCompanies.map(c => <option key={c} value={c}>{c}</option>)}</select></div>
                <div className="flex items-center bg-stone-50 border border-stone-100 rounded-[20px] px-3 shrink-0"><Gem size={14} className="text-stone-300" /><select value={filterVariety} onChange={(e) => setFilterVariety(e.target.value)} className="px-2 py-2.5 bg-transparent text-xs text-stone-600 font-bold focus:outline-none min-w-[100px]"><option value="All">Variety</option>{uniqueVarieties.map(v => <option key={v} value={v}>{v}</option>)}</select></div>
                <div className="flex items-center bg-stone-50 border border-stone-100 rounded-[20px] px-3 shrink-0"><Palette size={14} className="text-stone-300" /><select value={filterColor} onChange={(e) => setFilterColor(e.target.value)} className="px-2 py-2.5 bg-transparent text-xs text-stone-600 font-bold focus:outline-none min-w-[100px]"><option value="All">Color</option>{uniqueColors.map(c => <option key={c} value={c}>{c}</option>)}</select></div>
-               <div className="flex items-center bg-stone-50 border border-stone-100 rounded-[20px] px-3 shrink-0"><Scale size={14} className="text-stone-300" /><select value={filterWeight} onChange={(e) => setFilterWeight(e.target.value)} className="px-2 py-2.5 bg-transparent text-xs text-stone-600 font-bold focus:outline-none min-w-[100px]"><option value="All">Weight</option><option value="0-1">0-1ct</option><option value="1-2">1-2ct</option><option value="2-5">2-5ct</option><option value="5+">5+ct</option></select></div>
+               <div className="flex items-center bg-stone-50 border border-stone-100 rounded-[20px] px-3 shrink-0"><Scale size={14} className="text-stone-300" /><select value={filterWeight} onChange={(e) => setFilterWeight(e.target.value)} className="px-2 py-2.5 bg-transparent text-xs text-stone-600 font-bold focus:outline-none min-w-[100px]"><option value="All">Weight</option><option value="0-0.5">0-0.5ct</option><option value="0.5-1">0.5-1ct</option><option value="1-1.5">1-1.5ct</option><option value="1.5-2">1.5-2ct</option><option value="2-5">2-5ct</option><option value="5-10">5-10ct</option><option value="10+">10+ct</option></select></div>
                <div className="flex items-center bg-stone-50 border border-stone-100 rounded-[20px] px-3 shrink-0"><Tag size={14} className="text-stone-300" /><select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} className="px-2 py-2.5 bg-transparent text-xs text-stone-600 font-bold focus:outline-none min-w-[100px]"><option value="All">Status</option>{uniqueStatuses.map(s => <option key={s} value={s}>{s}</option>)}</select></div>
             </div>
          </div>

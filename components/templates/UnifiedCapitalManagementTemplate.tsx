@@ -2,8 +2,9 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { 
   Search, Plus, Download, Printer, 
   Trash2, Edit, Save, X, DollarSign, 
-  FileText, Globe, Building2, TrendingUp, Wallet, Coins
+  FileText, Globe, Building2, TrendingUp, Wallet, Coins, Calendar, Filter
 } from 'lucide-react';
+import { APP_MODULES } from '../../constants';
 
 // --- Types ---
 interface CapitalItem {
@@ -21,6 +22,8 @@ interface CapitalItem {
   description?: string; // Optional description
   paymentMethod?: string; // Payment method (Cash, Card, Bank Transfer, Cheque, etc.)
   notes?: string;
+  sourceModule?: string; // For aggregated data: which module this came from
+  sourceTab?: string; // For aggregated data: which tab this came from
 }
 
 interface Props {
@@ -264,11 +267,110 @@ const CapitalDetailPanel: React.FC<{
 export const UnifiedCapitalManagementTemplate: React.FC<Props> = ({ moduleId, tabId, isReadOnly }) => {
   const [items, setItems] = useState<CapitalItem[]>(generateMockData());
   const [searchQuery, setSearchQuery] = useState('');
+  const [isDataLoaded, setIsDataLoaded] = useState(false);
+  
+  // Filter states
+  const [currencyFilter, setCurrencyFilter] = useState<string>('all');
+  const [transactionTypeFilter, setTransactionTypeFilter] = useState<string>('all');
+  const [paymentMethodFilter, setPaymentMethodFilter] = useState<string>('all');
+  const [locationFilter, setLocationFilter] = useState<string>('all');
+  const [companyFilter, setCompanyFilter] = useState<string>('all');
   
   // Panel State
   const [selectedItem, setSelectedItem] = useState<CapitalItem | null>(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<CapitalItem | null>(null);
+
+  // Check if this is the mother tab (payable / Capital)
+  const isMotherTab = moduleId === 'payable' && tabId.toLowerCase() === 'capital';
+
+  // Define all capital tabs to aggregate from (memoized to avoid dependency issues)
+  const capitalTabs = useMemo(() => [
+    { moduleId: 'payable', tabId: 'BKK.Capital' },
+    { moduleId: 'dada', tabId: 'Capital' },
+    { moduleId: 'dada', tabId: '202412Capital' },
+    { moduleId: 'kenya', tabId: 'Capital' },
+    { moduleId: 'vg-ramazan', tabId: 'T.Capital' },
+    { moduleId: 'madagascar', tabId: 'MCapital' },
+    { moduleId: 'spinel-gallery', tabId: 'Capital' },
+    { moduleId: 'vgtz', tabId: 'T.Capital' },
+    { moduleId: 'bkk', tabId: 'Bkkcapital' },
+  ], []);
+
+  // --- Filter Options ---
+  const uniqueCurrencies = useMemo(() => Array.from(new Set(items.map(i => i.currency).filter(Boolean))).sort(), [items]);
+  const uniqueTransactionTypes = useMemo(() => Array.from(new Set(items.map(i => i.transactionType).filter(Boolean))).sort(), [items]);
+  const uniquePaymentMethods = useMemo(() => Array.from(new Set(items.map(i => i.paymentMethod).filter(Boolean))).sort(), [items]);
+  const uniqueLocations = useMemo(() => Array.from(new Set(items.map(i => i.location).filter(Boolean))).sort(), [items]);
+  const uniqueCompanies = useMemo(() => Array.from(new Set(items.map(i => i.company).filter(Boolean))).sort(), [items]);
+
+  // Load data from localStorage
+  useEffect(() => {
+    if (isMotherTab) {
+      // Aggregate data from all capital tabs
+      const allItems: CapitalItem[] = [];
+      
+      capitalTabs.forEach(({ moduleId: sourceModule, tabId: sourceTab }) => {
+        const storageKey = `unified_capital_${sourceModule}_${sourceTab}`;
+        const saved = localStorage.getItem(storageKey);
+        if (saved) {
+          try {
+            const sourceItems: CapitalItem[] = JSON.parse(saved);
+            // Add source information to each item
+            const itemsWithSource = sourceItems.map(item => ({
+              ...item,
+              sourceModule,
+              sourceTab,
+            }));
+            allItems.push(...itemsWithSource);
+          } catch (e) {
+            console.error(`Failed to load capital data from ${sourceModule}/${sourceTab}:`, e);
+          }
+        }
+      });
+      
+      // Also load data from the mother tab itself
+      const motherTabKey = `unified_capital_${moduleId}_${tabId}`;
+      const motherTabSaved = localStorage.getItem(motherTabKey);
+      if (motherTabSaved) {
+        try {
+          const motherTabItems: CapitalItem[] = JSON.parse(motherTabSaved);
+          allItems.push(...motherTabItems);
+        } catch (e) {
+          console.error('Failed to load mother tab data:', e);
+        }
+      }
+      
+      setItems(allItems);
+      setIsDataLoaded(true);
+    } else {
+      // Load data for individual tabs
+      const storageKey = `unified_capital_${moduleId}_${tabId}`;
+      const saved = localStorage.getItem(storageKey);
+      if (saved) {
+        try {
+          setItems(JSON.parse(saved));
+        } catch (e) {
+          console.error('Failed to load capital data:', e);
+        }
+      }
+      // Set flag to true even if no data was found, to allow future saves
+      setIsDataLoaded(true);
+    }
+  }, [moduleId, tabId, isMotherTab, capitalTabs]);
+
+  // Save data to localStorage (only for non-mother tabs, and only after initial load)
+  useEffect(() => {
+    if (!isMotherTab && isDataLoaded) {
+      const storageKey = `unified_capital_${moduleId}_${tabId}`;
+      try {
+        localStorage.setItem(storageKey, JSON.stringify(items));
+        console.log(`Saved ${items.length} items to localStorage: ${storageKey}`);
+      } catch (e) {
+        console.error('Failed to save to localStorage:', e);
+      }
+    }
+  }, [items, moduleId, tabId, isMotherTab, isDataLoaded]);
 
   // --- Statistics ---
   const stats = useMemo(() => {
@@ -298,37 +400,206 @@ export const UnifiedCapitalManagementTemplate: React.FC<Props> = ({ moduleId, ta
         (item.company && item.company.toLowerCase().includes(searchQuery.toLowerCase())) ||
         (item.description && item.description.toLowerCase().includes(searchQuery.toLowerCase())) ||
         (item.paymentMethod && item.paymentMethod.toLowerCase().includes(searchQuery.toLowerCase()));
+      
+      const matchesCurrency = 
+        currencyFilter === 'all' || item.currency === currencyFilter;
+      
+      const matchesTransactionType = 
+        transactionTypeFilter === 'all' || item.transactionType === transactionTypeFilter;
+      
+      const matchesPaymentMethod = 
+        paymentMethodFilter === 'all' || item.paymentMethod === paymentMethodFilter;
+      
+      const matchesLocation = 
+        locationFilter === 'all' || item.location === locationFilter;
+      
+      const matchesCompany = 
+        companyFilter === 'all' || item.company === companyFilter;
         
-      return matchesSearch;
+      return matchesSearch && matchesCurrency && matchesTransactionType && matchesPaymentMethod && matchesLocation && matchesCompany;
     }).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-  }, [items, searchQuery]);
+  }, [items, searchQuery, currencyFilter, transactionTypeFilter, paymentMethodFilter, locationFilter, companyFilter]);
+
+  // Helper function to save item to the correct localStorage location
+  const saveItemToStorage = (item: CapitalItem, isNew: boolean = false) => {
+    const targetModule = item.sourceModule || moduleId;
+    const targetTab = item.sourceTab || tabId;
+    const storageKey = `unified_capital_${targetModule}_${targetTab}`;
+    
+    // Load existing items from that location
+    const saved = localStorage.getItem(storageKey);
+    let existingItems: CapitalItem[] = [];
+    if (saved) {
+      try {
+        existingItems = JSON.parse(saved);
+      } catch (e) {
+        console.error('Failed to load existing items:', e);
+      }
+    }
+    
+    if (isNew) {
+      existingItems.push(item);
+      console.log(`Adding new item to localStorage: ${storageKey}`, item);
+    } else {
+      existingItems = existingItems.map(i => i.id === item.id ? item : i);
+      console.log(`Updating item in localStorage: ${storageKey}`, item);
+    }
+    
+    try {
+      localStorage.setItem(storageKey, JSON.stringify(existingItems));
+      console.log(`Successfully saved ${existingItems.length} items to localStorage: ${storageKey}`);
+    } catch (e) {
+      console.error('Failed to save to localStorage:', e);
+    }
+    
+    // If we're in the mother tab, reload all aggregated data
+    if (isMotherTab) {
+      const allItems: CapitalItem[] = [];
+      capitalTabs.forEach(({ moduleId: sourceModule, tabId: sourceTab }) => {
+        const sourceKey = `unified_capital_${sourceModule}_${sourceTab}`;
+        const sourceSaved = localStorage.getItem(sourceKey);
+        if (sourceSaved) {
+          try {
+            const sourceItems: CapitalItem[] = JSON.parse(sourceSaved);
+            const itemsWithSource = sourceItems.map(i => ({
+              ...i,
+              sourceModule,
+              sourceTab,
+            }));
+            allItems.push(...itemsWithSource);
+          } catch (e) {
+            console.error(`Failed to load from ${sourceModule}/${sourceTab}:`, e);
+          }
+        }
+      });
+      
+      const motherTabKey = `unified_capital_${moduleId}_${tabId}`;
+      const motherTabSaved = localStorage.getItem(motherTabKey);
+      if (motherTabSaved) {
+        try {
+          const motherTabItems: CapitalItem[] = JSON.parse(motherTabSaved);
+          allItems.push(...motherTabItems);
+        } catch (e) {
+          console.error('Failed to load mother tab data:', e);
+        }
+      }
+      
+      setItems(allItems);
+    }
+  };
+
+  // Helper function to delete item from the correct localStorage location
+  const deleteItemFromStorage = (id: string, sourceModule?: string, sourceTab?: string) => {
+    const targetModule = sourceModule || moduleId;
+    const targetTab = sourceTab || tabId;
+    const storageKey = `unified_capital_${targetModule}_${targetTab}`;
+    
+    // Load existing items from that location
+    const saved = localStorage.getItem(storageKey);
+    if (saved) {
+      try {
+        const existingItems: CapitalItem[] = JSON.parse(saved);
+        const filteredItems = existingItems.filter(i => i.id !== id);
+        localStorage.setItem(storageKey, JSON.stringify(filteredItems));
+        console.log(`Deleted item from localStorage: ${storageKey}`);
+      } catch (e) {
+        console.error('Failed to delete from localStorage:', e);
+      }
+    }
+    
+    // If we're in the mother tab, reload all aggregated data
+    if (isMotherTab) {
+      const allItems: CapitalItem[] = [];
+      capitalTabs.forEach(({ moduleId: sourceModule, tabId: sourceTab }) => {
+        const sourceKey = `unified_capital_${sourceModule}_${sourceTab}`;
+        const sourceSaved = localStorage.getItem(sourceKey);
+        if (sourceSaved) {
+          try {
+            const sourceItems: CapitalItem[] = JSON.parse(sourceSaved);
+            const itemsWithSource = sourceItems.map(i => ({
+              ...i,
+              sourceModule,
+              sourceTab,
+            }));
+            allItems.push(...itemsWithSource);
+          } catch (e) {
+            console.error(`Failed to load from ${sourceModule}/${sourceTab}:`, e);
+          }
+        }
+      });
+      
+      const motherTabKey = `unified_capital_${moduleId}_${tabId}`;
+      const motherTabSaved = localStorage.getItem(motherTabKey);
+      if (motherTabSaved) {
+        try {
+          const motherTabItems: CapitalItem[] = JSON.parse(motherTabSaved);
+          allItems.push(...motherTabItems);
+        } catch (e) {
+          console.error('Failed to load mother tab data:', e);
+        }
+      }
+      
+      setItems(allItems);
+    }
+  };
 
   // --- Handlers ---
   const handleDelete = (id: string, e?: React.MouseEvent) => {
     e?.stopPropagation();
     if (confirm('Are you sure you want to delete this capital entry?')) {
+      const item = items.find(i => i.id === id);
+      if (item) {
+        deleteItemFromStorage(id, item.sourceModule, item.sourceTab);
+      }
       setItems(prev => prev.filter(i => i.id !== id));
       if (selectedItem?.id === id) setSelectedItem(null);
     }
   };
 
   const handleSave = (item: CapitalItem) => {
-    if (editingItem) {
-      setItems(prev => prev.map(i => i.id === item.id ? item : i));
+    const isNew = !editingItem;
+    
+    // If in mother tab and item has source info, save to source location
+    // Otherwise, save to current location
+    if (isMotherTab && item.sourceModule && item.sourceTab) {
+      // Item is from another tab, save to that location
+      saveItemToStorage(item, isNew);
+    } else if (!isMotherTab) {
+      // Regular tab, save normally (will be handled by useEffect)
+      if (editingItem) {
+        setItems(prev => prev.map(i => i.id === item.id ? item : i));
+      } else {
+        setItems(prev => [item, ...prev]);
+      }
     } else {
-      setItems(prev => [item, ...prev]);
+      // Mother tab, new item without source - save to mother tab
+      saveItemToStorage({ ...item, sourceModule: moduleId, sourceTab: tabId }, isNew);
     }
+    
     setIsFormOpen(false);
     setEditingItem(null);
     setSelectedItem(null);
   };
 
   const handleSaveFromPanel = (item: CapitalItem) => {
-    setItems(prev => prev.map(i => i.id === item.id ? item : i));
+    // If in mother tab and item has source info, save to source location
+    if (isMotherTab && item.sourceModule && item.sourceTab) {
+      saveItemToStorage(item, false);
+    } else if (!isMotherTab) {
+      // Regular tab, update normally
+      setItems(prev => prev.map(i => i.id === item.id ? item : i));
+    } else {
+      // Mother tab, item without source - save to mother tab
+      saveItemToStorage({ ...item, sourceModule: moduleId, sourceTab: tabId }, false);
+    }
     setSelectedItem(item);
   };
 
   const handleDeleteFromPanel = (id: string) => {
+    const item = items.find(i => i.id === id);
+    if (item) {
+      deleteItemFromStorage(id, item.sourceModule, item.sourceTab);
+    }
     setItems(prev => prev.filter(i => i.id !== id));
     setSelectedItem(null);
   };
@@ -617,7 +888,72 @@ export const UnifiedCapitalManagementTemplate: React.FC<Props> = ({ moduleId, ta
                />
             </div>
             <div className="flex gap-2 overflow-x-auto hide-scrollbar pb-1 xl:pb-0">
-               <button className="px-4 py-3 bg-white border border-stone-200 rounded-[20px] text-stone-500 hover:text-stone-800 transition-colors shadow-sm">
+               <div className="flex items-center bg-stone-50 border border-stone-100 rounded-[20px] px-3 shrink-0">
+                  <Globe size={14} className="text-stone-300" />
+                  <select 
+                     value={currencyFilter}
+                     onChange={(e) => setCurrencyFilter(e.target.value)}
+                     className="px-2 py-2.5 bg-transparent text-xs text-stone-600 font-bold focus:outline-none min-w-[100px]"
+                  >
+                     <option value="all">All Currencies</option>
+                     {uniqueCurrencies.map(curr => (
+                        <option key={curr} value={curr}>{curr}</option>
+                     ))}
+                  </select>
+               </div>
+               <div className="flex items-center bg-stone-50 border border-stone-100 rounded-[20px] px-3 shrink-0">
+                  <TrendingUp size={14} className="text-stone-300" />
+                  <select 
+                     value={transactionTypeFilter} 
+                     onChange={(e) => setTransactionTypeFilter(e.target.value)} 
+                     className="px-2 py-2.5 bg-transparent text-xs text-stone-600 font-bold focus:outline-none min-w-[120px]"
+                  >
+                     <option value="all">All Types</option>
+                     {uniqueTransactionTypes.map(type => (
+                        <option key={type} value={type}>{type === 'purchased' ? 'Purchase' : type === 'exchange' ? 'Exchange' : 'Shares'}</option>
+                     ))}
+                  </select>
+               </div>
+               <div className="flex items-center bg-stone-50 border border-stone-100 rounded-[20px] px-3 shrink-0">
+                  <Wallet size={14} className="text-stone-300" />
+                  <select 
+                     value={paymentMethodFilter} 
+                     onChange={(e) => setPaymentMethodFilter(e.target.value)} 
+                     className="px-2 py-2.5 bg-transparent text-xs text-stone-600 font-bold focus:outline-none min-w-[130px]"
+                  >
+                     <option value="all">Payment Method</option>
+                     {uniquePaymentMethods.map(method => (
+                        <option key={method} value={method}>{method}</option>
+                     ))}
+                  </select>
+               </div>
+               <div className="flex items-center bg-stone-50 border border-stone-100 rounded-[20px] px-3 shrink-0">
+                  <Globe size={14} className="text-stone-300" />
+                  <select 
+                     value={locationFilter} 
+                     onChange={(e) => setLocationFilter(e.target.value)} 
+                     className="px-2 py-2.5 bg-transparent text-xs text-stone-600 font-bold focus:outline-none min-w-[100px]"
+                  >
+                     <option value="all">Location</option>
+                     {uniqueLocations.map(loc => (
+                        <option key={loc} value={loc}>{loc}</option>
+                     ))}
+                  </select>
+               </div>
+               <div className="flex items-center bg-stone-50 border border-stone-100 rounded-[20px] px-3 shrink-0">
+                  <Building2 size={14} className="text-stone-300" />
+                  <select 
+                     value={companyFilter} 
+                     onChange={(e) => setCompanyFilter(e.target.value)} 
+                     className="px-2 py-2.5 bg-transparent text-xs text-stone-600 font-bold focus:outline-none min-w-[100px]"
+                  >
+                     <option value="all">Company</option>
+                     {uniqueCompanies.map(company => (
+                        <option key={company} value={company}>{company}</option>
+                     ))}
+                  </select>
+               </div>
+               <button className="px-4 py-3 bg-white border border-stone-200 rounded-[20px] text-stone-500 hover:text-stone-800 transition-colors shadow-sm shrink-0">
                  <Download size={18} />
                </button>
             </div>
@@ -638,6 +974,7 @@ export const UnifiedCapitalManagementTemplate: React.FC<Props> = ({ moduleId, ta
                      <th className="p-6">Amount</th>
                      <th className="p-6">Rate</th>
                      <th className="p-6">Payment Method</th>
+                     {isMotherTab && <th className="p-6">Source</th>}
                      <th className="p-6 text-right pr-10">LKR Amount</th>
                   </tr>
                </thead>
@@ -680,6 +1017,17 @@ export const UnifiedCapitalManagementTemplate: React.FC<Props> = ({ moduleId, ta
                               <span className="text-stone-300">-</span>
                            )}
                         </td>
+                        {isMotherTab && (
+                           <td className="p-6">
+                              {item.sourceModule && item.sourceTab ? (
+                                 <span className="px-2.5 py-1 rounded-full text-[10px] font-bold uppercase border bg-purple-50 text-purple-700 border-purple-100" title={`${APP_MODULES.find(m => m.id === item.sourceModule)?.name || item.sourceModule} / ${item.sourceTab}`}>
+                                    {APP_MODULES.find(m => m.id === item.sourceModule)?.name || item.sourceModule} / {item.sourceTab}
+                                 </span>
+                              ) : (
+                                 <span className="text-stone-300">-</span>
+                              )}
+                           </td>
+                        )}
                         <td className="p-6 text-right pr-10">
                            <div className="font-black text-indigo-700">
                               LKR {item.convertedAmount.toLocaleString()}
@@ -711,6 +1059,11 @@ export const UnifiedCapitalManagementTemplate: React.FC<Props> = ({ moduleId, ta
                         <TrendingUp size={10} /> {item.date}
                      </span>
                      <h3 className="font-black text-stone-900 text-lg">{item.vendorName}</h3>
+                     {isMotherTab && item.sourceModule && item.sourceTab && (
+                        <span className="mt-2 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase border bg-purple-50 text-purple-700 border-purple-100 inline-block w-fit">
+                           {APP_MODULES.find(m => m.id === item.sourceModule)?.name || item.sourceModule} / {item.sourceTab}
+                        </span>
+                     )}
                   </div>
                   <div className="flex flex-col gap-1.5 items-end">
                      <span className="font-mono text-xs font-black text-indigo-600 bg-indigo-50 px-2.5 py-1 rounded-xl border border-indigo-100">

@@ -73,7 +73,7 @@ export const StatementView: React.FC = () => {
   }, [filteredEntries]);
 
   const handleExportCSV = () => {
-    const headers = ['Date', 'Module', 'Tab', 'Type', 'Description', 'Reference', 'Debit (LKR)', 'Credit (LKR)', 'Balance (LKR)', 'Currency', 'Original Amount'];
+    const headers = ['Date', 'Module', 'Tab', 'Type', 'Description', 'Code', 'Debit (LKR)', 'Credit (LKR)', 'Balance (LKR)', 'Currency', 'Original Amount'];
     const rows = filteredEntries.map(e => [
       e.date,
       e.moduleName,
@@ -193,7 +193,7 @@ export const StatementView: React.FC = () => {
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-stone-300" size={18} />
             <input 
               type="text" 
-              placeholder="Search by description, reference, module..." 
+              placeholder="Search by description, code, module..." 
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full pl-11 pr-4 py-3 bg-stone-50/50 border border-stone-100 rounded-[20px] text-sm focus:ring-4 focus:ring-purple-500/5 focus:border-purple-300 outline-none transition-all placeholder-stone-300 text-stone-700" 
@@ -257,7 +257,7 @@ export const StatementView: React.FC = () => {
                 <th className="p-6">Tab</th>
                 <th className="p-6">Type</th>
                 <th className="p-6">Description</th>
-                <th className="p-6">Reference</th>
+                <th className="p-6">Code</th>
                 <th className="p-6 text-right">Debit (LKR)</th>
                 <th className="p-6 text-right">Credit (LKR)</th>
                 <th className="p-6 text-right pr-10">Balance (LKR)</th>
@@ -376,7 +376,7 @@ export const StatementView: React.FC = () => {
                       <span className="text-sm font-medium text-stone-700">{formatDate(selectedEntry.date)}</span>
                     </div>
                     <div className="flex flex-col py-2 border-b border-stone-100">
-                      <span className="text-[9px] font-bold text-stone-400 uppercase tracking-wider mb-0.5">Reference</span>
+                      <span className="text-[9px] font-bold text-stone-400 uppercase tracking-wider mb-0.5">Code</span>
                       <span className="text-sm font-bold text-purple-700 font-mono">{selectedEntry.reference}</span>
                     </div>
                     <div className="flex flex-col py-2 border-b border-stone-100">
@@ -443,4 +443,5 @@ export const StatementView: React.FC = () => {
     </div>
   );
 };
+
 

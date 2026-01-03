@@ -4,6 +4,7 @@ import {
   Trash2, Edit, Save, X, DollarSign, 
   FileText, Plane, Globe, Ticket, User, Building2, MapPin
 } from 'lucide-react';
+import { APP_MODULES } from '../../constants';
 
 // --- Types ---
 interface TicketsVisaItem {
@@ -24,6 +25,8 @@ interface TicketsVisaItem {
   payable?: number; // Payable amount
   company?: string;
   notes?: string;
+  sourceModule?: string; // For aggregated data: which module this came from
+  sourceTab?: string; // For aggregated data: which tab this came from
 }
 
 interface Props {
@@ -266,12 +269,27 @@ export const TicketsVisaTemplate: React.FC<Props> = ({ moduleId, tabId, isReadOn
   const [searchQuery, setSearchQuery] = useState('');
   const [currencyFilter, setCurrencyFilter] = useState<string>('all');
   const [categoryFilter, setCategoryFilter] = useState<string>('All');
+  const [companyFilter, setCompanyFilter] = useState<string>('All');
   const [payable, setPayable] = useState<number>(0);
+  const [isDataLoaded, setIsDataLoaded] = useState(false);
   
   // Panel State
   const [selectedItem, setSelectedItem] = useState<TicketsVisaItem | null>(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<TicketsVisaItem | null>(null);
+
+  // Check if this is the mother tab (all-expenses / Ticket and Visa)
+  const isMotherTab = moduleId === 'all-expenses' && tabId.toLowerCase() === 'ticket and visa';
+
+  // Define all TicketsVisa tabs to aggregate from (memoized to avoid dependency issues)
+  const ticketsVisaTabs = useMemo(() => [
+    { moduleId: 'bkk', tabId: 'BKKTickets' },
+    { moduleId: 'kenya', tabId: 'Traveling.EX' },
+    { moduleId: 'spinel-gallery', tabId: 'BKkticket' },
+    { moduleId: 'dada', tabId: 'Tickets.visa' },
+    { moduleId: 'madagascar', tabId: 'Tickets.visa' },
+    { moduleId: 'vgtz', tabId: 'Tickets.visa' },
+  ], []);
 
   // Determine tab-specific requirements
   const tabConfig = useMemo(() => {
@@ -296,6 +314,98 @@ export const TicketsVisaTemplate: React.FC<Props> = ({ moduleId, tabId, isReadOn
 
   // --- Filter Options ---
   const uniqueCategories = useMemo(() => Array.from(new Set(items.map(i => i.category).filter(Boolean))).sort(), [items]);
+  const uniqueCompanies = useMemo(() => Array.from(new Set(items.map(i => i.company).filter(Boolean))).sort(), [items]);
+
+  // Load data from localStorage
+  useEffect(() => {
+    if (isMotherTab) {
+      // Aggregate data from all TicketsVisa tabs
+      const allItems: TicketsVisaItem[] = [];
+      
+      ticketsVisaTabs.forEach(({ moduleId: sourceModule, tabId: sourceTab }) => {
+        // Try multiple localStorage key patterns
+        const storageKeys = [
+          `tickets_visa_${sourceModule}_${sourceTab}`,
+          `ticket_visa_${sourceModule}_${sourceTab}`,
+        ];
+        
+        for (const storageKey of storageKeys) {
+          const saved = localStorage.getItem(storageKey);
+          if (saved) {
+            try {
+              const sourceItems: TicketsVisaItem[] = JSON.parse(saved);
+              // Add source information to each item
+              const itemsWithSource = sourceItems.map(item => ({
+                ...item,
+                sourceModule,
+                sourceTab,
+              }));
+              allItems.push(...itemsWithSource);
+              break; // Found data, no need to check other keys
+            } catch (e) {
+              console.error(`Failed to load tickets/visa data from ${sourceModule}/${sourceTab}:`, e);
+            }
+          }
+        }
+      });
+      
+      // Also load data from the mother tab itself
+      const motherTabKeys = [
+        `tickets_visa_${moduleId}_${tabId}`,
+        `ticket_visa_${moduleId}_${tabId}`,
+      ];
+      
+      for (const motherTabKey of motherTabKeys) {
+        const motherTabSaved = localStorage.getItem(motherTabKey);
+        if (motherTabSaved) {
+          try {
+            const motherTabItems: TicketsVisaItem[] = JSON.parse(motherTabSaved);
+            allItems.push(...motherTabItems);
+            break; // Found data, no need to check other keys
+          } catch (e) {
+            console.error('Failed to load mother tab data:', e);
+          }
+        }
+      }
+      
+      setItems(allItems);
+      setIsDataLoaded(true);
+    } else {
+      // Load data for individual tabs
+      const storageKeys = [
+        `tickets_visa_${moduleId}_${tabId}`,
+        `ticket_visa_${moduleId}_${tabId}`,
+      ];
+      
+      for (const storageKey of storageKeys) {
+        const saved = localStorage.getItem(storageKey);
+        if (saved) {
+          try {
+            setItems(JSON.parse(saved));
+            setIsDataLoaded(true);
+            break; // Found data, no need to check other keys
+          } catch (e) {
+            console.error('Failed to load tickets/visa data:', e);
+          }
+        }
+      }
+      // Set flag to true even if no data was found, to allow future saves
+      setIsDataLoaded(true);
+    }
+  }, [moduleId, tabId, isMotherTab, ticketsVisaTabs]);
+
+  // Save data to localStorage (only for non-mother tabs, and only after initial load)
+  useEffect(() => {
+    if (!isMotherTab && isDataLoaded) {
+      const storageKey = `tickets_visa_${moduleId}_${tabId}`;
+      try {
+        localStorage.setItem(storageKey, JSON.stringify(items));
+        console.log(`Saved ${items.length} items to localStorage: ${storageKey}`);
+      } catch (e) {
+        console.error('Failed to save to localStorage:', e);
+      }
+    }
+  }, [items, moduleId, tabId, isMotherTab, isDataLoaded]);
 
   // --- Filtering ---
   const filteredItems = useMemo(() => {
@@ -314,37 +424,221 @@ export const TicketsVisaTemplate: React.FC<Props> = ({ moduleId, tabId, isReadOn
         currencyFilter === 'all' || item.currency === currencyFilter;
       
       const matchesCategory = categoryFilter === 'All' || item.category === categoryFilter;
+      
+      const matchesCompany = companyFilter === 'All' || item.company === companyFilter;
         
-      return matchesSearch && matchesCurrency && matchesCategory;
+      return matchesSearch && matchesCurrency && matchesCategory && matchesCompany;
     }).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-  }, [items, searchQuery, currencyFilter, categoryFilter]);
+  }, [items, searchQuery, currencyFilter, categoryFilter, companyFilter]);
+
+  // Helper function to save item to the correct localStorage location
+  const saveItemToStorage = (item: TicketsVisaItem, isNew: boolean = false) => {
+    const targetModule = item.sourceModule || moduleId;
+    const targetTab = item.sourceTab || tabId;
+    const storageKey = `tickets_visa_${targetModule}_${targetTab}`;
+    
+    // Load existing items from that location
+    const saved = localStorage.getItem(storageKey);
+    let existingItems: TicketsVisaItem[] = [];
+    if (saved) {
+      try {
+        existingItems = JSON.parse(saved);
+      } catch (e) {
+        console.error('Failed to load existing items:', e);
+      }
+    }
+    
+    if (isNew) {
+      existingItems.push(item);
+      console.log(`Adding new item to localStorage: ${storageKey}`, item);
+    } else {
+      existingItems = existingItems.map(i => i.id === item.id ? item : i);
+      console.log(`Updating item in localStorage: ${storageKey}`, item);
+    }
+    
+    try {
+      localStorage.setItem(storageKey, JSON.stringify(existingItems));
+      console.log(`Successfully saved ${existingItems.length} items to localStorage: ${storageKey}`);
+    } catch (e) {
+      console.error('Failed to save to localStorage:', e);
+    }
+    
+    // If we're in the mother tab, reload all aggregated data
+    if (isMotherTab) {
+      const allItems: TicketsVisaItem[] = [];
+      ticketsVisaTabs.forEach(({ moduleId: sourceModule, tabId: sourceTab }) => {
+        const sourceKeys = [
+          `tickets_visa_${sourceModule}_${sourceTab}`,
+          `ticket_visa_${sourceModule}_${sourceTab}`,
+        ];
+        
+        for (const sourceKey of sourceKeys) {
+          const sourceSaved = localStorage.getItem(sourceKey);
+          if (sourceSaved) {
+            try {
+              const sourceItems: TicketsVisaItem[] = JSON.parse(sourceSaved);
+              const itemsWithSource = sourceItems.map(i => ({
+                ...i,
+                sourceModule,
+                sourceTab,
+              }));
+              allItems.push(...itemsWithSource);
+              break; // Found data, no need to check other keys
+            } catch (e) {
+              console.error(`Failed to load from ${sourceModule}/${sourceTab}:`, e);
+            }
+          }
+        }
+      });
+      
+      const motherTabKeys = [
+        `tickets_visa_${moduleId}_${tabId}`,
+        `ticket_visa_${moduleId}_${tabId}`,
+      ];
+      
+      for (const motherTabKey of motherTabKeys) {
+        const motherTabSaved = localStorage.getItem(motherTabKey);
+        if (motherTabSaved) {
+          try {
+            const motherTabItems: TicketsVisaItem[] = JSON.parse(motherTabSaved);
+            allItems.push(...motherTabItems);
+            break; // Found data, no need to check other keys
+          } catch (e) {
+            console.error('Failed to load mother tab data:', e);
+          }
+        }
+      }
+      
+      setItems(allItems);
+    }
+  };
+
+  // Helper function to delete item from the correct localStorage location
+  const deleteItemFromStorage = (id: string, sourceModule?: string, sourceTab?: string) => {
+    const targetModule = sourceModule || moduleId;
+    const targetTab = sourceTab || tabId;
+    const storageKey = `tickets_visa_${targetModule}_${targetTab}`;
+    
+    // Load existing items from that location
+    const saved = localStorage.getItem(storageKey);
+    if (saved) {
+      try {
+        const existingItems: TicketsVisaItem[] = JSON.parse(saved);
+        const filteredItems = existingItems.filter(i => i.id !== id);
+        localStorage.setItem(storageKey, JSON.stringify(filteredItems));
+        console.log(`Deleted item from localStorage: ${storageKey}`);
+      } catch (e) {
+        console.error('Failed to delete from localStorage:', e);
+      }
+    }
+    
+    // If we're in the mother tab, reload all aggregated data
+    if (isMotherTab) {
+      const allItems: TicketsVisaItem[] = [];
+      ticketsVisaTabs.forEach(({ moduleId: sourceModule, tabId: sourceTab }) => {
+        const sourceKeys = [
+          `tickets_visa_${sourceModule}_${sourceTab}`,
+          `ticket_visa_${sourceModule}_${sourceTab}`,
+        ];
+        
+        for (const sourceKey of sourceKeys) {
+          const sourceSaved = localStorage.getItem(sourceKey);
+          if (sourceSaved) {
+            try {
+              const sourceItems: TicketsVisaItem[] = JSON.parse(sourceSaved);
+              const itemsWithSource = sourceItems.map(i => ({
+                ...i,
+                sourceModule,
+                sourceTab,
+              }));
+              allItems.push(...itemsWithSource);
+              break; // Found data, no need to check other keys
+            } catch (e) {
+              console.error(`Failed to load from ${sourceModule}/${sourceTab}:`, e);
+            }
+          }
+        }
+      });
+      
+      const motherTabKeys = [
+        `tickets_visa_${moduleId}_${tabId}`,
+        `ticket_visa_${moduleId}_${tabId}`,
+      ];
+      
+      for (const motherTabKey of motherTabKeys) {
+        const motherTabSaved = localStorage.getItem(motherTabKey);
+        if (motherTabSaved) {
+          try {
+            const motherTabItems: TicketsVisaItem[] = JSON.parse(motherTabSaved);
+            allItems.push(...motherTabItems);
+            break; // Found data, no need to check other keys
+          } catch (e) {
+            console.error('Failed to load mother tab data:', e);
+          }
+        }
+      }
+      
+      setItems(allItems);
+    }
+  };
 
   // --- Handlers ---
   const handleDelete = (id: string, e?: React.MouseEvent) => {
     e?.stopPropagation();
     if (confirm('Are you sure you want to delete this ticket/visa record?')) {
+      const item = items.find(i => i.id === id);
+      if (item) {
+        deleteItemFromStorage(id, item.sourceModule, item.sourceTab);
+      }
       setItems(prev => prev.filter(i => i.id !== id));
       if (selectedItem?.id === id) setSelectedItem(null);
     }
   };
 
   const handleSave = (item: TicketsVisaItem) => {
-    if (editingItem) {
-      setItems(prev => prev.map(i => i.id === item.id ? item : i));
+    const isNew = !editingItem;
+    
+    // If in mother tab and item has source info, save to source location
+    // Otherwise, save to current location
+    if (isMotherTab && item.sourceModule && item.sourceTab) {
+      // Item is from another tab, save to that location
+      saveItemToStorage(item, isNew);
+    } else if (!isMotherTab) {
+      // Regular tab, save normally (will be handled by useEffect)
+      if (editingItem) {
+        setItems(prev => prev.map(i => i.id === item.id ? item : i));
+      } else {
+        setItems(prev => [item, ...prev]);
+      }
     } else {
-      setItems(prev => [item, ...prev]);
+      // Mother tab, new item without source - save to mother tab
+      saveItemToStorage({ ...item, sourceModule: moduleId, sourceTab: tabId }, isNew);
     }
+    
     setIsFormOpen(false);
     setEditingItem(null);
     setSelectedItem(null);
   };
 
   const handleSaveFromPanel = (item: TicketsVisaItem) => {
-    setItems(prev => prev.map(i => i.id === item.id ? item : i));
+    // If in mother tab and item has source info, save to source location
+    if (isMotherTab && item.sourceModule && item.sourceTab) {
+      saveItemToStorage(item, false);
+    } else if (!isMotherTab) {
+      // Regular tab, update normally
+      setItems(prev => prev.map(i => i.id === item.id ? item : i));
+    } else {
+      // Mother tab, item without source - save to mother tab
+      saveItemToStorage({ ...item, sourceModule: moduleId, sourceTab: tabId }, false);
+    }
     setSelectedItem(item);
   };
 
   const handleDeleteFromPanel = (id: string) => {
+    const item = items.find(i => i.id === id);
+    if (item) {
+      deleteItemFromStorage(id, item.sourceModule, item.sourceTab);
+    }
     setItems(prev => prev.filter(i => i.id !== id));
     setSelectedItem(null);
   };
@@ -675,6 +969,19 @@ export const TicketsVisaTemplate: React.FC<Props> = ({ moduleId, tabId, isReadOn
                      ))}
                   </select>
                </div>
+               <div className="flex items-center bg-stone-50 border border-stone-100 rounded-[20px] px-3 shrink-0">
+                  <Building2 size={14} className="text-stone-300" />
+                  <select 
+                     value={companyFilter} 
+                     onChange={(e) => setCompanyFilter(e.target.value)} 
+                     className="px-2 py-2.5 bg-transparent text-xs text-stone-600 font-bold focus:outline-none min-w-[120px]"
+                  >
+                     <option value="All">Company</option>
+                     {uniqueCompanies.map(company => (
+                        <option key={company} value={company}>{company}</option>
+                     ))}
+                  </select>
+               </div>
                <button className="px-4 py-3 bg-white border border-stone-200 rounded-[20px] text-stone-500 hover:text-stone-800 transition-colors shadow-sm shrink-0">
                  <Download size={18} />
                </button>
@@ -694,6 +1001,7 @@ export const TicketsVisaTemplate: React.FC<Props> = ({ moduleId, tabId, isReadOn
                      <th className="p-6">Name</th>
                      <th className="p-6">Description</th>
                      <th className="p-6">Route</th>
+                     {isMotherTab && <th className="p-6">Source</th>}
                      <th className="p-6 text-right pr-10">Amount</th>
                   </tr>
                </thead>
@@ -719,6 +1027,17 @@ export const TicketsVisaTemplate: React.FC<Props> = ({ moduleId, tabId, isReadOn
                               <span className="text-stone-300">-</span>
                             )}
                         </td>
+                        {isMotherTab && (
+                           <td className="p-6">
+                              {item.sourceModule && item.sourceTab ? (
+                                 <span className="px-2.5 py-1 rounded-full text-[10px] font-bold uppercase border bg-purple-50 text-purple-700 border-purple-100" title={`${APP_MODULES.find(m => m.id === item.sourceModule)?.name || item.sourceModule} / ${item.sourceTab}`}>
+                                    {APP_MODULES.find(m => m.id === item.sourceModule)?.name || item.sourceModule} / {item.sourceTab}
+                                 </span>
+                              ) : (
+                                 <span className="text-stone-300">-</span>
+                              )}
+                           </td>
+                        )}
                         <td className="p-6 text-right pr-10">
                            <div className="font-black text-cyan-700">
                               {formatCurrency(item.amount, item.currency)}
@@ -751,6 +1070,11 @@ export const TicketsVisaTemplate: React.FC<Props> = ({ moduleId, tabId, isReadOn
                         <Plane size={10} /> {item.date}
                      </span>
                      <h3 className="font-black text-stone-900 text-lg">{item.passengerName}</h3>
+                     {isMotherTab && item.sourceModule && item.sourceTab && (
+                        <span className="mt-2 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase border bg-purple-50 text-purple-700 border-purple-100 inline-block w-fit">
+                           {APP_MODULES.find(m => m.id === item.sourceModule)?.name || item.sourceModule} / {item.sourceTab}
+                        </span>
+                     )}
                   </div>
                </div>
 

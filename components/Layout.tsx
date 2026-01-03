@@ -1,8 +1,10 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Menu, X, Bell, User, Search, Home, ChevronRight, LogOut, Settings, Diamond, Wallet, TrendingUp, ChevronDown } from 'lucide-react';
 import { APP_MODULES, getIcon } from '../constants';
+import { NotificationDropdown } from './NotificationDropdown';
+import { getNotificationCount } from '../services/notificationService';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -11,6 +13,8 @@ interface LayoutProps {
 export const Layout: React.FC<LayoutProps> = ({ children }) => {
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [desktopSidebarOpen, setDesktopSidebarOpen] = useState(true);
+  const [notificationOpen, setNotificationOpen] = useState(false);
+  const [notificationCount, setNotificationCount] = useState(0);
   const location = useLocation();
 
   const isHome = location.pathname === '/';
@@ -53,6 +57,19 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
       setMobileSidebarOpen(true);
     }
   };
+
+  // Update notification count
+  useEffect(() => {
+    const updateNotificationCount = () => {
+      const count = getNotificationCount();
+      setNotificationCount(count);
+    };
+
+    updateNotificationCount();
+    // Update count when location changes (user navigates)
+    const interval = setInterval(updateNotificationCount, 5000); // Update every 5 seconds
+    return () => clearInterval(interval);
+  }, [location]);
 
   return (
     <div className="flex h-screen h-dvh bg-stone-50 overflow-hidden overscroll-none">
@@ -221,10 +238,23 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
                 className="pl-10 pr-4 py-2 bg-stone-100 border border-stone-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-gem-purple/20 focus:border-gem-purple/50 w-64 transition-all"
               />
             </div>
-            <button className="relative p-2 text-stone-500 hover:bg-stone-100 rounded-full transition-colors hover:text-gem-purple">
-              <Bell size={20} />
-              <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full border border-white"></span>
-            </button>
+            <div className="relative">
+              <button 
+                onClick={() => setNotificationOpen(!notificationOpen)}
+                className="relative p-2 text-stone-500 hover:bg-stone-100 rounded-full transition-colors hover:text-purple-600"
+              >
+                <Bell size={20} />
+                {notificationCount > 0 && (
+                  <span className="absolute top-1.5 right-1.5 min-w-[18px] h-[18px] bg-red-500 text-white text-[10px] font-bold rounded-full border-2 border-white flex items-center justify-center px-1">
+                    {notificationCount > 99 ? '99+' : notificationCount}
+                  </span>
+                )}
+              </button>
+              <NotificationDropdown 
+                isOpen={notificationOpen} 
+                onClose={() => setNotificationOpen(false)} 
+              />
+            </div>
             <div className="md:hidden w-8 h-8 bg-gradient-to-br from-gem-purple to-gem-purple-light rounded-full flex items-center justify-center text-white text-xs font-bold shadow-purple">
               VG
             </div>
