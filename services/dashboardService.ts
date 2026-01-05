@@ -44,6 +44,24 @@ interface DashboardData {
       value: number;
       color: string;
     }[];
+    titleBreakdowns?: {
+      title: string;
+      sourceTabs: string[];
+      slAmountTotal: number;
+      slAmountOutstanding: number;
+      rmbTotal: number;
+      rmbOutstanding: number;
+      bathTotal: number;
+      bathOutstanding: number;
+      usdTotal: number;
+      usdOutstanding: number;
+      finalAmount: number;
+      totalAmounts: number;
+      receivedPayments: number;
+      cleared: 'Cleared' | 'Pending' | 'Overdue';
+      transactionCount: number;
+      transactions: any[];
+    }[];
   };
 }
 
@@ -309,15 +327,9 @@ export const getDashboardData = async (config: DashboardConfig): Promise<Dashboa
       return [];
     };
 
-    // Payment Received Tabs (7 tabs)
+    // Payment Received Tabs (1 tab)
     const paymentTabs = [
-      "SG.Payment.Received",
-      "Madagascar.Payment.Received",
-      "K.Payment.Received",
-      "VG.R.payment.received",
-      "VG.Payment.Received",
-      "VG.T.Payment.Received",
-      "Payment.received"
+      "Payment Received"
     ];
 
     const paymentData: { source: string; total: number; count: number; lastDate: string }[] = [];
@@ -365,11 +377,11 @@ export const getDashboardData = async (config: DashboardConfig): Promise<Dashboa
 
     // Customer Ledger Tabs (27 tabs)
     const customerTabs = [
-      "Zahran", "RuzaikSales", "BeruwalaSales", "SajithOnline", "Ziyam",
+      "Zahran", "SrilankaSales", "SajithOnline", "Ziyam",
       "InfazHaji", "NusrathAli", "Binara", "MikdarHaji", "RameesNana",
       "Shimar", "Ruqshan", "FaizeenHaj", "SharikHaj", "Fazeel",
-      "AzeemColo", "Kadarhaj.colo", "AlthafHaj", "BangkokSales", "Sadam bkk",
-      "ChinaSales", "Eleven", "AndyBuyer", "FlightBuyer", "Bangkok", "Name", "Name1"
+      "AzeemColo", "Kadarhaj.colo", "AlthafHaj", "BangkokSales",
+      "ChinaSales", "Bangkok", "Name", "Name1"
     ];
 
     const customerRows: {
@@ -458,6 +470,141 @@ export const getDashboardData = async (config: DashboardConfig): Promise<Dashboa
       { name: 'THB', value: thbTotal, color: '#F59E0B' }
     ].filter(item => item.value > 0);
 
+    // Title Breakdowns - Aggregate all titles from specific tabs
+    const titleTabs = ['BangkokSales', 'ChinaSales', 'SrilankaSales'];
+    
+    // Map to aggregate titles across all tabs: title -> { transactions[], sourceTabs[] }
+    const titleMap = new Map<string, { transactions: any[]; sourceTabs: string[] }>();
+    
+    // Collect all transactions grouped by title
+    titleTabs.forEach(tabId => {
+      const items = loadTabData(tabId);
+      items.forEach((item: any) => {
+        const title = item.title?.trim() || '';
+        if (!title) return; // Skip items without titles
+        
+        if (!titleMap.has(title)) {
+          titleMap.set(title, { transactions: [], sourceTabs: [] });
+        }
+        const titleData = titleMap.get(title)!;
+        titleData.transactions.push(item);
+        if (!titleData.sourceTabs.includes(tabId)) {
+          titleData.sourceTabs.push(tabId);
+        }
+      });
+    });
+
+    // Calculate currency breakdowns for each title
+    const titleBreakdowns: {
+      title: string;
+      sourceTabs: string[];
+      // Currency-specific amounts (in original currency)
+      slAmountTotal: number;      // LKR total invoice
+      slAmountOutstanding: number; // LKR outstanding
+      rmbTotal: number;            // RMB total invoice
+      rmbOutstanding: number;      // RMB outstanding
+      bathTotal: number;           // THB total invoice
+      bathOutstanding: number;     // THB outstanding
+      usdTotal: number;             // USD total invoice
+      usdOutstanding: number;       // USD outstanding
+      // Converted totals (all in LKR)
+      finalAmount: number;          // Total invoice amount in LKR
+      totalAmounts: number;        // Same as finalAmount
+      receivedPayments: number;     // Total paid in LKR
+      cleared: 'Cleared' | 'Pending' | 'Overdue';
+      transactionCount: number;
+      transactions: any[];
+    }[] = [];
+
+    const today = new Date().toISOString().split('T')[0];
+    const exchangeRates = { USD: 300, RMB: 42, THB: 8.5 };
+
+    titleMap.forEach((titleData, title) => {
+      let slAmountTotal = 0;
+      let slAmountOutstanding = 0;
+      let rmbTotal = 0;
+      let rmbOutstanding = 0;
+      let bathTotal = 0;
+      let bathOutstanding = 0;
+      let usdTotal = 0;
+      let usdOutstanding = 0;
+      let totalPaidLKR = 0;
+      let hasOverdue = false;
+
+      titleData.transactions.forEach((item: any) => {
+        const invoice = item.invoiceAmount || item.finalAmount || 0;
+        const paid = item.paidAmount || 0;
+        const outstanding = item.outstandingAmount || (invoice - paid);
+        const currency = item.currency || 'LKR';
+        const exchangeRate = item.exchangeRate || exchangeRates[currency as keyof typeof exchangeRates] || 1;
+
+        // Accumulate by currency
+        if (currency === 'LKR') {
+          slAmountTotal += invoice;
+          slAmountOutstanding += outstanding;
+          totalPaidLKR += paid;
+        } else if (currency === 'RMB') {
+          rmbTotal += invoice;
+          rmbOutstanding += outstanding;
+          totalPaidLKR += paid * exchangeRate;
+        } else if (currency === 'THB') {
+          bathTotal += invoice;
+          bathOutstanding += outstanding;
+          totalPaidLKR += paid * exchangeRate;
+        } else if (currency === 'USD') {
+          usdTotal += invoice;
+          usdOutstanding += outstanding;
+          totalPaidLKR += paid * exchangeRate;
+        }
+
+        // Check for overdue
+        if (!hasOverdue && outstanding > 0 && item.dueDate) {
+          hasOverdue = item.dueDate < today;
+        }
+      });
+
+      // Calculate final amounts (all converted to LKR)
+      const finalAmount = 
+        slAmountTotal + 
+        (rmbTotal * exchangeRates.RMB) + 
+        (bathTotal * exchangeRates.THB) + 
+        (usdTotal * exchangeRates.USD);
+      
+      const totalOutstandingLKR = 
+        slAmountOutstanding + 
+        (rmbOutstanding * exchangeRates.RMB) + 
+        (bathOutstanding * exchangeRates.THB) + 
+        (usdOutstanding * exchangeRates.USD);
+
+      // Determine status
+      let cleared: 'Cleared' | 'Pending' | 'Overdue' = 'Cleared';
+      if (totalOutstandingLKR > 0) {
+        cleared = hasOverdue ? 'Overdue' : 'Pending';
+      }
+
+      titleBreakdowns.push({
+        title,
+        sourceTabs: titleData.sourceTabs,
+        slAmountTotal,
+        slAmountOutstanding,
+        rmbTotal,
+        rmbOutstanding,
+        bathTotal,
+        bathOutstanding,
+        usdTotal,
+        usdOutstanding,
+        finalAmount,
+        totalAmounts: finalAmount,
+        receivedPayments: totalPaidLKR,
+        cleared,
+        transactionCount: titleData.transactions.length,
+        transactions: titleData.transactions
+      });
+    });
+
+    // Sort by final amount descending
+    titleBreakdowns.sort((a, b) => b.finalAmount - a.finalAmount);
+
     return {
       metrics: {
         totalOutstandingLKR,
@@ -468,7 +615,8 @@ export const getDashboardData = async (config: DashboardConfig): Promise<Dashboa
       breakdowns: {
         customerSummary: customerRows.sort((a, b) => b.balance - a.balance),
         paymentTracking: paymentData,
-        currencyBreakdown
+        currencyBreakdown,
+        titleBreakdowns: titleBreakdowns.length > 0 ? titleBreakdowns : undefined
       }
     };
   }

@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { 
   Search, Plus, Download, Printer,
   Trash2, Edit, Save, X, DollarSign, 
-  FileText, Globe, Building2, Wallet, MapPin, Tag
+  FileText, Globe, Building2, Wallet, MapPin, Tag, Filter
 } from 'lucide-react';
 
 // --- Types ---
@@ -24,6 +24,7 @@ interface UnifiedExpenseItem {
   weight?: number; // Optional weight (for SLExpenses)
   inOutCheque?: string; // IN, OUT, or CHEQUES
   notes?: string;
+  sourceTab?: string; // Track which tab the data came from (for payment received tabs)
 }
 
 interface Props {
@@ -248,6 +249,9 @@ const ExpenseDetailPanel: React.FC<{
                 <Field label="IN / OUT / CHEQUES" value={formData.inOutCheque} field="inOutCheque" isEditing={isEditing} onInputChange={handleInputChange} type="select" options={inOutChequeOptions} />
                 <Field label="Weight" value={formData.weight} field="weight" isEditing={isEditing} onInputChange={handleInputChange} type="number" />
                 <Field label="Notes" value={formData.notes} field="notes" isEditing={isEditing} onInputChange={handleInputChange} />
+                {formData.sourceTab && (
+                  <Field label="Source Tab" value={formData.sourceTab} field="sourceTab" isEditing={false} onInputChange={handleInputChange} />
+                )}
               </div>
             </div>
           </div>
@@ -284,8 +288,50 @@ const ExpenseDetailPanel: React.FC<{
   );
 };
 
+// Payment Received Tabs - these should load data from all tabs
+const PAYMENT_RECEIVED_TABS = [
+  'Payment Received'
+];
+
+const isPaymentReceivedTab = (tabId: string): boolean => {
+  const tabNormal = tabId.trim().toLowerCase().replace(/\s+/g, ' ');
+  return PAYMENT_RECEIVED_TABS.some(tab => tabNormal === tab.toLowerCase());
+};
+
+const loadAllPaymentReceivedData = (): UnifiedExpenseItem[] => {
+  const allItems: UnifiedExpenseItem[] = [];
+  PAYMENT_RECEIVED_TABS.forEach(tabId => {
+    const storageKey = `unified_expense_outstanding_${tabId}`;
+    const saved = localStorage.getItem(storageKey);
+    if (saved) {
+      try {
+        const items = JSON.parse(saved);
+        items.forEach((item: UnifiedExpenseItem) => {
+          allItems.push({ ...item, sourceTab: item.sourceTab || tabId });
+        });
+      } catch (e) {
+        console.error(`Error loading data for ${tabId}:`, e);
+      }
+    }
+  });
+  return allItems;
+};
+
+const loadSingleTabData = (moduleId: string, tabId: string): UnifiedExpenseItem[] => {
+  const storageKey = `unified_expense_${moduleId}_${tabId}`;
+  const saved = localStorage.getItem(storageKey);
+  if (saved) {
+    try {
+      return JSON.parse(saved);
+    } catch (e) {
+      console.error(`Error loading data for ${moduleId}/${tabId}:`, e);
+    }
+  }
+  return [];
+};
+
 export const UnifiedExpenseTemplate: React.FC<Props> = ({ moduleId, tabId, isReadOnly }) => {
-  const [items, setItems] = useState<UnifiedExpenseItem[]>(generateMockData());
+  const [items, setItems] = useState<UnifiedExpenseItem[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   
   // Filter State
@@ -293,11 +339,50 @@ export const UnifiedExpenseTemplate: React.FC<Props> = ({ moduleId, tabId, isRea
   const [categoryFilter, setCategoryFilter] = useState<string>('All');
   const [companyFilter, setCompanyFilter] = useState<string>('All');
   const [titleFilter, setTitleFilter] = useState<string>('All');
+  const [sourceTabFilter, setSourceTabFilter] = useState<string>('All');
+  const [paymentMethodFilter, setPaymentMethodFilter] = useState<string>('All');
   
   // Panel State
   const [selectedItem, setSelectedItem] = useState<UnifiedExpenseItem | null>(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<UnifiedExpenseItem | null>(null);
+
+  // Load data on mount
+  useEffect(() => {
+    if (isPaymentReceivedTab(tabId)) {
+      // Load from all 6 payment received tabs
+      const loadedItems = loadAllPaymentReceivedData();
+      setItems(loadedItems);
+    } else {
+      // Load from single tab
+      const loadedItems = loadSingleTabData(moduleId, tabId);
+      setItems(loadedItems);
+    }
+  }, [moduleId, tabId]);
+
+  // Save data when items change
+  useEffect(() => {
+    if (isPaymentReceivedTab(tabId)) {
+      // Group items by sourceTab and save to respective storage keys
+      const itemsBySource: Record<string, UnifiedExpenseItem[]> = {};
+      items.forEach(item => {
+        const source = item.sourceTab || tabId;
+        if (!itemsBySource[source]) {
+          itemsBySource[source] = [];
+        }
+        itemsBySource[source].push(item);
+      });
+      
+      Object.keys(itemsBySource).forEach(sourceTab => {
+        const storageKey = `unified_expense_outstanding_${sourceTab}`;
+        localStorage.setItem(storageKey, JSON.stringify(itemsBySource[sourceTab]));
+      });
+    } else {
+      // Save to single tab storage
+      const storageKey = `unified_expense_${moduleId}_${tabId}`;
+      localStorage.setItem(storageKey, JSON.stringify(items));
+    }
+  }, [items, moduleId, tabId]);
 
   // --- Statistics ---
   const stats = useMemo(() => {
@@ -325,6 +410,8 @@ export const UnifiedExpenseTemplate: React.FC<Props> = ({ moduleId, tabId, isRea
   const uniqueCategories = useMemo(() => Array.from(new Set(items.map(i => i.category).filter(Boolean))).sort(), [items]);
   const uniqueCompanies = useMemo(() => Array.from(new Set(items.map(i => i.company).filter(Boolean))).sort(), [items]);
   const uniqueTitles = useMemo(() => Array.from(new Set(items.map(i => i.title).filter(Boolean))).sort(), [items]);
+  const uniqueSourceTabs = useMemo(() => Array.from(new Set(items.map(i => i.sourceTab).filter(Boolean))).sort(), [items]);
+  const uniquePaymentMethods = useMemo(() => Array.from(new Set(items.map(i => i.paymentMethod).filter(Boolean))).sort(), [items]);
 
   // --- Filtering ---
   const filteredItems = useMemo(() => {
@@ -342,10 +429,26 @@ export const UnifiedExpenseTemplate: React.FC<Props> = ({ moduleId, tabId, isRea
       const matchesCategory = categoryFilter === 'All' || item.category === categoryFilter;
       const matchesCompany = companyFilter === 'All' || item.company === companyFilter;
       const matchesTitle = titleFilter === 'All' || item.title === titleFilter;
+      const matchesSourceTab = sourceTabFilter === 'All' || item.sourceTab === sourceTabFilter;
+      const matchesPaymentMethod = paymentMethodFilter === 'All' || item.paymentMethod === paymentMethodFilter;
         
-      return matchesSearch && matchesCurrency && matchesCategory && matchesCompany && matchesTitle;
+      return matchesSearch && matchesCurrency && matchesCategory && matchesCompany && matchesTitle && 
+             matchesSourceTab && matchesPaymentMethod;
     }).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-  }, [items, searchQuery, currencyFilter, categoryFilter, companyFilter, titleFilter]);
+  }, [items, searchQuery, currencyFilter, categoryFilter, companyFilter, titleFilter, sourceTabFilter, paymentMethodFilter]);
+
+  const hasActiveFilters = currencyFilter !== 'All' || categoryFilter !== 'All' || companyFilter !== 'All' || 
+                           titleFilter !== 'All' || sourceTabFilter !== 'All' || paymentMethodFilter !== 'All';
+
+  const handleClearFilters = () => {
+    setCurrencyFilter('All');
+    setCategoryFilter('All');
+    setCompanyFilter('All');
+    setTitleFilter('All');
+    setSourceTabFilter('All');
+    setPaymentMethodFilter('All');
+    setSearchQuery('');
+  };
 
 
   // --- Handlers ---
@@ -721,9 +824,44 @@ export const UnifiedExpenseTemplate: React.FC<Props> = ({ moduleId, tabId, isRea
                      ))}
                   </select>
                </div>
-               <button className="px-4 py-3 bg-white border border-stone-200 rounded-[20px] text-stone-500 hover:text-stone-800 transition-colors shadow-sm shrink-0">
-                 <Download size={18} />
-               </button>
+               {isPaymentReceivedTab(tabId) && uniqueSourceTabs.length > 0 && (
+                  <div className="flex items-center bg-stone-50 border border-stone-100 rounded-[20px] px-3 shrink-0">
+                     <MapPin size={14} className="text-stone-300" />
+                     <select 
+                        value={sourceTabFilter} 
+                        onChange={(e) => setSourceTabFilter(e.target.value)} 
+                        className="px-2 py-2.5 bg-transparent text-xs text-stone-600 font-bold focus:outline-none min-w-[120px]"
+                     >
+                        <option value="All">Source Tab</option>
+                        {uniqueSourceTabs.map(tab => (
+                           <option key={tab} value={tab}>{tab}</option>
+                        ))}
+                     </select>
+                  </div>
+               )}
+               {uniquePaymentMethods.length > 0 && (
+                  <div className="flex items-center bg-stone-50 border border-stone-100 rounded-[20px] px-3 shrink-0">
+                     <Wallet size={14} className="text-stone-300" />
+                     <select 
+                        value={paymentMethodFilter} 
+                        onChange={(e) => setPaymentMethodFilter(e.target.value)} 
+                        className="px-2 py-2.5 bg-transparent text-xs text-stone-600 font-bold focus:outline-none min-w-[120px]"
+                     >
+                        <option value="All">Payment Method</option>
+                        {uniquePaymentMethods.map(method => (
+                           <option key={method} value={method}>{method}</option>
+                        ))}
+                     </select>
+                  </div>
+               )}
+               {hasActiveFilters && (
+                  <button
+                     onClick={handleClearFilters}
+                     className="px-4 py-2.5 bg-red-50 text-red-600 border border-red-200 rounded-[20px] text-xs font-bold hover:bg-red-100 transition-all shrink-0 flex items-center gap-2"
+                  >
+                     <X size={14} /> Clear Filters
+                  </button>
+               )}
             </div>
          </div>
       </div>
@@ -740,6 +878,7 @@ export const UnifiedExpenseTemplate: React.FC<Props> = ({ moduleId, tabId, isRea
                      <th className="p-6">Description</th>
                      <th className="p-6">Location</th>
                      <th className="p-6">Company</th>
+                     {isPaymentReceivedTab(tabId) && <th className="p-6">Source Tab</th>}
                      <th className="p-6">IN/OUT/CHEQUES</th>
                      <th className="p-6 text-right pr-10">Amount</th>
                   </tr>
@@ -763,6 +902,17 @@ export const UnifiedExpenseTemplate: React.FC<Props> = ({ moduleId, tabId, isRea
                         </td>
                         <td className="p-6 text-stone-600">{item.location || <span className="text-stone-300">-</span>}</td>
                         <td className="p-6 text-stone-600">{item.company || <span className="text-stone-300">-</span>}</td>
+                        {isPaymentReceivedTab(tabId) && (
+                           <td className="p-6">
+                              {item.sourceTab ? (
+                                 <span className="px-2.5 py-1 rounded-lg text-xs font-bold bg-purple-50 text-purple-700 border border-purple-200">
+                                    {item.sourceTab}
+                                 </span>
+                              ) : (
+                                 <span className="text-stone-300">-</span>
+                              )}
+                           </td>
+                        )}
                         <td className="p-6">
                            {item.inOutCheque ? (
                               <span className={`px-3 py-1 rounded-full text-xs font-bold ${
@@ -852,6 +1002,13 @@ export const UnifiedExpenseTemplate: React.FC<Props> = ({ moduleId, tabId, isRea
                         </span>
                      </div>
                   )}
+                  {item.sourceTab && (
+                     <div className="flex items-center gap-2 text-sm">
+                        <span className="px-2.5 py-1 rounded-lg text-xs font-bold bg-purple-50 text-purple-700 border border-purple-200">
+                           Source: {item.sourceTab}
+                        </span>
+                     </div>
+                  )}
                </div>
 
                <div className="pt-4 border-t border-stone-100 flex justify-between items-center relative z-10">
@@ -887,6 +1044,8 @@ export const UnifiedExpenseTemplate: React.FC<Props> = ({ moduleId, tabId, isRea
             initialData={editingItem}
             onSave={handleSave}
             onCancel={() => setIsFormOpen(false)}
+            moduleId={moduleId}
+            tabId={tabId}
          />
       )}
     </div>
@@ -898,7 +1057,9 @@ const ExpenseForm: React.FC<{
   initialData: UnifiedExpenseItem | null;
   onSave: (item: UnifiedExpenseItem) => void;
   onCancel: () => void;
-}> = ({ initialData, onSave, onCancel }) => {
+  moduleId: string;
+  tabId: string;
+}> = ({ initialData, onSave, onCancel, moduleId, tabId }) => {
   const [formData, setFormData] = useState<Partial<UnifiedExpenseItem>>({
     date: initialData?.date || new Date().toISOString().split('T')[0],
     code: initialData?.code || '',
@@ -916,6 +1077,7 @@ const ExpenseForm: React.FC<{
     weight: initialData?.weight,
     inOutCheque: initialData?.inOutCheque || '',
     notes: initialData?.notes || '',
+    sourceTab: initialData?.sourceTab || (isPaymentReceivedTab(tabId) ? tabId : undefined),
   });
 
   useEffect(() => {
@@ -987,6 +1149,7 @@ const ExpenseForm: React.FC<{
       weight: formData.weight,
       inOutCheque: formData.inOutCheque,
       notes: formData.notes,
+      sourceTab: formData.sourceTab || (isPaymentReceivedTab(tabId) ? tabId : undefined),
     });
   };
 

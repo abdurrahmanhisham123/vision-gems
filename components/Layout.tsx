@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Menu, X, Bell, User, Search, Home, ChevronRight, LogOut, Settings, Diamond, Wallet, TrendingUp, ChevronDown } from 'lucide-react';
+import { Menu, X, Bell, User, Search, Home, ChevronRight, LogOut, Settings, Diamond, Wallet, TrendingUp, ChevronDown, MessageCircle } from 'lucide-react';
 import { APP_MODULES, getIcon } from '../constants';
 import { NotificationDropdown } from './NotificationDropdown';
 import { getNotificationCount } from '../services/notificationService';
@@ -18,6 +18,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
   const location = useLocation();
 
   const isHome = location.pathname === '/';
+  const isChat = location.pathname === '/chat';
   
   // Find current module
   const currentModuleId = location.pathname.split('/')[2];
@@ -104,6 +105,17 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
              >
                <Home size={17} /> <span>Home</span>
              </Link>
+
+             <Link 
+               to="/chat" 
+               className={`flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-sm font-medium transition-all ${
+                 isChat 
+                   ? 'bg-gem-purple/10 text-gem-purple font-semibold shadow-sm border border-gem-purple/20' 
+                   : 'text-stone-600 hover:bg-stone-50 hover:text-gem-purple'
+               }`}
+             >
+               <MessageCircle size={17} /> <span>AI Assistant</span>
+             </Link>
           </div>
 
           <nav className="flex-1 overflow-y-auto px-2 pb-6 custom-scrollbar overscroll-contain">
@@ -167,6 +179,18 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
               }`}
             >
               <Home size={20} /> <span className="font-medium">Home Dashboard</span>
+            </Link>
+
+            <Link 
+              to="/chat" 
+              onClick={() => setMobileSidebarOpen(false)} 
+              className={`flex items-center gap-3 px-4 py-3 mx-2 rounded-xl mb-3 transition-all ${
+                isChat 
+                  ? 'bg-gem-purple/10 text-gem-purple font-semibold shadow-sm border border-gem-purple/20' 
+                  : 'text-stone-600 hover:bg-stone-50 hover:text-gem-purple'
+              }`}
+            >
+              <MessageCircle size={20} /> <span className="font-medium">AI Assistant</span>
             </Link>
             
             <div className="px-4 mb-3 mt-4 text-[10px] font-black uppercase tracking-[0.15em] text-stone-400">Main Operations</div>

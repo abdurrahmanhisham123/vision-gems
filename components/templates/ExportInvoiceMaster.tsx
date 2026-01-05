@@ -64,12 +64,20 @@ interface ExportInvoice {
     totalItems?: number;
     totalValue?: number;
   };
+  lotStructure?: LotStructure[]; // Preserves lot-to-stone mapping
 }
 
 interface Lot {
   id: string;
   name: string;
   stoneIds: string[];
+}
+
+interface LotStructure {
+  lotId: string;
+  lotName: string;
+  stoneIds: string[];
+  itemId: string; // Links to InvoiceItem.id
 }
 
 interface Props {
@@ -1264,6 +1272,400 @@ const EditExportModal: React.FC<{
         </div>
       </div>
     </div>
+   );
+};
+
+// --- Lot View Modal Component ---
+const LotViewModal: React.FC<{
+  lot: LotStructure;
+  invoice: ExportInvoice;
+  onClose: () => void;
+  onSave: (updatedLot: LotStructure) => void;
+  isReadOnly?: boolean;
+}> = ({ lot, invoice, onClose, onSave, isReadOnly }) => {
+  const allStones = getExportedStones();
+  const [lotStones, setLotStones] = useState<ExtendedSpinelStone[]>(() => {
+    return allStones.filter(s => lot.stoneIds.includes(s.id));
+  });
+  const [isAddStoneModalOpen, setIsAddStoneModalOpen] = useState(false);
+  const [editingStoneId, setEditingStoneId] = useState<string | null>(null);
+  const [editingWeight, setEditingWeight] = useState<number>(0);
+
+  // Get stones already in other lots of this invoice
+  const usedStoneIds = new Set(
+    invoice.lotStructure?.flatMap(ls => ls.stoneIds) || []
+  );
+
+  const availableStones = allStones.filter(s => !usedStoneIds.has(s.id));
+
+  const handleRemoveStone = (stoneId: string) => {
+    setLotStones(prev => prev.filter(s => s.id !== stoneId));
+  };
+
+  const handleAddStones = (selectedStoneIds: string[]) => {
+    const newStones = allStones.filter(s => selectedStoneIds.includes(s.id));
+    setLotStones(prev => [...prev, ...newStones]);
+    setIsAddStoneModalOpen(false);
+  };
+
+  const handleEditWeight = (stoneId: string, currentWeight: number) => {
+    setEditingStoneId(stoneId);
+    setEditingWeight(currentWeight);
+  };
+
+  const handleSaveWeight = (stoneId: string) => {
+    setLotStones(prev => prev.map(s => 
+      s.id === stoneId ? { ...s, weight: editingWeight } : s
+    ));
+    setEditingStoneId(null);
+  };
+
+  const handleSave = () => {
+    const updatedLot: LotStructure = {
+      ...lot,
+      stoneIds: lotStones.map(s => s.id)
+    };
+    onSave(updatedLot);
+  };
+
+  const totalWeight = lotStones.reduce((sum, s) => sum + s.weight, 0);
+  const totalPieces = lotStones.length;
+  const totalValue = lotStones.reduce((sum, s) => sum + (s.price || 0) * s.weight, 0);
+
+  return (
+    <>
+      <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-stone-900/60 backdrop-blur-sm animate-in fade-in duration-200">
+         <div className="bg-white rounded-3xl w-full max-w-4xl shadow-2xl flex flex-col max-h-[90vh] animate-in zoom-in-95 duration-200">
+            {/* Header */}
+            <div className="p-6 border-b border-stone-200 flex justify-between items-center">
+               <div>
+                  <h3 className="text-2xl font-bold text-stone-900">{lot.lotName}</h3>
+                  <p className="text-sm text-stone-500 mt-1">View and manage stones in this lot</p>
+               </div>
+               <button 
+                  onClick={onClose}
+                  className="p-2 hover:bg-stone-100 rounded-full text-stone-400 transition-colors"
+               >
+                  <X size={24} />
+               </button>
+            </div>
+
+            {/* Summary Cards */}
+            <div className="p-6 border-b border-stone-200 bg-stone-50/50">
+               <div className="grid grid-cols-3 gap-4">
+                  <div className="bg-white p-4 rounded-2xl border border-stone-200">
+                     <div className="text-xs font-bold text-stone-400 uppercase mb-1">Total Pieces</div>
+                     <div className="text-2xl font-black text-stone-900">{totalPieces}</div>
+                  </div>
+                  <div className="bg-white p-4 rounded-2xl border border-stone-200">
+                     <div className="text-xs font-bold text-stone-400 uppercase mb-1">Total Weight</div>
+                     <div className="text-2xl font-black text-stone-900">{totalWeight.toFixed(2)} ct</div>
+                  </div>
+                  <div className="bg-white p-4 rounded-2xl border border-stone-200">
+                     <div className="text-xs font-bold text-stone-400 uppercase mb-1">Total Value</div>
+                     <div className="text-2xl font-black text-green-600">${totalValue.toLocaleString()}</div>
+                  </div>
+               </div>
+            </div>
+
+            {/* Actions */}
+            {!isReadOnly && (
+               <div className="p-6 border-b border-stone-200 flex justify-between items-center">
+                  <button
+                     onClick={() => setIsAddStoneModalOpen(true)}
+                     className="px-4 py-2 bg-purple-600 text-white rounded-xl font-bold hover:bg-purple-700 transition-colors flex items-center gap-2"
+                  >
+                     <Plus size={18} /> Add Stones
+                  </button>
+               </div>
+            )}
+
+            {/* Stone Table */}
+            <div className="flex-1 overflow-y-auto p-6">
+               <div className="overflow-x-auto">
+                  <table className="w-full text-left text-sm">
+                     <thead className="bg-stone-50 text-[10px] font-black text-stone-400 uppercase tracking-widest border-b border-stone-200">
+                        <tr>
+                           <th className="p-4">Code</th>
+                           <th className="p-4">Variety</th>
+                           <th className="p-4 text-right">Weight</th>
+                           <th className="p-4 text-right">Price</th>
+                           <th className="p-4 text-right">Value</th>
+                           {!isReadOnly && <th className="p-4 text-center">Actions</th>}
+                        </tr>
+                     </thead>
+                     <tbody className="divide-y divide-stone-100">
+                        {lotStones.map(stone => (
+                           <tr key={stone.id} className="hover:bg-stone-50 transition-colors">
+                              <td className="p-4">
+                                 <span className="font-mono text-xs font-black text-purple-600 bg-purple-50 px-2.5 py-1 rounded-xl border border-purple-100">
+                                    {stone.code}
+                                 </span>
+                              </td>
+                              <td className="p-4 font-medium text-stone-800">{stone.variety || '-'}</td>
+                              <td className="p-4 text-right font-mono">
+                                 {editingStoneId === stone.id ? (
+                                    <input
+                                       type="number"
+                                       value={editingWeight}
+                                       onChange={(e) => setEditingWeight(Number(e.target.value))}
+                                       onBlur={() => handleSaveWeight(stone.id)}
+                                       onKeyDown={(e) => {
+                                          if (e.key === 'Enter') handleSaveWeight(stone.id);
+                                          if (e.key === 'Escape') setEditingStoneId(null);
+                                       }}
+                                       className="w-24 p-2 border border-purple-300 rounded-lg text-right font-mono focus:outline-none focus:ring-2 focus:ring-purple-500"
+                                       autoFocus
+                                    />
+                                 ) : (
+                                    <button
+                                       onClick={() => !isReadOnly && handleEditWeight(stone.id, stone.weight)}
+                                       className={`font-bold text-stone-700 ${!isReadOnly ? 'hover:text-purple-600 hover:underline cursor-pointer' : ''}`}
+                                    >
+                                       {stone.weight.toFixed(2)} ct
+                                    </button>
+                                 )}
+                              </td>
+                              <td className="p-4 text-right font-mono text-stone-600">
+                                 ${(stone.price || 0).toFixed(2)}
+                              </td>
+                              <td className="p-4 text-right font-mono font-bold text-stone-900">
+                                 ${((stone.price || 0) * stone.weight).toLocaleString()}
+                              </td>
+                              {!isReadOnly && (
+                                 <td className="p-4 text-center">
+                                    <button
+                                       onClick={() => handleRemoveStone(stone.id)}
+                                       className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                                    >
+                                       <Trash2 size={18} />
+                                    </button>
+                                 </td>
+                              )}
+                           </tr>
+                        ))}
+                     </tbody>
+                  </table>
+                  {lotStones.length === 0 && (
+                     <div className="p-16 text-center text-stone-400">No stones in this lot.</div>
+                  )}
+               </div>
+            </div>
+
+            {/* Footer */}
+            {!isReadOnly && (
+               <div className="p-6 border-t border-stone-200 flex justify-end gap-3">
+                  <button
+                     onClick={onClose}
+                     className="px-6 py-3 bg-stone-100 text-stone-700 rounded-xl font-bold hover:bg-stone-200 transition-colors"
+                  >
+                     Cancel
+                  </button>
+                  <button
+                     onClick={handleSave}
+                     disabled={lotStones.length === 0}
+                     className="px-6 py-3 bg-purple-600 text-white rounded-xl font-bold hover:bg-purple-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                  >
+                     <Save size={18} /> Save Changes
+                  </button>
+               </div>
+            )}
+         </div>
+      </div>
+
+      {/* Add Stone Modal */}
+      {isAddStoneModalOpen && (
+         <StoneSelectionModal
+            availableStones={availableStones}
+            onClose={() => setIsAddStoneModalOpen(false)}
+            onConfirm={handleAddStones}
+         />
+      )}
+    </>
+  );
+};
+
+// --- Stone Selection Modal Component ---
+const StoneSelectionModal: React.FC<{
+  availableStones: ExtendedSpinelStone[];
+  onClose: () => void;
+  onConfirm: (selectedStoneIds: string[]) => void;
+}> = ({ availableStones, onClose, onConfirm }) => {
+  const [selectedStoneIds, setSelectedStoneIds] = useState<Set<string>>(new Set());
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedVariety, setSelectedVariety] = useState<string>('All');
+  const [selectedCompany, setSelectedCompany] = useState<string>('All');
+  const [weightMin, setWeightMin] = useState<string>('');
+  const [weightMax, setWeightMax] = useState<string>('');
+
+  const uniqueVarieties = Array.from(new Set(availableStones.map(s => s.variety).filter(Boolean))).sort();
+  const uniqueCompanies = Array.from(new Set(availableStones.map(s => s.company).filter(Boolean))).sort();
+
+  const filteredStones = availableStones.filter(stone => {
+    const matchesSearch = 
+      stone.code.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (stone.variety && stone.variety.toLowerCase().includes(searchQuery.toLowerCase())) ||
+      (stone.company && stone.company.toLowerCase().includes(searchQuery.toLowerCase()));
+    
+    const matchesVariety = selectedVariety === 'All' || stone.variety === selectedVariety;
+    const matchesCompany = selectedCompany === 'All' || stone.company === selectedCompany;
+    
+    const matchesWeightMin = !weightMin || stone.weight >= Number(weightMin);
+    const matchesWeightMax = !weightMax || stone.weight <= Number(weightMax);
+    
+    return matchesSearch && matchesVariety && matchesCompany && matchesWeightMin && matchesWeightMax;
+  });
+
+  const toggleStone = (stoneId: string) => {
+    setSelectedStoneIds(prev => {
+      const next = new Set(prev);
+      if (next.has(stoneId)) {
+        next.delete(stoneId);
+      } else {
+        next.add(stoneId);
+      }
+      return next;
+    });
+  };
+
+  const handleSelectAll = () => {
+    setSelectedStoneIds(new Set(filteredStones.map(s => s.id)));
+  };
+
+  const handleDeselectAll = () => {
+    setSelectedStoneIds(new Set());
+  };
+
+  return (
+    <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-stone-900/60 backdrop-blur-sm animate-in fade-in duration-200">
+       <div className="bg-white rounded-3xl w-full max-w-5xl shadow-2xl flex flex-col max-h-[90vh] animate-in zoom-in-95 duration-200">
+          <div className="p-6 border-b border-stone-200 flex justify-between items-center">
+             <h3 className="text-xl font-bold text-stone-900">Select Stones to Add</h3>
+             <button onClick={onClose} className="p-2 hover:bg-stone-100 rounded-full text-stone-400"><X size={20}/></button>
+          </div>
+
+          {/* Filters */}
+          <div className="p-6 border-b border-stone-200 space-y-4">
+             <div className="relative">
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-stone-300" size={18} />
+                <input 
+                   type="text" 
+                   placeholder="Search by code, variety, company..." 
+                   value={searchQuery}
+                   onChange={(e) => setSearchQuery(e.target.value)}
+                   className="w-full pl-11 pr-4 py-3 bg-stone-50/50 border border-stone-100 rounded-[20px] text-sm focus:ring-4 focus:ring-purple-500/5 focus:border-purple-300 outline-none transition-all placeholder-stone-300 text-stone-700" 
+                />
+             </div>
+             <div className="flex flex-wrap gap-3">
+                {uniqueVarieties.length > 0 && (
+                   <select 
+                      value={selectedVariety} 
+                      onChange={(e) => setSelectedVariety(e.target.value)} 
+                      className="px-3 py-2 bg-stone-50 border border-stone-100 rounded-xl text-xs font-bold focus:outline-none"
+                   >
+                      <option value="All">All Varieties</option>
+                      {uniqueVarieties.map(v => <option key={v} value={v}>{v}</option>)}
+                   </select>
+                )}
+                {uniqueCompanies.length > 0 && (
+                   <select 
+                      value={selectedCompany} 
+                      onChange={(e) => setSelectedCompany(e.target.value)} 
+                      className="px-3 py-2 bg-stone-50 border border-stone-100 rounded-xl text-xs font-bold focus:outline-none"
+                   >
+                      <option value="All">All Companies</option>
+                      {uniqueCompanies.map(c => <option key={c} value={c}>{c}</option>)}
+                   </select>
+                )}
+                <input
+                   type="number"
+                   placeholder="Min Weight"
+                   value={weightMin}
+                   onChange={(e) => setWeightMin(e.target.value)}
+                   className="px-3 py-2 bg-stone-50 border border-stone-100 rounded-xl text-xs focus:outline-none w-32"
+                />
+                <input
+                   type="number"
+                   placeholder="Max Weight"
+                   value={weightMax}
+                   onChange={(e) => setWeightMax(e.target.value)}
+                   className="px-3 py-2 bg-stone-50 border border-stone-100 rounded-xl text-xs focus:outline-none w-32"
+                />
+             </div>
+             <div className="flex justify-between items-center">
+                <div className="flex gap-2">
+                   <button onClick={handleSelectAll} className="px-3 py-1.5 bg-purple-50 text-purple-600 rounded-lg text-xs font-bold hover:bg-purple-100">
+                      Select All
+                   </button>
+                   <button onClick={handleDeselectAll} className="px-3 py-1.5 bg-stone-50 text-stone-600 rounded-lg text-xs font-bold hover:bg-stone-100">
+                      Deselect All
+                   </button>
+                </div>
+                <span className="text-xs font-bold text-purple-600">
+                   {selectedStoneIds.size} of {filteredStones.length} selected
+                </span>
+             </div>
+          </div>
+
+          {/* Stone List */}
+          <div className="flex-1 overflow-y-auto p-6">
+             <div className="space-y-2">
+                {filteredStones.map(stone => (
+                   <div
+                      key={stone.id}
+                      onClick={() => toggleStone(stone.id)}
+                      className={`p-4 rounded-xl border-2 cursor-pointer transition-all ${
+                         selectedStoneIds.has(stone.id)
+                           ? 'border-purple-500 bg-purple-50'
+                           : 'border-stone-200 bg-white hover:border-purple-200'
+                      }`}
+                   >
+                      <div className="flex justify-between items-center">
+                         <div className="flex items-center gap-3">
+                            <div className={`w-5 h-5 rounded border-2 flex items-center justify-center ${
+                               selectedStoneIds.has(stone.id) ? 'border-purple-500 bg-purple-500' : 'border-stone-300'
+                            }`}>
+                               {selectedStoneIds.has(stone.id) && <CheckCircle size={14} className="text-white" />}
+                            </div>
+                            <span className="font-mono text-sm font-black text-purple-600">{stone.code}</span>
+                            <span className="text-sm text-stone-700">{stone.variety || '-'}</span>
+                            {stone.company && (
+                               <span className="text-xs text-stone-500">({stone.company})</span>
+                            )}
+                         </div>
+                         <div className="flex items-center gap-4 text-sm">
+                            <span className="text-stone-600">{stone.weight.toFixed(2)} ct</span>
+                            {stone.price && (
+                               <span className="text-stone-600">${stone.price.toFixed(2)}</span>
+                            )}
+                         </div>
+                      </div>
+                   </div>
+                ))}
+             </div>
+             {filteredStones.length === 0 && (
+                <div className="p-16 text-center text-stone-400">No stones found.</div>
+             )}
+          </div>
+
+          {/* Footer */}
+          <div className="p-6 border-t border-stone-200 flex justify-end gap-3">
+             <button
+                onClick={onClose}
+                className="px-6 py-3 bg-stone-100 text-stone-700 rounded-xl font-bold hover:bg-stone-200 transition-colors"
+             >
+                Cancel
+             </button>
+             <button
+                onClick={() => onConfirm(Array.from(selectedStoneIds))}
+                disabled={selectedStoneIds.size === 0}
+                className="px-6 py-3 bg-purple-600 text-white rounded-xl font-bold hover:bg-purple-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+             >
+                Add {selectedStoneIds.size} Stone{selectedStoneIds.size !== 1 ? 's' : ''}
+             </button>
+          </div>
+       </div>
+    </div>
   );
 };
 
@@ -1440,6 +1842,8 @@ const ExportDetailView: React.FC<{
   isReadOnly?: boolean 
 }> = ({ invoice, onBack, onEdit, onUpdate, isReadOnly }) => {
   const [localInvoice, setLocalInvoice] = useState<ExportInvoice>(invoice);
+  const [selectedLot, setSelectedLot] = useState<LotStructure | null>(null);
+  const [isLotModalOpen, setIsLotModalOpen] = useState(false);
   const [editingItemId, setEditingItemId] = useState<string | null>(null);
   const [editingValue, setEditingValue] = useState<string>('');
 
@@ -1570,10 +1974,28 @@ const ExportDetailView: React.FC<{
                          </tr>
                       </thead>
                       <tbody className="divide-y divide-stone-50">
-                         {localInvoice.items.map((item, i) => (
-                            <tr key={i} className="hover:bg-stone-50 transition-colors">
+                         {localInvoice.items.map((item, i) => {
+                           const lotStructure = localInvoice.lotStructure?.find(ls => ls.itemId === item.id);
+                           const isClickable = !!lotStructure;
+                           
+                           return (
+                            <tr 
+                              key={i} 
+                              className={`hover:bg-stone-50 transition-colors ${isClickable && !isReadOnly ? 'cursor-pointer' : ''}`}
+                              onClick={() => {
+                                if (isClickable && !isReadOnly) {
+                                  setSelectedLot(lotStructure);
+                                  setIsLotModalOpen(true);
+                                }
+                              }}
+                            >
                                <td className="p-6 text-center text-stone-300 font-mono text-xs">{item.sn}</td>
-                               <td className="p-6 font-bold text-stone-800">{item.description}</td>
+                               <td className="p-6 font-bold text-stone-800">
+                                 {item.description}
+                                 {isClickable && (
+                                   <span className="ml-2 text-xs text-purple-500">(Click to view stones)</span>
+                                 )}
+                               </td>
                                <td className="p-6 text-center text-stone-600">{item.lotPcs}</td>
                                <td className="p-6 text-right font-mono font-bold text-stone-700">{item.weight.toFixed(2)}</td>
                                <td className="p-6 text-right">
@@ -1601,16 +2023,35 @@ const ExportDetailView: React.FC<{
                                  )}
                                </td>
                             </tr>
-                         ))}
+                           );
+                         })}
                       </tbody>
                    </table>
                 </div>
 
                 <div className="md:hidden space-y-4 p-6">
-                   {localInvoice.items.map((item, i) => (
-                      <div key={i} className="bg-stone-50 rounded-2xl border border-stone-200 p-5">
+                   {localInvoice.items.map((item, i) => {
+                     const lotStructure = localInvoice.lotStructure?.find(ls => ls.itemId === item.id);
+                     const isClickable = !!lotStructure;
+                     
+                     return (
+                      <div 
+                        key={i} 
+                        className={`bg-stone-50 rounded-2xl border border-stone-200 p-5 ${isClickable && !isReadOnly ? 'cursor-pointer active:scale-[0.98]' : ''}`}
+                        onClick={() => {
+                          if (isClickable && !isReadOnly) {
+                            setSelectedLot(lotStructure);
+                            setIsLotModalOpen(true);
+                          }
+                        }}
+                      >
                          <div className="flex justify-between items-start mb-4 border-b border-stone-200 pb-3">
-                            <h4 className="font-bold text-stone-900">{item.description}</h4>
+                            <h4 className="font-bold text-stone-900">
+                              {item.description}
+                              {isClickable && (
+                                <span className="ml-2 text-xs text-purple-500">(Tap to view stones)</span>
+                              )}
+                            </h4>
                             <span className="text-[10px] font-bold text-stone-300 uppercase">Entry #{item.sn}</span>
                          </div>
                          <div className="grid grid-cols-2 gap-y-4 text-xs font-bold uppercase tracking-tight text-stone-500">
@@ -1643,7 +2084,8 @@ const ExportDetailView: React.FC<{
                             </div>
                          </div>
                       </div>
-                   ))}
+                     );
+                   })}
                 </div>
              </div>
           </div>
@@ -1695,6 +2137,52 @@ const ExportDetailView: React.FC<{
              )}
           </div>
        </div>
+
+      {/* Lot View Modal */}
+      {isLotModalOpen && selectedLot && (
+         <LotViewModal
+            lot={selectedLot}
+            invoice={localInvoice}
+            onClose={() => {
+               setIsLotModalOpen(false);
+               setSelectedLot(null);
+            }}
+            onSave={(updatedLot) => {
+               // Update lot structure
+               const updatedLotStructure = localInvoice.lotStructure?.map(ls => 
+                  ls.lotId === updatedLot.lotId ? updatedLot : ls
+               ) || [];
+               
+               // Recalculate invoice item totals
+               const updatedItems = localInvoice.items.map(item => {
+                  if (item.id === updatedLot.itemId) {
+                     const lotStones = getExportedStones().filter(s => updatedLot.stoneIds.includes(s.id));
+                     const totalWeight = lotStones.reduce((sum, s) => sum + s.weight, 0);
+                     const totalPieces = lotStones.length;
+                     
+                     return {
+                        ...item,
+                        lotPcs: totalPieces,
+                        weight: totalWeight
+                     };
+                  }
+                  return item;
+               });
+               
+               const updatedInvoice = {
+                  ...localInvoice,
+                  lotStructure: updatedLotStructure,
+                  items: updatedItems
+               };
+               
+               setLocalInvoice(updatedInvoice);
+               onUpdate?.(updatedInvoice);
+               setIsLotModalOpen(false);
+               setSelectedLot(null);
+            }}
+            isReadOnly={isReadOnly}
+         />
+      )}
     </div>
   );
 };

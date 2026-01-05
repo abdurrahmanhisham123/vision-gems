@@ -2,13 +2,14 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { 
   Search, Plus, Download, Printer, 
   Trash2, Edit, Save, X, DollarSign, 
-  FileText, Globe, Building2, CreditCard, Wallet, CheckCircle, Clock, AlertCircle
+  FileText, Globe, Building2, CreditCard, Wallet, CheckCircle, Clock, AlertCircle, Calendar, Filter
 } from 'lucide-react';
 
 // --- Types ---
 interface PaymentItem {
   id: string;
   date: string;
+  title: string; // Title field
   code: string;
   customerName: string; // Customer/Entity Name
   description: string;
@@ -82,19 +83,14 @@ const PaymentDetailPanel: React.FC<{
     const outstanding = formData.invoiceAmount - formData.paidAmount;
     setFormData(prev => ({ ...prev, outstandingAmount: outstanding }));
     
-    // Auto-calculate commission if percent and invoiceAmount are provided
-    if (formData.percent && formData.invoiceAmount) {
-      const commission = (formData.invoiceAmount * formData.percent) / 100;
-      setFormData(prev => ({ ...prev, commission }));
-    }
+    // Calculate Office Percentage Deduction (not stored, calculated on-the-fly)
+    const officePercentageDeduction = formData.percent && formData.invoiceAmount 
+      ? (formData.invoiceAmount * formData.percent) / 100 
+      : 0;
     
-    // Auto-calculate final amount (invoiceAmount + commission if commission exists)
-    if (formData.commission !== undefined) {
-      const finalAmount = formData.invoiceAmount + (formData.commission || 0);
-      setFormData(prev => ({ ...prev, finalAmount }));
-    } else {
-      setFormData(prev => ({ ...prev, finalAmount: formData.invoiceAmount }));
-    }
+    // Calculate Final Amount: invoiceAmount - officePercentageDeduction - commission
+    const finalAmount = formData.invoiceAmount - officePercentageDeduction - (formData.commission || 0);
+    setFormData(prev => ({ ...prev, finalAmount }));
     
     // Auto-update status based on amounts
     let newStatus: 'Paid' | 'Partial' | 'Pending' | 'Overdue' = 'Pending';
@@ -154,19 +150,20 @@ const PaymentDetailPanel: React.FC<{
   };
 
   const handlePercentChange = (percent: number) => {
-    const commission = formData.invoiceAmount * (percent / 100);
-    const finalAmount = formData.invoiceAmount + commission;
-    setFormData(prev => ({ ...prev, percent, commission, finalAmount }));
+    // Office Percentage is independent - just update the percent value
+    // Final amount will be recalculated in useEffect
+    setFormData(prev => ({ ...prev, percent }));
   };
 
   const handleCommissionChange = (commission: number) => {
-    const finalAmount = formData.invoiceAmount + commission;
-    setFormData(prev => ({ ...prev, commission, finalAmount }));
+    // Commission is independent - just update the commission value
+    // Final amount will be recalculated in useEffect
+    setFormData(prev => ({ ...prev, commission }));
   };
 
   const handleSave = () => {
-    if (!formData.customerName || !formData.invoiceAmount || !formData.currency) {
-      return alert('Customer Name, Invoice Amount, and Currency are required');
+    if (!formData.customerName || !formData.invoiceAmount || !formData.currency || !formData.title) {
+      return alert('Title, Customer Name, Invoice Amount, and Currency are required');
     }
     onSave(formData);
   };
@@ -295,6 +292,7 @@ const PaymentDetailPanel: React.FC<{
               <h3 className="text-[10px] font-bold text-stone-400 uppercase tracking-widest mb-4 flex items-center gap-2"><CreditCard size={14} className="text-violet-500" /> Payment Details</h3>
               <div className="grid grid-cols-2 gap-x-4 md:gap-x-6">
                 <Field label="Date" value={formData.date} field="date" isEditing={isEditing} onInputChange={handleInputChange} type="date" />
+                <Field label="Title *" value={formData.title} field="title" isEditing={isEditing} onInputChange={handleInputChange} highlight />
                 <Field label="Code" value={formData.code} field="code" isEditing={isEditing} onInputChange={handleInputChange} highlight />
                 <Field label="Customer/Entity Name *" value={formData.customerName} field="customerName" isEditing={isEditing} onInputChange={handleInputChange} />
                 <Field label="Description" value={formData.description} field="description" isEditing={isEditing} onInputChange={handleInputChange} />
@@ -303,8 +301,42 @@ const PaymentDetailPanel: React.FC<{
                 <Field label="Currency *" value={formData.currency} field="currency" isEditing={isEditing} onInputChange={handleCurrencyChange} type="select" options={currencies} />
                 <Field label="Payment Method" value={formData.paymentMethod} field="paymentMethod" isEditing={isEditing} onInputChange={handleInputChange} type="select" options={paymentMethods} />
                 <Field label="Rs Amount *" value={formData.invoiceAmount} field="invoiceAmount" isEditing={isEditing} onInputChange={handleInvoiceAmountChange} type="number" highlight isCurrency />
-                <Field label="% (Percent)" value={formData.percent} field="percent" isEditing={isEditing} onInputChange={handlePercentChange} type="number" />
-                <Field label="Commission" value={formData.commission} field="commission" isEditing={isEditing} onInputChange={handleCommissionChange} type="number" highlight isCurrency />
+                <div className="flex flex-col py-2 border-b border-stone-100 last:border-0 min-h-[50px] justify-center">
+                  <span className="text-[9px] font-bold text-stone-400 uppercase tracking-wider mb-0.5">OFFICE %</span>
+                  {isEditing ? (
+                    <div className="flex items-center gap-2">
+                      <input 
+                        type="number" 
+                        value={formData.percent === undefined || formData.percent === null ? '' : formData.percent.toString()} 
+                        onChange={(e) => handlePercentChange(Number(e.target.value) || 0)} 
+                        onFocus={(e) => {
+                          if (formData.percent === 0 || formData.percent === undefined) {
+                            e.target.select();
+                          }
+                        }}
+                        className="w-24 p-2 bg-stone-50 border border-stone-200 rounded-lg text-sm outline-none transition-all focus:border-violet-500 focus:ring-2 focus:ring-violet-500/10" 
+                        placeholder="%"
+                      />
+                      {formData.percent && formData.invoiceAmount ? (
+                        <span className="text-sm font-mono font-bold text-red-600 bg-red-50 px-3 py-2 rounded-lg border-2 border-red-200 whitespace-nowrap">
+                          -{((formData.invoiceAmount * formData.percent) / 100).toLocaleString(undefined, { maximumFractionDigits: 0 })} LKR
+                        </span>
+                      ) : null}
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-medium text-stone-700">
+                        {formData.percent === undefined || formData.percent === null || formData.percent === 0 ? '-' : `${formData.percent}%`}
+                      </span>
+                      {formData.percent && formData.invoiceAmount ? (
+                        <span className="text-sm font-mono font-bold text-red-600 bg-red-50 px-3 py-2 rounded-lg border-2 border-red-200">
+                          -{((formData.invoiceAmount * formData.percent) / 100).toLocaleString(undefined, { maximumFractionDigits: 0 })} LKR
+                        </span>
+                      ) : null}
+                    </div>
+                  )}
+                </div>
+                <Field label="Commission (LKR)" value={formData.commission} field="commission" isEditing={isEditing} onInputChange={handleCommissionChange} type="number" highlight isCurrency />
                 <Field label="Final Amount" value={formData.finalAmount} field="finalAmount" isEditing={false} onInputChange={handleInputChange} highlight isCurrency />
                 <Field label="Payable Amount" value={formData.payableAmount} field="payableAmount" isEditing={isEditing} onInputChange={handleInputChange} type="number" highlight isCurrency />
                 <Field label="Outstanding Amount" value={formData.outstandingAmount} field="outstandingAmount" isEditing={false} onInputChange={handleInputChange} highlight isCurrency />
@@ -359,13 +391,60 @@ const PaymentDetailPanel: React.FC<{
 };
 
 export const UnifiedPaymentLedgerTemplate: React.FC<Props> = ({ moduleId, tabId, isReadOnly }) => {
-  const [items, setItems] = useState<PaymentItem[]>(generateMockData());
+  // Load data from localStorage on mount
+  const [items, setItems] = useState<PaymentItem[]>(() => {
+    const storageKey = `unified_payment_ledger_outstanding_${tabId}`;
+    const saved = localStorage.getItem(storageKey);
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return parsed;
+        }
+      } catch (e) {
+        console.error('Failed to load payment ledger data:', e);
+      }
+    }
+    return generateMockData();
+  });
+  
   const [searchQuery, setSearchQuery] = useState('');
+  const [companyFilter, setCompanyFilter] = useState<string>('All');
+  const [statusFilter, setStatusFilter] = useState<string>('All');
+  const [titleFilter, setTitleFilter] = useState<string>('All');
+  const [dateMinFilter, setDateMinFilter] = useState<string>('');
+  const [dateMaxFilter, setDateMaxFilter] = useState<string>('');
   
   // Panel State
   const [selectedItem, setSelectedItem] = useState<PaymentItem | null>(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<PaymentItem | null>(null);
+
+  // Save data to localStorage whenever items change
+  useEffect(() => {
+    const storageKey = `unified_payment_ledger_outstanding_${tabId}`;
+    try {
+      localStorage.setItem(storageKey, JSON.stringify(items));
+      console.log(`Saved ${items.length} items to localStorage: ${storageKey}`);
+    } catch (e) {
+      console.error('Failed to save payment ledger data:', e);
+    }
+  }, [items, tabId]);
+
+  // --- Filter Options ---
+  const uniqueCompanies = useMemo(() => {
+    const companies = items.map(i => i.company).filter(Boolean) as string[];
+    return Array.from(new Set(companies)).sort();
+  }, [items]);
+
+  const uniqueStatuses = useMemo(() => {
+    return ['Paid', 'Partial', 'Pending', 'Overdue'];
+  }, []);
+
+  const uniqueTitles = useMemo(() => {
+    const titles = items.map(i => i.title).filter(Boolean) as string[];
+    return Array.from(new Set(titles)).sort();
+  }, [items]);
 
   // --- Statistics ---
   const stats = useMemo(() => {
@@ -386,11 +465,31 @@ export const UnifiedPaymentLedgerTemplate: React.FC<Props> = ({ moduleId, tabId,
         (item.code && item.code.toLowerCase().includes(searchQuery.toLowerCase())) ||
         (item.description && item.description.toLowerCase().includes(searchQuery.toLowerCase())) ||
         (item.company && item.company.toLowerCase().includes(searchQuery.toLowerCase())) ||
-        (item.deal && item.deal.toLowerCase().includes(searchQuery.toLowerCase()));
-        
-      return matchesSearch;
+        (item.deal && item.deal.toLowerCase().includes(searchQuery.toLowerCase())) ||
+        (item.title && item.title.toLowerCase().includes(searchQuery.toLowerCase()));
+      
+      const matchesCompany = companyFilter === 'All' || item.company === companyFilter;
+      const matchesStatus = statusFilter === 'All' || item.status === statusFilter;
+      const matchesTitle = titleFilter === 'All' || item.title === titleFilter;
+      
+      const itemDate = new Date(item.date);
+      const matchesDateMin = !dateMinFilter || itemDate >= new Date(dateMinFilter);
+      const matchesDateMax = !dateMaxFilter || itemDate <= new Date(dateMaxFilter);
+      
+      return matchesSearch && matchesCompany && matchesStatus && matchesTitle && matchesDateMin && matchesDateMax;
     }).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-  }, [items, searchQuery]);
+  }, [items, searchQuery, companyFilter, statusFilter, titleFilter, dateMinFilter, dateMaxFilter]);
+
+  const hasActiveFilters = companyFilter !== 'All' || statusFilter !== 'All' || titleFilter !== 'All' || dateMinFilter !== '' || dateMaxFilter !== '';
+
+  const handleClearFilters = () => {
+    setCompanyFilter('All');
+    setStatusFilter('All');
+    setTitleFilter('All');
+    setDateMinFilter('');
+    setDateMaxFilter('');
+    setSearchQuery('');
+  };
 
   // --- Handlers ---
   const handleDelete = (id: string, e?: React.MouseEvent) => {
@@ -456,6 +555,7 @@ export const UnifiedPaymentLedgerTemplate: React.FC<Props> = ({ moduleId, tabId,
       return `
       <tr>
         <td style="border: 1px solid #cccccc; padding: 5px 4px; font-size: 8pt; text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; vertical-align: middle;">${date}</td>
+        <td style="border: 1px solid #cccccc; padding: 5px 4px; font-size: 8pt; text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; vertical-align: middle;">${title}</td>
         <td style="border: 1px solid #cccccc; padding: 5px 4px; font-size: 8pt; text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; vertical-align: middle;">${code}</td>
         <td style="border: 1px solid #cccccc; padding: 5px 4px; font-size: 8pt; text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; vertical-align: middle;">${customerName}</td>
         <td style="border: 1px solid #cccccc; padding: 5px 4px; font-size: 8pt; text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; vertical-align: middle;">${description}</td>
@@ -474,7 +574,7 @@ export const UnifiedPaymentLedgerTemplate: React.FC<Props> = ({ moduleId, tabId,
         <td style="border: 1px solid #cccccc; padding: 5px 4px; font-size: 8pt; text-align: right; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; vertical-align: middle;">${item.weight ? item.weight.toFixed(2) + ' ct' : '-'}</td>
         <td style="border: 1px solid #cccccc; padding: 5px 4px; font-size: 8pt; text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; vertical-align: middle;">${deal}</td>
         <td style="border: 1px solid #cccccc; padding: 5px 4px; font-size: 8pt; text-align: right; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; vertical-align: middle;">${item.percent ? item.percent.toFixed(2) + '%' : '-'}</td>
-        <td style="border: 1px solid #cccccc; padding: 5px 4px; font-size: 8pt; text-align: right; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; vertical-align: middle;">${item.commission ? formatCurrency(item.commission, item.currency) : '-'}</td>
+        <td style="border: 1px solid #cccccc; padding: 5px 4px; font-size: 8pt; text-align: right; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; vertical-align: middle;">${item.commission ? formatCurrency(item.commission, 'LKR') : '-'}</td>
         <td style="border: 1px solid #cccccc; padding: 5px 4px; font-size: 8pt; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; vertical-align: middle;">${item.halfPaid ? 'Yes' : 'No'}</td>
         <td style="border: 1px solid #cccccc; padding: 5px 4px; font-size: 8pt; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; vertical-align: middle;">${item.cleared ? 'Yes' : 'No'}</td>
         <td style="border: 1px solid #cccccc; padding: 5px 4px; font-size: 8pt; text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; vertical-align: middle;">${notes}</td>
@@ -569,6 +669,7 @@ export const UnifiedPaymentLedgerTemplate: React.FC<Props> = ({ moduleId, tabId,
           <thead>
             <tr>
               <th style="background-color: #f0f0f0; border: 1px solid #000000; padding: 6px 4px; text-align: left; font-weight: bold; font-size: 6pt; text-transform: uppercase; white-space: nowrap; color: #000000; vertical-align: middle;">Date</th>
+              <th style="background-color: #f0f0f0; border: 1px solid #000000; padding: 6px 4px; text-align: left; font-weight: bold; font-size: 6pt; text-transform: uppercase; white-space: nowrap; color: #000000; vertical-align: middle;">Title</th>
               <th style="background-color: #f0f0f0; border: 1px solid #000000; padding: 6px 4px; text-align: left; font-weight: bold; font-size: 6pt; text-transform: uppercase; white-space: nowrap; color: #000000; vertical-align: middle;">Code</th>
               <th style="background-color: #f0f0f0; border: 1px solid #000000; padding: 6px 4px; text-align: left; font-weight: bold; font-size: 6pt; text-transform: uppercase; white-space: nowrap; color: #000000; vertical-align: middle;">Customer</th>
               <th style="background-color: #f0f0f0; border: 1px solid #000000; padding: 6px 4px; text-align: left; font-weight: bold; font-size: 6pt; text-transform: uppercase; white-space: nowrap; color: #000000; vertical-align: middle;">Description</th>
@@ -586,7 +687,7 @@ export const UnifiedPaymentLedgerTemplate: React.FC<Props> = ({ moduleId, tabId,
               <th style="background-color: #f0f0f0; border: 1px solid #000000; padding: 6px 4px; text-align: left; font-weight: bold; font-size: 6pt; text-transform: uppercase; white-space: nowrap; color: #000000; vertical-align: middle;">Company</th>
               <th style="background-color: #f0f0f0; border: 1px solid #000000; padding: 6px 4px; text-align: right; font-weight: bold; font-size: 6pt; text-transform: uppercase; white-space: nowrap; color: #000000; vertical-align: middle;">Weight</th>
               <th style="background-color: #f0f0f0; border: 1px solid #000000; padding: 6px 4px; text-align: left; font-weight: bold; font-size: 6pt; text-transform: uppercase; white-space: nowrap; color: #000000; vertical-align: middle;">Deal</th>
-              <th style="background-color: #f0f0f0; border: 1px solid #000000; padding: 6px 4px; text-align: right; font-weight: bold; font-size: 6pt; text-transform: uppercase; white-space: nowrap; color: #000000; vertical-align: middle;">Percent</th>
+              <th style="background-color: #f0f0f0; border: 1px solid #000000; padding: 6px 4px; text-align: right; font-weight: bold; font-size: 6pt; text-transform: uppercase; white-space: nowrap; color: #000000; vertical-align: middle;">OFFICE %</th>
               <th style="background-color: #f0f0f0; border: 1px solid #000000; padding: 6px 4px; text-align: right; font-weight: bold; font-size: 6pt; text-transform: uppercase; white-space: nowrap; color: #000000; vertical-align: middle;">Commission</th>
               <th style="background-color: #f0f0f0; border: 1px solid #000000; padding: 6px 4px; text-align: center; font-weight: bold; font-size: 6pt; text-transform: uppercase; white-space: nowrap; color: #000000; vertical-align: middle;">Half Paid</th>
               <th style="background-color: #f0f0f0; border: 1px solid #000000; padding: 6px 4px; text-align: center; font-weight: bold; font-size: 6pt; text-transform: uppercase; white-space: nowrap; color: #000000; vertical-align: middle;">Cleared</th>
@@ -594,7 +695,7 @@ export const UnifiedPaymentLedgerTemplate: React.FC<Props> = ({ moduleId, tabId,
             </tr>
           </thead>
           <tbody>
-            ${tableRows || '<tr><td colspan="22" style="text-align: center; padding: 20px; border: 1px solid #cccccc;">No payment records found</td></tr>'}
+            ${tableRows || '<tr><td colspan="23" style="text-align: center; padding: 20px; border: 1px solid #cccccc;">No payment records found</td></tr>'}
           </tbody>
         </table>
       </div>
@@ -736,14 +837,63 @@ export const UnifiedPaymentLedgerTemplate: React.FC<Props> = ({ moduleId, tabId,
                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-stone-300" size={18} />
                <input 
                   type="text" 
-                  placeholder="Search by customer, code, description, company, deal..." 
+                  placeholder="Search by customer, code, description, company, deal, title..." 
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="w-full pl-11 pr-4 py-3 bg-stone-50/50 border border-stone-100 rounded-[20px] text-sm focus:ring-4 focus:ring-violet-500/5 focus:border-violet-300 outline-none transition-all placeholder-stone-300 text-stone-700" 
                />
             </div>
-            <div className="flex gap-2 overflow-x-auto hide-scrollbar pb-1 xl:pb-0">
-               <button className="px-4 py-3 bg-white border border-stone-200 rounded-[20px] text-stone-500 hover:text-stone-800 transition-colors shadow-sm">
+            <div className="flex gap-2 overflow-x-auto hide-scrollbar pb-1 xl:pb-0 shrink-0">
+               {uniqueCompanies.length > 0 && (
+                  <div className="flex items-center bg-stone-50 border border-stone-100 rounded-[20px] px-3 shrink-0">
+                     <Building2 size={14} className="text-stone-300" />
+                     <select 
+                        value={companyFilter} 
+                        onChange={(e) => setCompanyFilter(e.target.value)} 
+                        className="px-2 py-2.5 bg-transparent text-xs text-stone-600 font-bold focus:outline-none min-w-[100px]"
+                     >
+                        <option value="All">Company</option>
+                        {uniqueCompanies.map(company => (
+                           <option key={company} value={company}>{company}</option>
+                        ))}
+                     </select>
+                  </div>
+               )}
+               <div className="flex items-center bg-stone-50 border border-stone-100 rounded-[20px] px-3 shrink-0">
+                  <FileText size={14} className="text-stone-300" />
+                  <select 
+                     value={titleFilter} 
+                     onChange={(e) => setTitleFilter(e.target.value)} 
+                     className="px-2 py-2.5 bg-transparent text-xs text-stone-600 font-bold focus:outline-none min-w-[100px]"
+                  >
+                     <option value="All">Title</option>
+                     {uniqueTitles.map(title => (
+                        <option key={title} value={title}>{title}</option>
+                     ))}
+                  </select>
+               </div>
+               <div className="flex items-center bg-stone-50 border border-stone-100 rounded-[20px] px-3 shrink-0">
+                  <CheckCircle size={14} className="text-stone-300" />
+                  <select 
+                     value={statusFilter} 
+                     onChange={(e) => setStatusFilter(e.target.value)} 
+                     className="px-2 py-2.5 bg-transparent text-xs text-stone-600 font-bold focus:outline-none min-w-[100px]"
+                  >
+                     <option value="All">Status</option>
+                     {uniqueStatuses.map(status => (
+                        <option key={status} value={status}>{status}</option>
+                     ))}
+                  </select>
+               </div>
+               {hasActiveFilters && (
+                  <button
+                     onClick={handleClearFilters}
+                     className="px-4 py-2.5 bg-red-50 text-red-600 border border-red-200 rounded-[20px] text-xs font-bold hover:bg-red-100 transition-all shrink-0 flex items-center gap-2"
+                  >
+                     <X size={14} /> Clear Filters
+                  </button>
+               )}
+               <button className="px-4 py-3 bg-white border border-stone-200 rounded-[20px] text-stone-500 hover:text-stone-800 transition-colors shadow-sm shrink-0">
                  <Download size={18} />
                </button>
             </div>
@@ -757,13 +907,14 @@ export const UnifiedPaymentLedgerTemplate: React.FC<Props> = ({ moduleId, tabId,
                <thead>
                   <tr className="bg-stone-50 border-b border-stone-200 text-[10px] font-black text-stone-400 uppercase tracking-[0.15em]">
                      <th className="p-6 pl-10">Date</th>
+                     <th className="p-6">Title</th>
                      <th className="p-6">Code</th>
                      <th className="p-6">Customer</th>
                      <th className="p-6">Weight</th>
                      <th className="p-6">Deal</th>
                      <th className="p-6">Rs Amount</th>
-                     <th className="p-6">%</th>
-                     <th className="p-6">Commission</th>
+                     <th className="p-6">OFFICE %</th>
+                     <th className="p-6">Commission (LKR)</th>
                      <th className="p-6">Final Amount</th>
                      <th className="p-6">Payable Amount</th>
                      <th className="p-6">Outstanding</th>
@@ -781,6 +932,7 @@ export const UnifiedPaymentLedgerTemplate: React.FC<Props> = ({ moduleId, tabId,
                         className="hover:bg-violet-50/5 transition-colors cursor-pointer group"
                      >
                         <td className="p-6 pl-10 font-mono text-stone-500 text-xs whitespace-nowrap">{item.date}</td>
+                        <td className="p-6 text-stone-600 font-medium">{item.title || <span className="text-stone-300">-</span>}</td>
                         <td className="p-6">
                            <span className="font-mono text-xs font-black text-violet-600 bg-violet-50 px-2.5 py-1 rounded-xl border border-violet-100">
                               {item.code}
@@ -791,7 +943,7 @@ export const UnifiedPaymentLedgerTemplate: React.FC<Props> = ({ moduleId, tabId,
                         <td className="p-6 text-stone-600 max-w-xs truncate" title={item.deal}>{item.deal || <span className="text-stone-300">-</span>}</td>
                         <td className="p-6 font-mono font-bold text-stone-900">{formatCurrency(item.invoiceAmount, item.currency)}</td>
                         <td className="p-6 font-mono text-stone-600">{item.percent ? `${item.percent}%` : <span className="text-stone-300">-</span>}</td>
-                        <td className="p-6 font-mono font-bold text-stone-700">{item.commission ? formatCurrency(item.commission, item.currency) : <span className="text-stone-300">-</span>}</td>
+                        <td className="p-6 font-mono font-bold text-stone-700">{item.commission ? formatCurrency(item.commission, 'LKR') : <span className="text-stone-300">-</span>}</td>
                         <td className="p-6 font-mono font-bold text-indigo-700">{item.finalAmount ? formatCurrency(item.finalAmount, item.currency) : formatCurrency(item.invoiceAmount, item.currency)}</td>
                         <td className="p-6 font-mono font-bold text-blue-700">{item.payableAmount ? formatCurrency(item.payableAmount, item.currency) : <span className="text-stone-300">-</span>}</td>
                         <td className="p-6 font-mono font-bold text-red-700">{formatCurrency(item.outstandingAmount, item.currency)}</td>
@@ -840,6 +992,9 @@ export const UnifiedPaymentLedgerTemplate: React.FC<Props> = ({ moduleId, tabId,
                      <span className="text-[10px] font-black text-stone-400 uppercase tracking-wider mb-1 flex items-center gap-1">
                         <CreditCard size={10} /> {item.date}
                      </span>
+                     {item.title && (
+                        <span className="text-sm font-bold text-stone-700 mb-1">{item.title}</span>
+                     )}
                      <h3 className="font-black text-stone-900 text-lg">{item.customerName}</h3>
                   </div>
                   <div className="flex flex-col gap-1.5 items-end">
@@ -873,14 +1028,14 @@ export const UnifiedPaymentLedgerTemplate: React.FC<Props> = ({ moduleId, tabId,
                   )}
                   {item.percent && (
                      <div className="flex items-center gap-2 text-sm text-stone-600">
-                        <span className="text-stone-500">%:</span>
+                        <span className="text-stone-500">OFFICE %:</span>
                         <span className="font-medium">{item.percent}%</span>
                      </div>
                   )}
                   {item.commission && (
                      <div className="flex items-center gap-2 text-sm text-stone-600">
                         <span className="text-stone-500">Commission:</span>
-                        <span className="font-medium">{formatCurrency(item.commission, item.currency)}</span>
+                        <span className="font-medium">{formatCurrency(item.commission, 'LKR')}</span>
                      </div>
                   )}
                   {item.halfPaid && (
@@ -957,6 +1112,7 @@ const PaymentForm: React.FC<{
 }> = ({ initialData, onSave, onCancel }) => {
   const [formData, setFormData] = useState<Partial<PaymentItem>>({
     date: initialData?.date || new Date().toISOString().split('T')[0],
+    title: initialData?.title || '',
     code: initialData?.code || '',
     customerName: initialData?.customerName || '',
     description: initialData?.description || '',
@@ -987,19 +1143,14 @@ const PaymentForm: React.FC<{
     const outstanding = (formData.invoiceAmount || 0) - (formData.paidAmount || 0);
     setFormData(prev => ({ ...prev, outstandingAmount: outstanding }));
     
-    // Auto-calculate commission if percent and invoiceAmount are provided
-    if (formData.percent && formData.invoiceAmount) {
-      const commission = (formData.invoiceAmount * formData.percent) / 100;
-      setFormData(prev => ({ ...prev, commission }));
-    }
+    // Calculate Office Percentage Deduction (not stored, calculated on-the-fly)
+    const officePercentageDeduction = formData.percent && formData.invoiceAmount 
+      ? ((formData.invoiceAmount || 0) * formData.percent) / 100 
+      : 0;
     
-    // Auto-calculate final amount (invoiceAmount + commission if commission exists)
-    if (formData.commission !== undefined) {
-      const finalAmount = (formData.invoiceAmount || 0) + (formData.commission || 0);
-      setFormData(prev => ({ ...prev, finalAmount }));
-    } else {
-      setFormData(prev => ({ ...prev, finalAmount: formData.invoiceAmount }));
-    }
+    // Calculate Final Amount: invoiceAmount - officePercentageDeduction - commission
+    const finalAmount = (formData.invoiceAmount || 0) - officePercentageDeduction - (formData.commission || 0);
+    setFormData(prev => ({ ...prev, finalAmount }));
     
     // Auto-update status
     let newStatus: 'Paid' | 'Partial' | 'Pending' | 'Overdue' = 'Pending';
@@ -1052,24 +1203,26 @@ const PaymentForm: React.FC<{
   };
 
   const handlePercentChange = (percent: number) => {
-    const commission = (formData.invoiceAmount || 0) * (percent / 100);
-    const finalAmount = (formData.invoiceAmount || 0) + commission;
-    setFormData(prev => ({ ...prev, percent, commission, finalAmount }));
+    // Office Percentage is independent - just update the percent value
+    // Final amount will be recalculated in useEffect
+    setFormData(prev => ({ ...prev, percent }));
   };
 
   const handleCommissionChange = (commission: number) => {
-    const finalAmount = (formData.invoiceAmount || 0) + commission;
-    setFormData(prev => ({ ...prev, commission, finalAmount }));
+    // Commission is independent - just update the commission value
+    // Final amount will be recalculated in useEffect
+    setFormData(prev => ({ ...prev, commission }));
   };
 
   const handleSubmit = () => {
-    if (!formData.customerName || !formData.invoiceAmount || !formData.currency) {
-      return alert('Customer Name, Invoice Amount, and Currency are required');
+    if (!formData.customerName || !formData.invoiceAmount || !formData.currency || !formData.title) {
+      return alert('Title, Customer Name, Invoice Amount, and Currency are required');
     }
     
     onSave({
       id: initialData?.id || `payment-${Date.now()}`,
       date: formData.date!,
+      title: formData.title!,
       code: formData.code || `PAY-${Date.now().toString().slice(-4)}`,
       customerName: formData.customerName!,
       description: formData.description || '',
@@ -1115,6 +1268,18 @@ const PaymentForm: React.FC<{
                       className="w-full p-2.5 bg-stone-50 border border-stone-200 rounded-xl text-sm focus:ring-2 focus:ring-violet-500/20 focus:border-violet-500 outline-none" 
                    />
                 </div>
+                <div>
+                   <label className="block text-xs font-bold text-stone-500 uppercase mb-1.5 ml-1">Title *</label>
+                   <input 
+                      type="text" 
+                      value={formData.title || ''} 
+                      onChange={e => setFormData({...formData, title: e.target.value})}
+                      className="w-full p-2.5 bg-stone-50 border border-stone-200 rounded-xl text-sm focus:ring-2 focus:ring-violet-500/20 focus:border-violet-500 outline-none" 
+                      placeholder="Enter title"
+                   />
+                </div>
+             </div>
+             <div className="grid grid-cols-2 gap-4">
                 <div>
                    <label className="block text-xs font-bold text-stone-500 uppercase mb-1.5 ml-1">Code</label>
                    <input 
@@ -1217,27 +1382,34 @@ const PaymentForm: React.FC<{
                    />
                 </div>
                 <div>
-                   <label className="block text-xs font-bold text-stone-500 uppercase mb-1.5 ml-1">% (Percent)</label>
-                   <input 
-                      type="number" 
-                      step="0.01"
-                      value={formData.percent || ''} 
-                      onChange={e => handlePercentChange(Number(e.target.value))}
-                      className="w-full p-2.5 bg-stone-50 border border-stone-200 rounded-xl text-sm focus:ring-2 focus:ring-violet-500/20 focus:border-violet-500 outline-none" 
-                      placeholder="Optional"
-                   />
+                   <label className="block text-xs font-bold text-stone-500 uppercase mb-1.5 ml-1">OFFICE %</label>
+                   <div className="flex items-center gap-2">
+                      <input 
+                         type="number" 
+                         step="0.01"
+                         value={formData.percent || ''} 
+                         onChange={e => handlePercentChange(Number(e.target.value))}
+                         className="w-32 p-2.5 bg-stone-50 border border-stone-200 rounded-xl text-sm focus:ring-2 focus:ring-violet-500/20 focus:border-violet-500 outline-none" 
+                         placeholder="Optional"
+                      />
+                      {formData.percent && formData.invoiceAmount ? (
+                         <span className="text-sm font-mono font-bold text-red-600 bg-red-50 px-3 py-2.5 rounded-xl border-2 border-red-200 whitespace-nowrap">
+                            -{((formData.invoiceAmount * formData.percent) / 100).toLocaleString(undefined, { maximumFractionDigits: 0 })} LKR
+                         </span>
+                      ) : null}
+                   </div>
                 </div>
              </div>
 
              <div className="grid grid-cols-2 gap-4">
                 <div>
-                   <label className="block text-xs font-bold text-stone-500 uppercase mb-1.5 ml-1">Commission</label>
+                   <label className="block text-xs font-bold text-stone-500 uppercase mb-1.5 ml-1">Commission (LKR)</label>
                    <input 
                       type="number" 
                       value={formData.commission || ''} 
                       onChange={e => handleCommissionChange(Number(e.target.value))}
                       className="w-full p-2.5 bg-stone-50 border border-stone-200 rounded-xl text-sm font-bold focus:ring-2 focus:ring-violet-500/20 focus:border-violet-500 outline-none" 
-                      placeholder="Auto-calculated"
+                      placeholder="Enter amount in LKR"
                    />
                 </div>
                 <div>

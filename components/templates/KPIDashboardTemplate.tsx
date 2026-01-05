@@ -7,7 +7,7 @@ import {
   BarChart2, PieChart, ArrowUpRight, ArrowDownRight,
   Share2, Users, ShoppingCart, Globe, Gem, LayoutGrid,
   CheckCircle, Clock, CreditCard, Filter, Search, Plane,
-  Building2, Calendar
+  Building2, Calendar, X, FileText
 } from 'lucide-react';
 import { 
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, 
@@ -21,10 +21,133 @@ interface Props {
   tabId: string;
 }
 
+// --- Title Transactions Modal Component ---
+const TitleTransactionsModal: React.FC<{
+  isOpen: boolean;
+  onClose: () => void;
+  tabName: string;
+  title: string;
+  transactions: any[];
+}> = ({ isOpen, onClose, tabName, title, transactions }) => {
+  useEffect(() => {
+    const handleEsc = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    if (isOpen) window.addEventListener('keydown', handleEsc);
+    return () => window.removeEventListener('keydown', handleEsc);
+  }, [isOpen, onClose]);
+
+  if (!isOpen) return null;
+
+  const fmt = (val: number | string | undefined, currency: string = "LKR") => {
+    if (val === undefined || val === null) return "—";
+    const num = typeof val === 'string' ? parseFloat(val) : val;
+    if (isNaN(num)) return val;
+    return `${currency} ${num.toLocaleString(undefined, { maximumFractionDigits: 0 })}`;
+  };
+
+  const getStatusBadge = (status: string) => {
+    const statusColors = {
+      'Paid': 'bg-emerald-50 text-emerald-700',
+      'Cleared': 'bg-emerald-50 text-emerald-700',
+      'Pending': 'bg-amber-50 text-amber-700',
+      'Overdue': 'bg-red-50 text-red-700',
+      'Partial': 'bg-blue-50 text-blue-700'
+    };
+    return statusColors[status as keyof typeof statusColors] || 'bg-stone-50 text-stone-700';
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-stone-900/60 backdrop-blur-sm animate-in fade-in duration-200">
+      <div className="bg-white rounded-3xl w-full max-w-6xl shadow-2xl flex flex-col max-h-[90vh] animate-in zoom-in-95 duration-200">
+        {/* Header */}
+        <div className="p-6 border-b border-stone-200 flex justify-between items-center">
+          <div>
+            <h3 className="text-2xl font-bold text-stone-900">{title}</h3>
+            <p className="text-sm text-stone-500 mt-1">{tabName} • {transactions.length} transaction{transactions.length !== 1 ? 's' : ''}</p>
+          </div>
+          <button 
+            onClick={onClose}
+            className="p-2 hover:bg-stone-100 rounded-full text-stone-400 transition-colors"
+          >
+            <X size={24} />
+          </button>
+        </div>
+
+        {/* Transactions Table */}
+        <div className="flex-1 overflow-y-auto p-6">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-sm">
+              <thead className="bg-stone-50 text-[10px] font-black text-stone-400 uppercase tracking-widest border-b border-stone-200">
+                <tr>
+                  <th className="p-4">Date</th>
+                  <th className="p-4">Code</th>
+                  <th className="p-4">Customer Name</th>
+                  <th className="p-4 text-right">Invoice Amount</th>
+                  <th className="p-4 text-right">Paid Amount</th>
+                  <th className="p-4 text-right">Outstanding</th>
+                  <th className="p-4 text-center">Status</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-stone-100">
+                {transactions.map((transaction, idx) => {
+                  const invoice = transaction.invoiceAmount || transaction.finalAmount || 0;
+                  const paid = transaction.paidAmount || 0;
+                  const outstanding = transaction.outstandingAmount || (invoice - paid);
+                  const currency = transaction.currency || 'LKR';
+                  const status = transaction.status || (outstanding === 0 ? 'Cleared' : outstanding < invoice ? 'Partial' : 'Pending');
+                  
+                  return (
+                    <tr key={transaction.id || idx} className="hover:bg-stone-50 transition-colors">
+                      <td className="p-4 font-mono text-stone-500 text-xs whitespace-nowrap">{transaction.date || '-'}</td>
+                      <td className="p-4">
+                        {transaction.code ? (
+                          <span className="font-mono text-xs font-black text-purple-600 bg-purple-50 px-2.5 py-1 rounded-xl border border-purple-100">
+                            {transaction.code}
+                          </span>
+                        ) : (
+                          <span className="text-stone-300">-</span>
+                        )}
+                      </td>
+                      <td className="p-4 text-stone-600 font-medium">{transaction.customerName || '-'}</td>
+                      <td className="p-4 font-mono font-bold text-stone-900 text-right">{fmt(invoice, currency)}</td>
+                      <td className="p-4 font-mono text-stone-600 text-right">{fmt(paid, currency)}</td>
+                      <td className="p-4 font-mono font-bold text-stone-900 text-right">{fmt(outstanding, currency)}</td>
+                      <td className="p-4 text-center">
+                        <span className={`px-2 py-1 rounded-lg text-xs font-bold ${getStatusBadge(status)}`}>
+                          {status}
+                        </span>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+            {transactions.length === 0 && (
+              <div className="p-16 text-center text-stone-400">No transactions found.</div>
+            )}
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div className="p-6 border-t border-stone-200 flex justify-end">
+          <button
+            onClick={onClose}
+            className="px-6 py-3 bg-purple-600 text-white rounded-xl font-bold hover:bg-purple-700 transition-colors"
+          >
+            Close
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 export const KPIDashboardTemplate: React.FC<Props> = ({ config, moduleId, tabId }) => {
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [selectedTitle, setSelectedTitle] = useState<{ tabName: string; title: string; transactions: any[] } | null>(null);
 
   useEffect(() => {
     setLoading(true);
@@ -79,13 +202,14 @@ export const KPIDashboardTemplate: React.FC<Props> = ({ config, moduleId, tabId 
     const customerSummary = data?.breakdowns?.customerSummary || [];
     const currencyBreakdown = data?.breakdowns?.currencyBreakdown || [];
     const paymentTracking = data?.breakdowns?.paymentTracking || [];
+    const titleBreakdowns = data?.breakdowns?.titleBreakdowns || [];
     
     // Calculate status breakdowns
     const paidCount = customerSummary.filter((c: any) => c.status === 'Cleared').length;
     const pendingCount = customerSummary.filter((c: any) => c.status === 'Pending').length;
     const overdueCount = customerSummary.filter((c: any) => c.status === 'Overdue').length;
     
-    const hasData = customerSummary.length > 0 || paymentTracking.length > 0;
+    const hasData = customerSummary.length > 0 || paymentTracking.length > 0 || titleBreakdowns.length > 0;
 
     return (
       <div className="p-4 md:p-8 max-w-[1920px] mx-auto min-h-screen bg-stone-50/20 pb-32 md:pb-8">
@@ -307,6 +431,168 @@ export const KPIDashboardTemplate: React.FC<Props> = ({ config, moduleId, tabId 
               )}
             </div>
 
+            {/* Title Breakdowns Table */}
+            {titleBreakdowns.length > 0 && (
+              <div className="bg-white rounded-2xl md:rounded-[32px] border border-stone-200 shadow-sm overflow-hidden mb-6 md:mb-8">
+                <div className="p-4 md:p-6 border-b border-stone-200 bg-gradient-to-r from-purple-50/50 to-stone-50/50">
+                  <h3 className="text-xs md:text-sm font-black text-stone-900 flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-xl bg-purple-100 flex items-center justify-center">
+                      <FileText size={16} className="text-purple-600" />
+                    </div>
+                    Transaction Titles Overview
+                  </h3>
+                </div>
+                
+                {/* Mobile: Card Layout */}
+                <div className="lg:hidden divide-y divide-stone-100">
+                  {titleBreakdowns.map((titleData: any) => {
+                    const getStatusColor = (status: string) => {
+                      if (status === 'Cleared') return 'bg-emerald-100 text-emerald-700 border-emerald-200';
+                      if (status === 'Overdue') return 'bg-red-100 text-red-700 border-red-200';
+                      return 'bg-amber-100 text-amber-700 border-amber-200';
+                    };
+
+                    return (
+                      <div
+                        key={titleData.title}
+                        onClick={() => setSelectedTitle({
+                          tabName: titleData.sourceTabs.join(', '),
+                          title: titleData.title,
+                          transactions: titleData.transactions
+                        })}
+                        className="p-4 hover:bg-purple-50/30 transition-colors cursor-pointer active:bg-purple-50/50"
+                      >
+                        <div className="flex items-start justify-between mb-3">
+                          <div className="flex-1 min-w-0">
+                            <div className="font-black text-stone-900 text-base mb-1">{titleData.title}</div>
+                            <div className="text-xs text-stone-500 font-medium">{titleData.sourceTabs.join(', ')}</div>
+                          </div>
+                          <span className={`px-2.5 py-1 rounded-lg text-[10px] font-black shrink-0 border ${getStatusColor(titleData.cleared)} uppercase tracking-wider`}>
+                            {titleData.cleared}
+                          </span>
+                        </div>
+                        <div className="grid grid-cols-2 gap-3 mt-3 pt-3 border-t border-stone-100">
+                          <div>
+                            <div className="text-[10px] font-bold text-stone-400 uppercase tracking-wider mb-1">Final Amount</div>
+                            <div className="font-mono font-black text-stone-900 text-sm">{fmt(titleData.finalAmount, 'LKR')}</div>
+                          </div>
+                          <div>
+                            <div className="text-[10px] font-bold text-stone-400 uppercase tracking-wider mb-1">Received</div>
+                            <div className="font-mono text-stone-600 text-sm">{fmt(titleData.receivedPayments, 'LKR')}</div>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Desktop: Table Layout */}
+                <div className="hidden lg:block overflow-x-auto">
+                  <table className="w-full text-left border-collapse">
+                    <thead>
+                      <tr className="bg-gradient-to-r from-stone-50 to-purple-50/30 border-b-2 border-stone-200">
+                        <th className="p-4 pl-6 text-[10px] font-black text-stone-600 uppercase tracking-[0.2em]">Title</th>
+                        <th className="p-4 text-right text-[10px] font-black text-stone-600 uppercase tracking-[0.2em]">
+                          <div>SL Amount</div>
+                          <div className="text-[9px] font-normal text-stone-400 mt-0.5 tracking-normal">Total / Outstanding</div>
+                        </th>
+                        <th className="p-4 text-right text-[10px] font-black text-stone-600 uppercase tracking-[0.2em]">
+                          <div>RMB Currency</div>
+                          <div className="text-[9px] font-normal text-stone-400 mt-0.5 tracking-normal">Total / Outstanding</div>
+                        </th>
+                        <th className="p-4 text-right text-[10px] font-black text-stone-600 uppercase tracking-[0.2em]">
+                          <div>Bath Currency</div>
+                          <div className="text-[9px] font-normal text-stone-400 mt-0.5 tracking-normal">Total / Outstanding</div>
+                        </th>
+                        <th className="p-4 text-right text-[10px] font-black text-stone-600 uppercase tracking-[0.2em]">
+                          <div>$ Currency</div>
+                          <div className="text-[9px] font-normal text-stone-400 mt-0.5 tracking-normal">Total / Outstanding</div>
+                        </th>
+                        <th className="p-4 text-right text-[10px] font-black text-stone-600 uppercase tracking-[0.2em]">Final Amount</th>
+                        <th className="p-4 text-right text-[10px] font-black text-stone-600 uppercase tracking-[0.2em]">Total Amounts</th>
+                        <th className="p-4 text-right text-[10px] font-black text-stone-600 uppercase tracking-[0.2em]">Received Payments</th>
+                        <th className="p-4 text-center text-[10px] font-black text-stone-600 uppercase tracking-[0.2em]">Cleared?</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-stone-100">
+                      {titleBreakdowns.map((titleData: any, idx: number) => {
+                        const getStatusColor = (status: string) => {
+                          if (status === 'Cleared') return 'bg-emerald-100 text-emerald-700 border-emerald-200';
+                          if (status === 'Overdue') return 'bg-red-100 text-red-700 border-red-200';
+                          return 'bg-amber-100 text-amber-700 border-amber-200';
+                        };
+
+                        return (
+                          <tr
+                            key={titleData.title}
+                            onClick={() => setSelectedTitle({
+                              tabName: titleData.sourceTabs.join(', '),
+                              title: titleData.title,
+                              transactions: titleData.transactions
+                            })}
+                            className={`hover:bg-purple-50/20 transition-all cursor-pointer group ${idx % 2 === 0 ? 'bg-white' : 'bg-stone-50/30'}`}
+                          >
+                            <td className="p-4 pl-6">
+                              <div className="font-black text-stone-900 text-sm mb-0.5">{titleData.title}</div>
+                              <div className="text-[10px] text-stone-500 font-medium">{titleData.sourceTabs.join(', ')}</div>
+                            </td>
+                            <td className="p-4 text-right">
+                              <div className="font-mono text-stone-600 text-xs mb-0.5">{fmt(titleData.slAmountTotal, 'LKR')}</div>
+                              <div className="font-mono font-black text-stone-900 text-sm">{fmt(titleData.slAmountOutstanding, 'LKR')}</div>
+                            </td>
+                            <td className="p-4 text-right">
+                              {titleData.rmbTotal > 0 ? (
+                                <>
+                                  <div className="font-mono text-stone-600 text-xs mb-0.5">{fmt(titleData.rmbTotal, 'RMB')}</div>
+                                  <div className="font-mono font-black text-stone-900 text-sm">{fmt(titleData.rmbOutstanding, 'RMB')}</div>
+                                </>
+                              ) : (
+                                <span className="text-stone-300 text-xs">—</span>
+                              )}
+                            </td>
+                            <td className="p-4 text-right">
+                              {titleData.bathTotal > 0 ? (
+                                <>
+                                  <div className="font-mono text-stone-600 text-xs mb-0.5">{fmt(titleData.bathTotal, 'THB')}</div>
+                                  <div className="font-mono font-black text-stone-900 text-sm">{fmt(titleData.bathOutstanding, 'THB')}</div>
+                                </>
+                              ) : (
+                                <span className="text-stone-300 text-xs">—</span>
+                              )}
+                            </td>
+                            <td className="p-4 text-right">
+                              {titleData.usdTotal > 0 ? (
+                                <>
+                                  <div className="font-mono text-stone-600 text-xs mb-0.5">{fmt(titleData.usdTotal, 'USD')}</div>
+                                  <div className="font-mono font-black text-stone-900 text-sm">{fmt(titleData.usdOutstanding, 'USD')}</div>
+                                </>
+                              ) : (
+                                <span className="text-stone-300 text-xs">—</span>
+                              )}
+                            </td>
+                            <td className="p-4 text-right">
+                              <div className="font-mono font-black text-stone-900 text-sm">{fmt(titleData.finalAmount, 'LKR')}</div>
+                            </td>
+                            <td className="p-4 text-right">
+                              <div className="font-mono font-black text-stone-900 text-sm">{fmt(titleData.totalAmounts, 'LKR')}</div>
+                            </td>
+                            <td className="p-4 text-right">
+                              <div className="font-mono text-stone-600 text-sm">{fmt(titleData.receivedPayments, 'LKR')}</div>
+                            </td>
+                            <td className="p-4 text-center">
+                              <span className={`inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-black uppercase tracking-wider border ${getStatusColor(titleData.cleared)}`}>
+                                {titleData.cleared}
+                              </span>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+
             {/* Customer Summary Table */}
             {customerSummary.length > 0 && (
               <div className="bg-white rounded-2xl md:rounded-[32px] border border-stone-200 shadow-sm p-4 md:p-6 mb-6 md:mb-8">
@@ -381,6 +667,17 @@ export const KPIDashboardTemplate: React.FC<Props> = ({ config, moduleId, tabId 
               </div>
             )}
           </>
+        )}
+
+        {/* Title Transactions Modal */}
+        {selectedTitle && (
+          <TitleTransactionsModal
+            isOpen={!!selectedTitle}
+            onClose={() => setSelectedTitle(null)}
+            tabName={selectedTitle.tabName}
+            title={selectedTitle.title}
+            transactions={selectedTitle.transactions}
+          />
         )}
       </div>
     );

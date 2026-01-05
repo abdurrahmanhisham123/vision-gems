@@ -5,6 +5,7 @@ import { Layout } from './components/Layout';
 import { ModuleView } from './components/ModuleView';
 import { StatementView } from './components/StatementView';
 import { CompanyDashboard } from './components/CompanyDashboard';
+import { ChatInterface } from './components/ChatInterface';
 
 const Home = () => {
   return <CompanyDashboard />;
@@ -17,6 +18,7 @@ const App = () => {
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/statement" element={<StatementView />} />
+          <Route path="/chat" element={<ChatInterface />} />
           <Route path="/module/:moduleId/:tabId" element={<ModuleView />} />
         </Routes>
       </Layout>

@@ -85,13 +85,10 @@ export const APP_MODULES: ModuleConfig[] = [
     description: 'Accounts receivable',
     icon: 'TrendingUp',
     tabs: [
-      'Dashboard', 'Payment Due Date', 'SG.Payment.Received', 'Madagascar.Payment.Received', 
-      'K.Payment.Received', 'VG.R.payment.received', 'VG.Payment.Received', 
-      'VG.T.Payment.Received', 'Zahran', 'RusseqSales', 'Ruzaik Sales', 'BeruwalaSales', 
-      'SajithOnline', 'Ziyam', 'InfazHaji', 'NusrathAli', 'Binara', 'MikdarHaji', 
-      'RameesNana', 'Shimar', 'Ruqshan', 'FaizeenHaj', 'SharikHaj', 'Fazeel', 
-      'AzeemColo', 'Kadarhaj.colo', 'AlthafHaj', 'BangkokSales', 'Sadam bkk', 
-      'ChinaSales', 'Eleven', 'AndyBuyer', 'FlightBuyer'
+      'Dashboard', 'Payment Received', 
+      'Srilanka Sales', 
+      'Outstanding Receivables', 'BangkokSales', 
+      'ChinaSales'
     ]
   },
   // 7. Payable
@@ -102,7 +99,7 @@ export const APP_MODULES: ModuleConfig[] = [
     description: 'Accounts payable',
     icon: 'TrendingDown',
     tabs: [
-      'Dashboard', 'Buying.Payments.Paid', 'Capital', 'BKK.Capital', 
+      'Dashboard', 'Payment Due Date', 'Buying.Payments.Paid', 'Capital', 'BKK.Capital', 
       'Beruwala', 'Colombo', 'Galle', 'Kisu', 'Bangkok'
     ]
   },

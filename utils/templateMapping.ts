@@ -110,33 +110,19 @@ export const getTemplateForTab = (moduleId: string, tabId: string): TemplateType
 
   // --- UNIFIED PAYMENT LEDGER MAPPING (36 tabs) ---
   // Company Payment Summary Tabs - Module: outstanding
-  // Deal Record tabs (5 tabs) - using DealRecord template
+  // Payment Received tab - using UnifiedExpense template
   if (moduleId === 'outstanding') {
-    if (tabNormal === 'sg.payment.received' || 
-        tabNormal === 'madagascar.payment.received' || 
-        tabNormal === 'k.payment.received' || 
-        tabNormal === 'vg.r.payment.received' || 
-        tabNormal === 'vg.payment.received') {
-      return 'DealRecord';
-    }
-    // VG.T.Payment.Received uses UnifiedExpense
-    if (tabNormal === 'vg.t.payment.received') {
+    if (tabNormal === 'payment received') {
       return 'UnifiedExpense';
-    }
-    // Other payment received tabs still use UnifiedPaymentLedger
-    if (tabNormal === 'payment.received') {
-      return 'UnifiedPaymentLedger';
     }
   }
 
-  // Individual Customer Ledger Tabs (29 tabs) - Module: outstanding
+  // Individual Customer Ledger Tabs - Module: outstanding
   if (moduleId === 'outstanding') {
     const customerLedgerTabs = [
-      'zahran', 'ruzaiksales', 'ruzaik sales', 'russeqsales', 'beruwalasales', 'sajithonline', 'ziyam', 
-      'infazhaji', 'nusrathali', 'binara', 'mikdarhaji', 'rameesnana', 
-      'shimar', 'ruqshan', 'faizeenhaj', 'sharikhaj', 'fazeel', 
-      'azeemcolo', 'kadarhaj.colo', 'althafhaj', 'bangkoksales', 'sadam bkk', 
-      'chinasales', 'eleven', 'andybuyer', 'flightbuyer', 'name', 
+      'srilankasales', 'srilanka sales', 
+      'outstanding receivables', 'bangkoksales', 
+      'chinasales', 'name', 
       'name1', 'bangkok'
     ];
     if (customerLedgerTabs.includes(tabNormal)) {

@@ -254,3 +254,21 @@ export interface StatementEntry {
   originalAmount?: number;
   metadata?: Record<string, any>; // Additional fields for detail view
 }
+
+export interface ChatMessage {
+  id: string;
+  role: 'user' | 'assistant';
+  content: string;
+  timestamp: Date;
+  images?: string[]; // Base64 image data
+  stoneData?: ExtendedSpinelStone[]; // Stone information when relevant
+  profitData?: {
+    salesRevenue: number;
+    inventoryCost: number;
+    expenses: number;
+    profit: number;
+    netProfit: number;
+    moduleId?: string;
+    tabId?: string;
+  };
+}
