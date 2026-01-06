@@ -35,9 +35,7 @@ export const APP_MODULES: ModuleConfig[] = [
     description: 'Main company inventory',
     icon: 'Diamond',
     tabs: [
-      'DashboardGems', 'Spinel', 'TSV', 'Mandarin.Garnet', 'Garnet', 'Ruby', 
-      'Blue.Sapphire', 'Green.Sapphire', 'Chrysoberyl', 'Zircon', 'Tourmaline', 
-      'Aquamarine', 'Padparadscha', 'Pink.Sapphire', 'Violet.Sapphire', 
+      'DashboardGems', 'veriety', 
       'Approval', 'Z', 'V G Old stock', 'Cut.polish'
     ]
   },

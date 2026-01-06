@@ -4,6 +4,7 @@ import {
   Trash2, Edit, Save, X, DollarSign, 
   FileText, Globe, Building2, CreditCard, Wallet, CheckCircle, Clock, AlertCircle, Calendar, Filter
 } from 'lucide-react';
+import { getVisionGemsSpinelData, getExportedStones, saveExportedStone } from '../../services/dataService';
 
 // --- Types ---
 interface PaymentItem {
@@ -60,6 +61,52 @@ const exchangeRates: Record<string, number> = {
 
 const paymentMethods = ['Cash', 'Cheque', 'Bank Transfer', 'Credit Card', 'Online Payment', 'Other'];
 
+// --- Helper Function to Mark Stones as Sold ---
+const markStonesAsSold = (code: string, paymentData?: PaymentItem): number => {
+  if (!code || code.trim() === '') {
+    return 0;
+  }
+
+  try {
+    // Load all stones from localStorage
+    const allStones = getExportedStones();
+    
+    // Find stones where codeNo exactly matches the provided code
+    const matchingStones = allStones.filter(stone => 
+      stone.codeNo && stone.codeNo.trim() === code.trim()
+    );
+
+    if (matchingStones.length === 0) {
+      console.log(`No stones found with code: ${code}`);
+      return 0;
+    }
+
+    // Update each matching stone
+    let updatedCount = 0;
+    matchingStones.forEach(stone => {
+      const updatedStone = {
+        ...stone,
+        status: 'Sold',
+        // Optionally update sales-related fields from payment data
+        ...(paymentData?.date && { sellDate: paymentData.date }),
+        ...(paymentData?.customerName && { buyer: paymentData.customerName }),
+        ...(paymentData?.invoiceAmount && { amountLKR: paymentData.invoiceAmount }),
+        ...(paymentData?.finalAmount && { finalPrice: paymentData.finalAmount }),
+      };
+      
+      // Save updated stone back to localStorage
+      saveExportedStone(updatedStone);
+      updatedCount++;
+    });
+
+    console.log(`Marked ${updatedCount} stone(s) as Sold for code: ${code}`);
+    return updatedCount;
+  } catch (error) {
+    console.error('Error marking stones as sold:', error);
+    return 0;
+  }
+};
+
 // --- Side Panel Component ---
 const PaymentDetailPanel: React.FC<{
   item: PaymentItem;
@@ -77,6 +124,21 @@ const PaymentDetailPanel: React.FC<{
     setFormData(initialItem);
     setIsEditing(initialIsEditing);
   }, [initialItem, initialIsEditing]);
+
+  // Load companies from instocks
+  useEffect(() => {
+    const loadCompanies = async () => {
+      try {
+        const stones = await getVisionGemsSpinelData('All Stones', 'in-stocks');
+        const companies = Array.from(new Set(stones.map(s => s.company).filter(Boolean))) as string[];
+        setAvailableCompanies(companies.sort());
+      } catch (error) {
+        console.error('Error loading companies:', error);
+        setAvailableCompanies([]);
+      }
+    };
+    loadCompanies();
+  }, []);
 
   useEffect(() => {
     // Auto-calculate outstanding amount
@@ -165,6 +227,15 @@ const PaymentDetailPanel: React.FC<{
     if (!formData.customerName || !formData.invoiceAmount || !formData.currency || !formData.title) {
       return alert('Title, Customer Name, Invoice Amount, and Currency are required');
     }
+    
+    // Mark stones as sold if code is provided
+    if (formData.code && formData.code.trim() !== '') {
+      const markedCount = markStonesAsSold(formData.code, formData);
+      if (markedCount > 0) {
+        console.log(`Successfully marked ${markedCount} stone(s) as Sold`);
+      }
+    }
+    
     onSave(formData);
   };
 
@@ -294,6 +365,25 @@ const PaymentDetailPanel: React.FC<{
                 <Field label="Date" value={formData.date} field="date" isEditing={isEditing} onInputChange={handleInputChange} type="date" />
                 <Field label="Title *" value={formData.title} field="title" isEditing={isEditing} onInputChange={handleInputChange} highlight />
                 <Field label="Code" value={formData.code} field="code" isEditing={isEditing} onInputChange={handleInputChange} highlight />
+                <div className="flex flex-col py-2 border-b border-stone-100 last:border-0 min-h-[50px] justify-center">
+                  <span className="text-[9px] font-bold text-stone-400 uppercase tracking-wider mb-0.5">Company</span>
+                  {isEditing ? (
+                    <select
+                      value={formData.company || ''}
+                      onChange={(e) => handleInputChange('company', e.target.value)}
+                      className="w-full p-2 bg-stone-50 border border-stone-200 rounded-lg text-sm outline-none transition-all focus:border-violet-500 focus:ring-2 focus:ring-violet-500/10"
+                    >
+                      <option value="">Select Company</option>
+                      {availableCompanies.map(company => (
+                        <option key={company} value={company}>{company}</option>
+                      ))}
+                    </select>
+                  ) : (
+                    <span className="text-sm font-medium text-stone-700">
+                      {formData.company || '-'}
+                    </span>
+                  )}
+                </div>
                 <Field label="Customer/Entity Name *" value={formData.customerName} field="customerName" isEditing={isEditing} onInputChange={handleInputChange} />
                 <Field label="Description" value={formData.description} field="description" isEditing={isEditing} onInputChange={handleInputChange} />
                 <Field label="Weight" value={formData.weight} field="weight" isEditing={isEditing} onInputChange={handleInputChange} type="number" />
@@ -352,7 +442,6 @@ const PaymentDetailPanel: React.FC<{
                     <Field label="Converted Amount (LKR)" value={formData.convertedAmount} field="convertedAmount" isEditing={false} onInputChange={handleInputChange} highlight isCurrency />
                   </>
                 )}
-                <Field label="Company" value={formData.company} field="company" isEditing={isEditing} onInputChange={handleInputChange} />
                 <Field label="Notes" value={formData.notes} field="notes" isEditing={isEditing} onInputChange={handleInputChange} />
               </div>
             </div>
@@ -1110,6 +1199,7 @@ const PaymentForm: React.FC<{
   onSave: (item: PaymentItem) => void;
   onCancel: () => void;
 }> = ({ initialData, onSave, onCancel }) => {
+  const [availableCompanies, setAvailableCompanies] = useState<string[]>([]);
   const [formData, setFormData] = useState<Partial<PaymentItem>>({
     date: initialData?.date || new Date().toISOString().split('T')[0],
     title: initialData?.title || '',
@@ -1137,6 +1227,21 @@ const PaymentForm: React.FC<{
     cleared: initialData?.cleared || false,
     notes: initialData?.notes || '',
   });
+
+  // Load companies from instocks
+  useEffect(() => {
+    const loadCompanies = async () => {
+      try {
+        const stones = await getVisionGemsSpinelData('All Stones', 'in-stocks');
+        const companies = Array.from(new Set(stones.map(s => s.company).filter(Boolean))) as string[];
+        setAvailableCompanies(companies.sort());
+      } catch (error) {
+        console.error('Error loading companies:', error);
+        setAvailableCompanies([]);
+      }
+    };
+    loadCompanies();
+  }, []);
 
   useEffect(() => {
     // Auto-calculate outstanding amount
@@ -1219,11 +1324,12 @@ const PaymentForm: React.FC<{
       return alert('Title, Customer Name, Invoice Amount, and Currency are required');
     }
     
-    onSave({
+    const code = formData.code || `PAY-${Date.now().toString().slice(-4)}`;
+    const paymentItem: PaymentItem = {
       id: initialData?.id || `payment-${Date.now()}`,
       date: formData.date!,
       title: formData.title!,
-      code: formData.code || `PAY-${Date.now().toString().slice(-4)}`,
+      code: code,
       customerName: formData.customerName!,
       description: formData.description || '',
       invoiceAmount: Number(formData.invoiceAmount),
@@ -1246,7 +1352,17 @@ const PaymentForm: React.FC<{
       halfPaid: formData.halfPaid || false,
       cleared: formData.cleared || false,
       notes: formData.notes,
-    });
+    };
+    
+    // Mark stones as sold if code is provided
+    if (code && code.trim() !== '') {
+      const markedCount = markStonesAsSold(code, paymentItem);
+      if (markedCount > 0) {
+        console.log(`Successfully marked ${markedCount} stone(s) as Sold`);
+      }
+    }
+    
+    onSave(paymentItem);
   };
 
   return (
@@ -1289,6 +1405,19 @@ const PaymentForm: React.FC<{
                       className="w-full p-2.5 bg-stone-50 border border-stone-200 rounded-xl text-sm font-mono focus:ring-2 focus:ring-violet-500/20 focus:border-violet-500 outline-none" 
                       placeholder="PAY-001"
                    />
+                </div>
+                <div>
+                   <label className="block text-xs font-bold text-stone-500 uppercase mb-1.5 ml-1">Company</label>
+                   <select
+                      value={formData.company || ''}
+                      onChange={e => setFormData({...formData, company: e.target.value})}
+                      className="w-full p-2.5 bg-stone-50 border border-stone-200 rounded-xl text-sm focus:ring-2 focus:ring-violet-500/20 focus:border-violet-500 outline-none"
+                   >
+                      <option value="">Select Company</option>
+                      {availableCompanies.map(company => (
+                         <option key={company} value={company}>{company}</option>
+                      ))}
+                   </select>
                 </div>
              </div>
 
@@ -1552,17 +1681,6 @@ const PaymentForm: React.FC<{
                    </div>
                 </div>
              )}
-
-             <div>
-                <label className="block text-xs font-bold text-stone-500 uppercase mb-1.5 ml-1">Company</label>
-                <input 
-                   type="text" 
-                   value={formData.company || ''} 
-                   onChange={e => setFormData({...formData, company: e.target.value})}
-                   className="w-full p-2.5 bg-stone-50 border border-stone-200 rounded-xl text-sm focus:ring-2 focus:ring-violet-500/20 focus:border-violet-500 outline-none" 
-                   placeholder="Optional"
-                />
-             </div>
 
              <div>
                 <label className="block text-xs font-bold text-stone-500 uppercase mb-1.5 ml-1">Notes</label>
