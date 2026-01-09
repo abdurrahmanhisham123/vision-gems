@@ -164,28 +164,54 @@ export const getExportedStones = (tabId?: string): ExtendedSpinelStone[] => {
     
     const normalizedTab = tabId.toLowerCase().trim();
 
-    // 1. GLOBAL VIEW: All Stones tab shows everything in the system
+    // 1. GLOBAL VIEW: All Stones tab shows everything EXCEPT sold stones
     if (normalizedTab === 'all stones') {
-      return allStones;
+      return allStones.filter(s => s.status !== 'Sold');
     }
 
-    // 2. FUNCTIONAL VIEW: Export tab only shows stones with 'Export' status
+    // 2. FUNCTIONAL VIEW: Sold tab only shows stones with 'Sold' status
+    if (normalizedTab === 'sold') {
+      return allStones.filter(s => s.status === 'Sold');
+    }
+
+    // 2a. FUNCTIONAL VIEW: Payment Received tab (outstanding module) shows all sold stones
+    if (normalizedTab === 'payment received') {
+      return allStones.filter(s => s.status === 'Sold');
+    }
+
+    // 3. FUNCTIONAL VIEW: Export tab only shows stones with 'Export' status
     if (normalizedTab === 'export') {
       return allStones.filter(s => s.status === 'Export');
     }
 
-    // 3. FUNCTIONAL VIEW: BKK tab only shows stones with 'BKK' status
+    // 4. FUNCTIONAL VIEW: BKK tab only shows stones with 'BKK' status
     if (normalizedTab === 'bkk') {
       return allStones.filter(s => s.status === 'BKK');
     }
 
-    // 4. FUNCTIONAL VIEW: Approval tab shows all stones with Approval status
+    // 5. FUNCTIONAL VIEW: Approval tab shows all stones with Approval status
     // This allows stones from any tab to appear in Approval tab when their status is Approval
     if (normalizedTab === 'approval') {
       return allStones.filter(s => s.status === 'Approval');
     }
 
-    // 5. CATEGORY VIEW: Variety tabs (e.g. Spinel) show stones based on originalCategory
+    // 6. FUNCTIONAL VIEW: Shares tab (accounts module) shows only stones purchased with a partner
+    if (normalizedTab === 'shares') {
+      return allStones.filter(s => s.purchaseIsJointPurchase === true);
+    }
+
+    // 7. FUNCTIONAL VIEW: Sales location tabs (outstanding module) show stones by sales location
+    if (normalizedTab === 'srilanka sales') {
+      return allStones.filter(s => s.purchaseSalesLocation === 'Srilanka Sales');
+    }
+    if (normalizedTab === 'bangkoksales') {
+      return allStones.filter(s => s.purchaseSalesLocation === 'Bangkok Sales');
+    }
+    if (normalizedTab === 'chinasales') {
+      return allStones.filter(s => s.purchaseSalesLocation === 'China Sales');
+    }
+
+    // 8. CATEGORY VIEW: Variety tabs (e.g. Spinel) show stones based on originalCategory
     // This allows stones to remain visible in their original tab regardless of status
     return allStones.filter(s => {
       const stoneOriginalCategory = s.originalCategory?.toLowerCase().trim();

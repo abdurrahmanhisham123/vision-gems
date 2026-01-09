@@ -110,19 +110,26 @@ export const getTemplateForTab = (moduleId: string, tabId: string): TemplateType
 
   // --- UNIFIED PAYMENT LEDGER MAPPING (36 tabs) ---
   // Company Payment Summary Tabs - Module: outstanding
-  // Payment Received tab - using UnifiedExpense template
+  // Payment Received tab - using Rich Inventory Template (VisionGemsSpinel)
   if (moduleId === 'outstanding') {
     if (tabNormal === 'payment received') {
-      return 'UnifiedExpense';
+      return 'VisionGemsSpinel';
     }
   }
 
   // Individual Customer Ledger Tabs - Module: outstanding
+  // These tabs now use Rich Inventory Template (VisionGemsSpinel)
   if (moduleId === 'outstanding') {
+    // Tabs using Rich Inventory Template
+    if (tabNormal === 'srilanka sales' || 
+        tabNormal === 'outstanding receivables' || 
+        tabNormal === 'bangkoksales' || 
+        tabNormal === 'chinasales') {
+      return 'VisionGemsSpinel';
+    }
+    // Other customer ledger tabs still use UnifiedPaymentLedger
     const customerLedgerTabs = [
-      'srilankasales', 'srilanka sales', 
-      'outstanding receivables', 'bangkoksales', 
-      'chinasales', 'name', 
+      'srilankasales', 'name', 
       'name1', 'bangkok'
     ];
     if (customerLedgerTabs.includes(tabNormal)) {
@@ -311,9 +318,12 @@ export const getTemplateForTab = (moduleId: string, tabId: string): TemplateType
     }
   }
 
-  // --- UNIFIED EXPENSE MAPPING FOR ACCOUNTS MODULE ---
+  // --- ACCOUNTS MODULE MAPPING ---
   if (moduleId === 'accounts') {
-    if (tabNormal === 'shares' || tabNormal === 'investment') {
+    if (tabNormal === 'shares') {
+      return 'VisionGemsSpinel'; // Rich Inventory Template
+    }
+    if (tabNormal === 'investment') {
       return 'UnifiedExpense';
     }
   }
@@ -343,6 +353,9 @@ export const getTemplateForTab = (moduleId: string, tabId: string): TemplateType
       return 'UnifiedDashboard';
     }
     if (tabNormal === 'all stones') {
+      return 'VisionGemsSpinel';
+    }
+    if (tabNormal === 'sold') {
       return 'VisionGemsSpinel';
     }
   }

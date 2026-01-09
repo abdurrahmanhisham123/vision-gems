@@ -7,10 +7,10 @@ import {
   ShoppingBag, FileText, Activity, Save, Printer, Building2,
   Palette, Camera, Upload, Image as ImageIcon, ChevronRight,
   MoreVertical, Info, Flame, FlameKindling, CheckCircle, Trash2, Edit,
-  Calculator
+  Calculator, Award, Scissors
 } from 'lucide-react';
 import { getVisionGemsSpinelData, saveExportedStone } from '../../services/dataService';
-import { ExtendedSpinelStone } from '../../types';
+import { ExtendedSpinelStone, CutPolishRecord } from '../../types';
 
 interface Props {
   moduleId: string;
@@ -20,7 +20,7 @@ interface Props {
 
 // --- CONSTANTS ---
 const AVAILABLE_SHAPES = ['Round', 'Oval', 'Cushion', 'Emerald', 'Pear', 'Marquise', 'Princess', 'Heart', 'Asscher', 'Radiant', 'Trillion', 'Baguette'];
-const STATUS_OPTIONS = ['In Stock', 'Export', 'Approval', 'Sold', 'Pending', 'BKK', 'Missing'];
+const STATUS_OPTIONS = ['In Stock', 'Export', 'Approval', 'Sold', 'Pending', 'Partial', 'Overdue', 'BKK', 'Missing'];
 
 const VARIETY_OPTIONS = [
   'Spinel', 'Mahenge Spinel', 'Pink Spinel', 'Red Spinel', 'TSV', 'Ruby', 
@@ -33,6 +33,28 @@ const COLOR_OPTIONS = [
   'Red', 'Pink', 'Blue', 'Green', 'Yellow', 'Orange', 'Purple', 'Lavender', 
   'Cornflower', 'Royal Blue', 'Pigeon Blood', 'Colorless', 'Bi-Color', 'Multi-Color'
 ];
+
+// Currency options and exchange rates (matching Unified Payment Ledger)
+const PURCHASE_CURRENCIES = ['USD', 'LKR', 'EUR', 'GBP', 'TZS', 'KES', 'THB'];
+const PURCHASE_EXCHANGE_RATES: Record<string, number> = {
+  'USD': 302.50,
+  'LKR': 1.00,
+  'EUR': 330.20,
+  'GBP': 385.80,
+  'TZS': 0.1251,
+  'KES': 2.33,
+  'THB': 8.50
+};
+
+// Format currency helper function (matching Unified Payment Ledger)
+const formatCurrency = (amount: number, currency: string): string => {
+  if (!amount && amount !== 0) return '-';
+  const formatted = amount.toLocaleString(undefined, { 
+    minimumFractionDigits: 0, 
+    maximumFractionDigits: 2 
+  });
+  return `${formatted} ${currency}`;
+};
 
 // --- STANDARD SHAPE ICON COMPONENT ---
 const ShapeIcon: React.FC<{ shape: string, className?: string }> = ({ shape, className = "w-full h-full" }) => {
@@ -103,8 +125,47 @@ const EMPTY_STONE: ExtendedSpinelStone = {
   shareProfit: 0,
   salesPaymentMethod: 'Cash',
   paymentCleared: 'No',
-  transactionAmount: 0
+  transactionAmount: 0,
+  certificateImage: '',
+  certificatePrice: 0,
+  cutPolishRecords: [],
+  purchaseCustomerName: '',
+  purchaseDescription: '',
+  purchaseDeal: '',
+  purchaseCurrency: 'LKR',
+  purchaseExchangeRate: 1,
+  purchaseAmount: 0,
+  purchaseOfficePercent: 0,
+  purchaseCommission: 0,
+  purchaseFinalAmount: 0,
+  purchaseFinalAmountLKR: 0,
+  purchasePaidAmount: 0,
+  purchaseOutstandingAmount: 0,
+  purchaseOutstandingAmountLKR: 0,
+  purchasePaymentDate: '',
+  purchaseDueDate: '',
+  purchaseSourceOfFunds: '',
+  purchaseIsJointPurchase: false,
+  purchasePartnerName: '',
+  purchasePartnerPercentage: 0,
+  purchasePartnerInvestment: 0,
+  purchaseTripLocation: '',
+  purchaseSalesLocation: ''
 };
+
+// Trip/Location options for Purchase tab
+const TRIP_LOCATION_OPTIONS = [
+  'Kenya',
+  'Mahenge (VGTZ)',
+  'Madagascar',
+  'Dada',
+  'VG Ramazan',
+  'BKK Operations',
+  'SpinelGallery',
+  'Vision Gems SL',
+  'Sri Lanka',
+  'Other'
+];
 
 // --- STABLE SUB-COMPONENTS ---
 
@@ -181,6 +242,183 @@ const TabButton: React.FC<{
   </button>
 );
 
+const CutPolishRecordItem: React.FC<{
+  record: CutPolishRecord;
+  index: number;
+  isEditing: boolean;
+  onUpdate: (record: CutPolishRecord) => void;
+  onDelete: () => void;
+}> = ({ record, index, isEditing, onUpdate, onDelete }) => {
+  const [isEditingRecord, setIsEditingRecord] = useState(false);
+  const [editData, setEditData] = useState<CutPolishRecord>(record);
+
+  useEffect(() => {
+    setEditData(record);
+    setIsEditingRecord(false);
+  }, [record]);
+
+  const handleSave = () => {
+    if (!editData.worker.trim()) {
+      alert('Worker/Cutter name is required');
+      return;
+    }
+    onUpdate(editData);
+    setIsEditingRecord(false);
+  };
+
+  if (!isEditing) {
+    return (
+      <div className="p-4 bg-stone-50 rounded-2xl border border-stone-200">
+        <div className="grid grid-cols-2 gap-3 text-sm">
+          <div>
+            <span className="text-[9px] font-bold text-stone-400 uppercase tracking-wider">Worker/Cutter</span>
+            <p className="text-stone-700 font-semibold mt-1">{record.worker || '-'}</p>
+          </div>
+          <div>
+            <span className="text-[9px] font-bold text-stone-400 uppercase tracking-wider">Type</span>
+            <p className="text-stone-700 font-semibold mt-1 capitalize">{record.type || '-'}</p>
+          </div>
+          <div className="col-span-2">
+            <span className="text-[9px] font-bold text-stone-400 uppercase tracking-wider">Description</span>
+            <p className="text-stone-700 font-medium mt-1">{record.description || '-'}</p>
+          </div>
+          <div>
+            <span className="text-[9px] font-bold text-stone-400 uppercase tracking-wider">Amount (LKR)</span>
+            <p className="text-stone-700 font-semibold mt-1 font-mono">{record.amount ? record.amount.toLocaleString() : '0'}</p>
+          </div>
+          <div>
+            <span className="text-[9px] font-bold text-stone-400 uppercase tracking-wider">Payment Method</span>
+            <p className="text-stone-700 font-semibold mt-1">{record.paymentMethod || '-'}</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (isEditingRecord) {
+    return (
+      <div className="p-4 bg-purple-50/30 rounded-2xl border-2 border-purple-200">
+        <div className="space-y-3">
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-[9px] font-bold text-stone-400 uppercase tracking-wider block mb-1">Worker/Cutter</label>
+              <input
+                type="text"
+                value={editData.worker}
+                onChange={(e) => setEditData({ ...editData, worker: e.target.value })}
+                className="w-full p-2 bg-white border border-stone-200 rounded-lg text-sm outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/10"
+                placeholder="Worker name"
+              />
+            </div>
+            <div>
+              <label className="text-[9px] font-bold text-stone-400 uppercase tracking-wider block mb-1">Type</label>
+              <select
+                value={editData.type}
+                onChange={(e) => setEditData({ ...editData, type: e.target.value as 'cut' | 'polish' | 'both' })}
+                className="w-full p-2 bg-white border border-stone-200 rounded-lg text-sm outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/10"
+              >
+                <option value="cut">Cut</option>
+                <option value="polish">Polish</option>
+                <option value="both">Both</option>
+              </select>
+            </div>
+          </div>
+          <div>
+            <label className="text-[9px] font-bold text-stone-400 uppercase tracking-wider block mb-1">Description</label>
+            <textarea
+              value={editData.description}
+              onChange={(e) => setEditData({ ...editData, description: e.target.value })}
+              className="w-full p-2 bg-white border border-stone-200 rounded-lg text-sm outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/10 min-h-[80px]"
+              placeholder="Description"
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-[9px] font-bold text-stone-400 uppercase tracking-wider block mb-1">Amount (LKR)</label>
+              <input
+                type="number"
+                value={editData.amount || 0}
+                onChange={(e) => setEditData({ ...editData, amount: Number(e.target.value) })}
+                className="w-full p-2 bg-white border border-stone-200 rounded-lg text-sm outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/10 font-mono"
+                placeholder="0"
+              />
+            </div>
+            <div>
+              <label className="text-[9px] font-bold text-stone-400 uppercase tracking-wider block mb-1">Payment Method</label>
+              <select
+                value={editData.paymentMethod}
+                onChange={(e) => setEditData({ ...editData, paymentMethod: e.target.value })}
+                className="w-full p-2 bg-white border border-stone-200 rounded-lg text-sm outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/10"
+              >
+                <option value="Cash">Cash</option>
+                <option value="Bank">Bank</option>
+              </select>
+            </div>
+          </div>
+          <div className="flex gap-2 justify-end pt-2">
+            <button
+              onClick={() => setIsEditingRecord(false)}
+              className="px-4 py-2 bg-stone-50 text-stone-600 rounded-xl text-xs font-bold hover:bg-stone-100"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleSave}
+              className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-xl text-xs font-bold shadow-lg hover:bg-purple-700 transition-all"
+            >
+              <Save size={14} /> Save
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="p-4 bg-stone-50 rounded-2xl border border-stone-200">
+      <div className="flex justify-between items-start mb-3">
+        <span className="text-[9px] font-bold text-purple-600 uppercase tracking-wider">Record #{index + 1}</span>
+        <div className="flex gap-2">
+          <button
+            onClick={() => setIsEditingRecord(true)}
+            className="p-1.5 bg-white border border-stone-200 text-stone-600 rounded-lg hover:bg-stone-100 transition-colors"
+          >
+            <Edit size={14} />
+          </button>
+          <button
+            onClick={onDelete}
+            className="p-1.5 bg-red-50 border border-red-200 text-red-600 rounded-lg hover:bg-red-100 transition-colors"
+          >
+            <Trash2 size={14} />
+          </button>
+        </div>
+      </div>
+      <div className="grid grid-cols-2 gap-3 text-sm">
+        <div>
+          <span className="text-[9px] font-bold text-stone-400 uppercase tracking-wider">Worker/Cutter</span>
+          <p className="text-stone-700 font-semibold mt-1">{record.worker || '-'}</p>
+        </div>
+        <div>
+          <span className="text-[9px] font-bold text-stone-400 uppercase tracking-wider">Type</span>
+          <p className="text-stone-700 font-semibold mt-1 capitalize">{record.type || '-'}</p>
+        </div>
+        <div className="col-span-2">
+          <span className="text-[9px] font-bold text-stone-400 uppercase tracking-wider">Description</span>
+          <p className="text-stone-700 font-medium mt-1">{record.description || '-'}</p>
+        </div>
+        <div>
+          <span className="text-[9px] font-bold text-stone-400 uppercase tracking-wider">Amount (LKR)</span>
+          <p className="text-stone-700 font-semibold mt-1 font-mono">{record.amount ? record.amount.toLocaleString() : '0'}</p>
+        </div>
+        <div>
+          <span className="text-[9px] font-bold text-stone-400 uppercase tracking-wider">Payment Method</span>
+          <p className="text-stone-700 font-semibold mt-1">{record.paymentMethod || '-'}</p>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const StoneDetailPanel: React.FC<{
   stone: ExtendedSpinelStone;
   initialIsEditing?: boolean;
@@ -189,7 +427,7 @@ const StoneDetailPanel: React.FC<{
   onDelete: (id: string) => void;
 }> = ({ stone: initialStone, initialIsEditing = false, onClose, onSave, onDelete }) => {
   
-  const [activeTab, setActiveTab] = useState<'identity' | 'purchase' | 'sales' | 'financial'>('identity');
+  const [activeTab, setActiveTab] = useState<'identity' | 'purchase' | 'sales' | 'financial' | 'certificate' | 'cutPolish'>('identity');
   const [isEditing, setIsEditing] = useState(initialIsEditing);
   const [formData, setFormData] = useState<ExtendedSpinelStone>(initialStone);
 
@@ -198,8 +436,61 @@ const StoneDetailPanel: React.FC<{
     setIsEditing(initialIsEditing);
   }, [initialStone, initialIsEditing]);
 
+  // Auto-calculate purchase amounts with currency conversion
+  useEffect(() => {
+    const currency = formData.purchaseCurrency || 'LKR';
+    const rate = formData.purchaseExchangeRate || 1;
+    const amount = formData.purchaseAmount || 0;
+    const officePercent = formData.purchaseOfficePercent || 0;
+    const commissionLKR = formData.purchaseCommission || 0;
+    const paidAmount = formData.purchasePaidAmount || 0;
+    
+    // Calculate Office Percentage Deduction in chosen currency
+    const officePercentageDeduction = amount && officePercent
+      ? (amount * officePercent) / 100
+      : 0;
+    
+    // Convert Commission from LKR to chosen currency (if not LKR)
+    const commissionInCurrency = currency === 'LKR' 
+      ? commissionLKR 
+      : commissionLKR / rate;
+    
+    // Calculate Final Amount in chosen currency: amount - officePercentageDeduction - commissionInCurrency
+    const finalAmount = amount - officePercentageDeduction - commissionInCurrency;
+    
+    // Calculate Final Amount in LKR
+    const finalAmountLKR = currency === 'LKR' 
+      ? finalAmount 
+      : finalAmount * rate;
+    
+    // Calculate Outstanding Amount in chosen currency: amount - paidAmount
+    const outstandingAmount = amount - paidAmount;
+    
+    // Calculate Outstanding Amount in LKR
+    const outstandingAmountLKR = currency === 'LKR' 
+      ? outstandingAmount 
+      : outstandingAmount * rate;
+    
+    setFormData(prev => ({
+      ...prev,
+      purchaseFinalAmount: finalAmount,
+      purchaseFinalAmountLKR: finalAmountLKR,
+      purchaseOutstandingAmount: outstandingAmount,
+      purchaseOutstandingAmountLKR: outstandingAmountLKR
+    }));
+  }, [formData.purchaseAmount, formData.purchaseOfficePercent, formData.purchaseCommission, formData.purchasePaidAmount, formData.purchaseCurrency, formData.purchaseExchangeRate]);
+
   const handleInputChange = (key: keyof ExtendedSpinelStone, value: any) => {
     setFormData(prev => ({ ...prev, [key]: value }));
+  };
+
+  const handlePurchaseCurrencyChange = (currency: string) => {
+    const rate = PURCHASE_EXCHANGE_RATES[currency] || 1;
+    setFormData(prev => ({
+      ...prev,
+      purchaseCurrency: currency,
+      purchaseExchangeRate: rate
+    }));
   };
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -290,11 +581,13 @@ const StoneDetailPanel: React.FC<{
           <button onClick={onClose} className="p-2 bg-stone-50 hover:bg-stone-100 text-stone-400 rounded-full transition-colors shrink-0 ml-2"><X size={20} /></button>
         </div>
 
-        <div className="flex border-b border-stone-200 bg-white shrink-0">
+        <div className="flex border-b border-stone-200 bg-white shrink-0 overflow-x-auto hide-scrollbar">
           <TabButton id="identity" activeTab={activeTab} label="Identity" icon={Gem} onClick={setActiveTab} />
           <TabButton id="purchase" activeTab={activeTab} label="Purchase" icon={ShoppingBag} onClick={setActiveTab} />
           <TabButton id="sales" activeTab={activeTab} label="Sales" icon={User} onClick={setActiveTab} />
           <TabButton id="financial" activeTab={activeTab} label="Finance" icon={DollarSign} onClick={setActiveTab} />
+          <TabButton id="certificate" activeTab={activeTab} label="Certificate" icon={Award} onClick={setActiveTab} />
+          <TabButton id="cutPolish" activeTab={activeTab} label="Cut & Polish" icon={Scissors} onClick={setActiveTab} />
         </div>
 
         <div className="flex-1 overflow-y-auto p-4 md:p-6 custom-scrollbar bg-stone-50/20">
@@ -342,6 +635,7 @@ const StoneDetailPanel: React.FC<{
                   <Field label="Certificate" value={formData.certificate} field="certificate" isEditing={isEditing} onInputChange={handleInputChange} />
                   <Field label="Stones In (Location)" value={formData.location} field="location" isEditing={isEditing} onInputChange={handleInputChange} />
                   <Field label="Stone with (Holder)" value={formData.holder} field="holder" isEditing={isEditing} onInputChange={handleInputChange} />
+                  <Field label="Status" value={formData.status} field="status" isEditing={isEditing} onInputChange={handleInputChange} options={STATUS_OPTIONS} />
                   <div className="col-span-2 py-2 border-b border-stone-50 min-h-[50px]">
                      <span className="text-[9px] font-bold text-stone-400 uppercase tracking-wider mb-2 block">Shape Selection</span>
                      {isEditing ? (
@@ -367,15 +661,133 @@ const StoneDetailPanel: React.FC<{
           
           {activeTab === 'purchase' && (
             <div className="space-y-4 md:space-y-6 animate-in fade-in zoom-in-95 duration-200">
-               <div className="bg-white p-4 md:p-5 rounded-3xl border border-stone-200 shadow-sm">
+              {/* Payment Ledger Fields */}
+              <div className="bg-white p-4 md:p-5 rounded-3xl border border-stone-200 shadow-sm">
+                <h3 className="text-[10px] font-bold text-stone-400 uppercase tracking-widest mb-4 flex items-center gap-2"><ShoppingBag size={14} className="text-emerald-500" /> Payment Information</h3>
+                <div className="grid grid-cols-2 gap-x-4 md:gap-x-6">
+                  <Field label="Supplier" value={formData.purchaseCustomerName || ''} field="purchaseCustomerName" isEditing={isEditing} onInputChange={handleInputChange} />
+                  <Field label="Description" value={formData.purchaseDescription || ''} field="purchaseDescription" isEditing={isEditing} onInputChange={handleInputChange} />
+                  <Field label="Deal" value={formData.purchaseDeal || ''} field="purchaseDeal" isEditing={isEditing} onInputChange={handleInputChange} />
+                  <div className="flex flex-col py-2 border-b border-stone-100 last:border-0 min-h-[50px] justify-center">
+                    <span className="text-[9px] font-bold text-stone-400 uppercase tracking-wider mb-0.5">Currency</span>
+                    {isEditing ? (
+                      <select
+                        value={formData.purchaseCurrency || 'LKR'}
+                        onChange={(e) => handlePurchaseCurrencyChange(e.target.value)}
+                        className="w-full p-2 bg-stone-50 border border-stone-200 rounded-lg text-sm outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/10"
+                      >
+                        {PURCHASE_CURRENCIES.map(c => <option key={c} value={c}>{c}</option>)}
+                      </select>
+                    ) : (
+                      <span className="text-sm font-medium text-stone-700">{formData.purchaseCurrency || 'LKR'}</span>
+                    )}
+                  </div>
+                  <Field label="Amount" value={formData.purchaseAmount || 0} field="purchaseAmount" isEditing={isEditing} onInputChange={handleInputChange} type="number" highlight isCurrency />
+                  {formData.purchaseCurrency && formData.purchaseCurrency !== 'LKR' && (
+                    <Field label="Rate" value={formData.purchaseExchangeRate || 1} field="purchaseExchangeRate" isEditing={isEditing} onInputChange={handleInputChange} type="number" />
+                  )}
+                  <div className="flex flex-col py-2 border-b border-stone-100 last:border-0 min-h-[50px] justify-center">
+                    <span className="text-[9px] font-bold text-stone-400 uppercase tracking-wider mb-0.5">OFFICE %</span>
+                    {isEditing ? (
+                      <div className="flex items-center gap-2">
+                        <input 
+                          type="number" 
+                          value={formData.purchaseOfficePercent === undefined || formData.purchaseOfficePercent === null ? '' : formData.purchaseOfficePercent.toString()} 
+                          onChange={(e) => handleInputChange('purchaseOfficePercent', Number(e.target.value) || 0)} 
+                          onFocus={(e) => {
+                            if (formData.purchaseOfficePercent === 0 || formData.purchaseOfficePercent === undefined) {
+                              e.target.select();
+                            }
+                          }}
+                          className="w-24 p-2 bg-stone-50 border border-stone-200 rounded-lg text-sm outline-none transition-all focus:border-violet-500 focus:ring-2 focus:ring-violet-500/10" 
+                          placeholder="%"
+                        />
+                        {formData.purchaseOfficePercent && formData.purchaseAmount ? (
+                          <span className="text-sm font-mono font-bold text-red-600 bg-red-50 px-3 py-2 rounded-lg border-2 border-red-200 whitespace-nowrap">
+                            -{((formData.purchaseAmount * formData.purchaseOfficePercent) / 100).toLocaleString(undefined, { maximumFractionDigits: 2 })} {formData.purchaseCurrency || 'LKR'}
+                          </span>
+                        ) : null}
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-medium text-stone-700">
+                          {formData.purchaseOfficePercent === undefined || formData.purchaseOfficePercent === null || formData.purchaseOfficePercent === 0 ? '-' : `${formData.purchaseOfficePercent}%`}
+                        </span>
+                        {formData.purchaseOfficePercent && formData.purchaseAmount ? (
+                          <span className="text-sm font-mono font-bold text-red-600 bg-red-50 px-3 py-2 rounded-lg border-2 border-red-200">
+                            -{((formData.purchaseAmount * formData.purchaseOfficePercent) / 100).toLocaleString(undefined, { maximumFractionDigits: 2 })} {formData.purchaseCurrency || 'LKR'}
+                          </span>
+                        ) : null}
+                      </div>
+                    )}
+                  </div>
+                  <Field label="Commission (LKR)" value={formData.purchaseCommission || 0} field="purchaseCommission" isEditing={isEditing} onInputChange={handleInputChange} type="number" highlight isCurrency />
+                  <div className="flex flex-col py-2 border-b border-stone-100 last:border-0 min-h-[50px] justify-center">
+                    <span className="text-[9px] font-bold text-stone-400 uppercase tracking-wider mb-0.5">Final Amount</span>
+                    <div className="space-y-1">
+                      <div className="text-sm font-mono font-bold text-purple-700">
+                        {formatCurrency(formData.purchaseFinalAmount || 0, formData.purchaseCurrency || 'LKR')}
+                      </div>
+                      {formData.purchaseCurrency && formData.purchaseCurrency !== 'LKR' && (
+                        <div className="text-xs font-mono text-stone-600">
+                          {formatCurrency(formData.purchaseFinalAmountLKR || 0, 'LKR')}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  <Field label="Paid Amount" value={formData.purchasePaidAmount || 0} field="purchasePaidAmount" isEditing={isEditing} onInputChange={handleInputChange} type="number" highlight isCurrency />
+                  <div className="flex flex-col py-2 border-b border-stone-100 last:border-0 min-h-[50px] justify-center">
+                    <span className="text-[9px] font-bold text-stone-400 uppercase tracking-wider mb-0.5">Outstanding Amount</span>
+                    <div className="space-y-1">
+                      <div className="text-sm font-mono font-bold text-purple-700">
+                        {formatCurrency(formData.purchaseOutstandingAmount || 0, formData.purchaseCurrency || 'LKR')}
+                      </div>
+                      {formData.purchaseCurrency && formData.purchaseCurrency !== 'LKR' && (
+                        <div className="text-xs font-mono text-stone-600">
+                          {formatCurrency(formData.purchaseOutstandingAmountLKR || 0, 'LKR')}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  <Field label="Payment Date" value={formData.purchasePaymentDate || ''} field="purchasePaymentDate" isEditing={isEditing} onInputChange={handleInputChange} type="date" />
+                  <Field label="Due Date" value={formData.purchaseDueDate || ''} field="purchaseDueDate" isEditing={isEditing} onInputChange={handleInputChange} type="date" />
+                </div>
+              </div>
+              
+              {/* Existing Acquisition Fields */}
+              <div className="bg-white p-4 md:p-5 rounded-3xl border border-stone-200 shadow-sm">
                 <h3 className="text-[10px] font-bold text-stone-400 uppercase tracking-widest mb-4 flex items-center gap-2"><ShoppingBag size={14} className="text-emerald-500" /> Acquisition</h3>
                 <div className="grid grid-cols-2 gap-x-4 md:gap-x-6">
-                  <Field label="Supplier" value={formData.supplier} field="supplier" isEditing={isEditing} onInputChange={handleInputChange} />
                   <Field label="Purchase Date" value={formData.purchaseDate} field="purchaseDate" isEditing={isEditing} onInputChange={handleInputChange} type="date" />
-                  <Field label="SL Cost (LKR)" value={formData.slCost} field="slCost" isEditing={isEditing} onInputChange={handleInputChange} type="number" highlight isCurrency />
-                  <Field label="Payable" value={formData.payable} field="payable" isEditing={isEditing} onInputChange={handleInputChange} type="text" />
                   <Field label="Cash or Bank" value={formData.purchasePaymentMethod} field="purchasePaymentMethod" isEditing={isEditing} onInputChange={handleInputChange} options={['Cash', 'Bank']} />
-                  <Field label="paid / notpaid" value={formData.purchasePaymentStatus} field="purchasePaymentStatus" isEditing={isEditing} onInputChange={handleInputChange} options={['paid', 'notpaid']} />
+                  <Field label="Source of Funds" value={formData.purchaseSourceOfFunds || ''} field="purchaseSourceOfFunds" isEditing={isEditing} onInputChange={handleInputChange} />
+                  <Field label="Trip/Location" value={formData.purchaseTripLocation || ''} field="purchaseTripLocation" isEditing={isEditing} onInputChange={handleInputChange} options={TRIP_LOCATION_OPTIONS} />
+                  <Field label="Sales Location" value={formData.purchaseSalesLocation || ''} field="purchaseSalesLocation" isEditing={isEditing} onInputChange={handleInputChange} options={['', 'Srilanka Sales', 'Bangkok Sales', 'China Sales']} />
+                  <div className="flex flex-col py-2 border-b border-stone-100 last:border-0 min-h-[50px] justify-center">
+                    <span className="text-[9px] font-bold text-stone-400 uppercase tracking-wider mb-0.5">Joint Purchase</span>
+                    {isEditing ? (
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={formData.purchaseIsJointPurchase || false}
+                          onChange={(e) => handleInputChange('purchaseIsJointPurchase', e.target.checked)}
+                          className="w-4 h-4 text-purple-600 border-stone-300 rounded focus:ring-purple-500 focus:ring-2"
+                        />
+                        <span className="text-sm font-medium text-stone-700">Purchased with a partner</span>
+                      </label>
+                    ) : (
+                      <span className="text-sm font-medium text-stone-700">
+                        {formData.purchaseIsJointPurchase ? 'Yes' : 'No'}
+                      </span>
+                    )}
+                  </div>
+                  {formData.purchaseIsJointPurchase && (
+                    <>
+                      <Field label="Partner Name" value={formData.purchasePartnerName || ''} field="purchasePartnerName" isEditing={isEditing} onInputChange={handleInputChange} />
+                      <Field label="Partner Share (%)" value={formData.purchasePartnerPercentage || 0} field="purchasePartnerPercentage" isEditing={isEditing} onInputChange={handleInputChange} type="number" />
+                      <Field label="Partner Investment" value={formData.purchasePartnerInvestment || 0} field="purchasePartnerInvestment" isEditing={isEditing} onInputChange={handleInputChange} type="number" highlight isCurrency />
+                    </>
+                  )}
                 </div>
               </div>
             </div>
@@ -384,9 +796,8 @@ const StoneDetailPanel: React.FC<{
           {activeTab === 'sales' && (
             <div className="space-y-4 md:space-y-6 animate-in fade-in zoom-in-95 duration-200">
                <div className="bg-white p-4 md:p-5 rounded-3xl border border-stone-200 shadow-sm">
-                <h3 className="text-[10px] font-bold text-stone-400 uppercase tracking-widest mb-4 flex items-center gap-2"><User size={14} className="text-blue-500" /> Sales & Status</h3>
+                <h3 className="text-[10px] font-bold text-stone-400 uppercase tracking-widest mb-4 flex items-center gap-2"><User size={14} className="text-blue-500" /> Sales Information</h3>
                 <div className="grid grid-cols-2 gap-x-4 md:gap-x-6">
-                  <Field label="Status" value={formData.status} field="status" isEditing={isEditing} onInputChange={handleInputChange} options={STATUS_OPTIONS} />
                   <Field label="Date (Selling)" value={formData.sellDate} field="sellDate" isEditing={isEditing} onInputChange={handleInputChange} type="date" />
                   <Field label="Buyer" value={formData.buyer} field="buyer" isEditing={isEditing} onInputChange={handleInputChange} />
                   <Field label="Sold by" value={formData.soldBy} field="soldBy" isEditing={isEditing} onInputChange={handleInputChange} />
@@ -430,6 +841,130 @@ const StoneDetailPanel: React.FC<{
               </div>
             </div>
           )}
+
+          {activeTab === 'certificate' && (
+            <div className="space-y-4 md:space-y-6 animate-in fade-in zoom-in-95 duration-200">
+              <div className="bg-white p-4 md:p-5 rounded-3xl border border-stone-200 shadow-sm">
+                <h3 className="text-[10px] font-bold text-stone-400 uppercase tracking-widest mb-4 flex items-center gap-2"><Award size={14} className="text-purple-500" /> Certificate Information</h3>
+                <div className="grid grid-cols-2 gap-x-4 md:gap-x-6">
+                  <Field label="Certificate Type" value={formData.certificate} field="certificate" isEditing={isEditing} onInputChange={handleInputChange} />
+                  <Field label="Certificate Price (LKR)" value={formData.certificatePrice || 0} field="certificatePrice" isEditing={isEditing} onInputChange={handleInputChange} type="number" isCurrency />
+                </div>
+                <div className="mt-6">
+                  <h4 className="text-[10px] font-bold text-stone-400 uppercase tracking-widest mb-3">Certificate Image</h4>
+                  <div className="flex flex-col items-center">
+                    {formData.certificateImage ? (
+                      <div className="relative group w-full aspect-square max-w-[280px] rounded-3xl border border-stone-200 overflow-hidden shadow-md">
+                        <img src={formData.certificateImage} alt="Certificate" className="w-full h-full object-cover" />
+                        {isEditing && (
+                          <button onClick={() => handleInputChange('certificateImage', '')} className="absolute top-2 right-2 p-2 bg-red-600 text-white rounded-full shadow-lg transition-opacity">
+                            <Trash2 size={16} />
+                          </button>
+                        )}
+                      </div>
+                    ) : (
+                      isEditing ? (
+                        <label className="w-full aspect-square max-w-[280px] flex flex-col items-center justify-center border-2 border-dashed border-stone-200 rounded-3xl bg-stone-50 hover:bg-stone-100 cursor-pointer group">
+                          <div className="p-3 bg-white rounded-2xl shadow-sm group-hover:scale-110 transition-transform mb-3"><Upload size={28} className="text-purple-500" /></div>
+                          <span className="text-xs font-bold text-stone-600 uppercase tracking-wider">Upload Certificate</span>
+                          <input type="file" className="hidden" accept="image/*" onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) {
+                              const reader = new FileReader();
+                              reader.onloadend = () => {
+                                const base64String = reader.result as string;
+                                handleInputChange('certificateImage', base64String);
+                              };
+                              reader.readAsDataURL(file);
+                            }
+                          }} />
+                        </label>
+                      ) : (
+                        <div className="w-full py-12 flex flex-col items-center justify-center border border-dashed border-stone-200 rounded-3xl bg-stone-50/50">
+                          <ImageIcon size={40} className="text-stone-200 mb-2" />
+                          <span className="text-xs font-medium text-stone-400 uppercase tracking-widest">No Certificate Image</span>
+                        </div>
+                      )
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'cutPolish' && (
+            <div className="space-y-4 md:space-y-6 animate-in fade-in zoom-in-95 duration-200">
+              <div className="bg-white p-4 md:p-5 rounded-3xl border border-stone-200 shadow-sm">
+                <div className="flex justify-between items-center mb-4">
+                  <h3 className="text-[10px] font-bold text-stone-400 uppercase tracking-widest flex items-center gap-2"><Scissors size={14} className="text-purple-500" /> Cut & Polish Records</h3>
+                  {isEditing && (
+                    <button 
+                      onClick={() => {
+                        const newRecord: CutPolishRecord = {
+                          id: `cutpolish-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+                          worker: '',
+                          type: 'cut',
+                          description: '',
+                          amount: 0,
+                          paymentMethod: 'Cash'
+                        };
+                        const currentRecords = formData.cutPolishRecords || [];
+                        handleInputChange('cutPolishRecords', [...currentRecords, newRecord]);
+                      }}
+                      className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-xl text-xs font-bold shadow-lg hover:bg-purple-700 transition-all"
+                    >
+                      <Plus size={14} /> Add Record
+                    </button>
+                  )}
+                </div>
+                {(!formData.cutPolishRecords || formData.cutPolishRecords.length === 0) ? (
+                  <div className="py-12 flex flex-col items-center justify-center border border-dashed border-stone-200 rounded-3xl bg-stone-50/50">
+                    <Scissors size={40} className="text-stone-200 mb-2" />
+                    <span className="text-xs font-medium text-stone-400 uppercase tracking-widest">No Cut & Polish Records</span>
+                    {isEditing && (
+                      <button 
+                        onClick={() => {
+                          const newRecord: CutPolishRecord = {
+                            id: `cutpolish-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+                            worker: '',
+                            type: 'cut',
+                            description: '',
+                            amount: 0,
+                            paymentMethod: 'Cash'
+                          };
+                          handleInputChange('cutPolishRecords', [newRecord]);
+                        }}
+                        className="mt-4 flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-xl text-xs font-bold shadow-lg hover:bg-purple-700 transition-all"
+                      >
+                        <Plus size={14} /> Add First Record
+                      </button>
+                    )}
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {formData.cutPolishRecords.map((record, index) => (
+                      <CutPolishRecordItem
+                        key={record.id}
+                        record={record}
+                        index={index}
+                        isEditing={isEditing}
+                        onUpdate={(updatedRecord) => {
+                          const currentRecords = formData.cutPolishRecords || [];
+                          const updatedRecords = currentRecords.map(r => r.id === record.id ? updatedRecord : r);
+                          handleInputChange('cutPolishRecords', updatedRecords);
+                        }}
+                        onDelete={() => {
+                          const currentRecords = formData.cutPolishRecords || [];
+                          const updatedRecords = currentRecords.filter(r => r.id !== record.id);
+                          handleInputChange('cutPolishRecords', updatedRecords);
+                        }}
+                      />
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
         </div>
 
         <div className="p-4 bg-white border-t border-stone-200 flex justify-end gap-2 items-center shrink-0">
@@ -453,6 +988,7 @@ export const VisionGemsSpinelTemplate: React.FC<Props> = ({ moduleId, tabId, isR
   const [filterStatus, setFilterStatus] = useState('All');
   const [filterCompany, setFilterCompany] = useState('All');
   const [filterVariety, setFilterVariety] = useState('All');
+  const [filterHolder, setFilterHolder] = useState('All');
   const [selectedStone, setSelectedStone] = useState<ExtendedSpinelStone | null>(null);
 
   const loadData = () => {
@@ -472,6 +1008,7 @@ export const VisionGemsSpinelTemplate: React.FC<Props> = ({ moduleId, tabId, isR
   const uniqueStatuses = useMemo(() => Array.from(new Set([...stones.map(s => s.status), ...STATUS_OPTIONS].filter(Boolean))).sort(), [stones]);
   const uniqueCompanies = useMemo(() => Array.from(new Set(stones.map(s => s.company).filter(Boolean))).sort(), [stones]);
   const uniqueVarieties = useMemo(() => Array.from(new Set(stones.map(s => s.variety).filter(Boolean))).sort(), [stones]);
+  const uniqueHolders = useMemo(() => Array.from(new Set(stones.map(s => s.holder).filter(Boolean))).sort(), [stones]);
 
   const filteredStones = useMemo(() => {
     return stones.filter(stone => {
@@ -481,6 +1018,7 @@ export const VisionGemsSpinelTemplate: React.FC<Props> = ({ moduleId, tabId, isR
       const matchesStatus = filterStatus === 'All' || stone.status === filterStatus;
       const matchesCompany = filterCompany === 'All' || stone.company === filterCompany;
       const matchesVariety = filterVariety === 'All' || stone.variety === filterVariety;
+      const matchesHolder = filterHolder === 'All' || stone.holder === filterHolder;
       
       let matchesWeight = true;
       if (filterWeight !== 'All') {
@@ -493,9 +1031,9 @@ export const VisionGemsSpinelTemplate: React.FC<Props> = ({ moduleId, tabId, isR
         else if (filterWeight === '5-10') matchesWeight = w >= 5 && w < 10;
         else if (filterWeight === '10+') matchesWeight = w >= 10;
       }
-      return matchesSearch && matchesColor && matchesWeight && matchesStatus && matchesCompany && matchesVariety;
+      return matchesSearch && matchesColor && matchesWeight && matchesStatus && matchesCompany && matchesVariety && matchesHolder;
     });
-  }, [stones, searchQuery, filterColor, filterWeight, filterStatus, filterCompany, filterVariety]);
+  }, [stones, searchQuery, filterColor, filterWeight, filterStatus, filterCompany, filterVariety, filterHolder]);
 
   const handleSaveStone = (updatedStone: ExtendedSpinelStone) => {
     let newLocation = updatedStone.location;
@@ -737,6 +1275,7 @@ export const VisionGemsSpinelTemplate: React.FC<Props> = ({ moduleId, tabId, isR
                <div className="flex items-center bg-stone-50 border border-stone-100 rounded-[20px] px-3 shrink-0"><Palette size={14} className="text-stone-300" /><select value={filterColor} onChange={(e) => setFilterColor(e.target.value)} className="px-2 py-2.5 bg-transparent text-xs text-stone-600 font-bold focus:outline-none min-w-[100px]"><option value="All">Color</option>{uniqueColors.map(c => <option key={c} value={c}>{c}</option>)}</select></div>
                <div className="flex items-center bg-stone-50 border border-stone-100 rounded-[20px] px-3 shrink-0"><Scale size={14} className="text-stone-300" /><select value={filterWeight} onChange={(e) => setFilterWeight(e.target.value)} className="px-2 py-2.5 bg-transparent text-xs text-stone-600 font-bold focus:outline-none min-w-[100px]"><option value="All">Weight</option><option value="0-0.5">0-0.5ct</option><option value="0.5-1">0.5-1ct</option><option value="1-1.5">1-1.5ct</option><option value="1.5-2">1.5-2ct</option><option value="2-5">2-5ct</option><option value="5-10">5-10ct</option><option value="10+">10+ct</option></select></div>
                <div className="flex items-center bg-stone-50 border border-stone-100 rounded-[20px] px-3 shrink-0"><Tag size={14} className="text-stone-300" /><select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} className="px-2 py-2.5 bg-transparent text-xs text-stone-600 font-bold focus:outline-none min-w-[100px]"><option value="All">Status</option>{uniqueStatuses.map(s => <option key={s} value={s}>{s}</option>)}</select></div>
+               <div className="flex items-center bg-stone-50 border border-stone-100 rounded-[20px] px-3 shrink-0"><User size={14} className="text-stone-300" /><select value={filterHolder} onChange={(e) => setFilterHolder(e.target.value)} className="px-2 py-2.5 bg-transparent text-xs text-stone-600 font-bold focus:outline-none min-w-[100px]"><option value="All">Holder</option>{uniqueHolders.map(h => <option key={h} value={h}>{h}</option>)}</select></div>
             </div>
          </div>
       </div>

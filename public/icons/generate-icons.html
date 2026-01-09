@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>PWA Icon Generator - Vision Gems Manager</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; max-width: 800px; margin: 0 auto; }
+        .icon-container { margin: 20px 0; padding: 20px; border: 1px solid #ddd; border-radius: 8px; }
+        canvas { border: 1px solid #ccc; margin: 10px 0; display: block; }
+        button { padding: 10px 20px; margin: 5px; background: #6B21A8; color: white; border: none; border-radius: 4px; cursor: pointer; }
+        button:hover { background: #9333EA; }
+    </style>
+</head>
+<body>
+    <h1>PWA Icon Generator</h1>
+    <p>Click the download buttons below to save each icon. Save them in the <code>public/icons/</code> directory.</p>
+    
+    <div class="icon-container">
+        <h2>192x192 Icon</h2>
+        <canvas id="icon192" width="192" height="192"></canvas>
+        <button onclick="downloadIcon('icon192', 'icon-192x192.png')">Download icon-192x192.png</button>
+    </div>
+    
+    <div class="icon-container">
+        <h2>512x512 Icon</h2>
+        <canvas id="icon512" width="512" height="512"></canvas>
+        <button onclick="downloadIcon('icon512', 'icon-512x512.png')">Download icon-512x512.png</button>
+    </div>
+    
+    <div class="icon-container">
+        <h2>Maskable 192x192 Icon</h2>
+        <canvas id="maskable192" width="192" height="192"></canvas>
+        <button onclick="downloadIcon('maskable192', 'icon-maskable-192x192.png')">Download icon-maskable-192x192.png</button>
+    </div>
+    
+    <div class="icon-container">
+        <h2>Maskable 512x512 Icon</h2>
+        <canvas id="maskable512" width="512" height="512"></canvas>
+        <button onclick="downloadIcon('maskable512', 'icon-maskable-512x512.png')">Download icon-maskable-512x512.png</button>
+    </div>
+
+    <script>
+        function drawIcon(canvas, size, isMaskable) {
+            const ctx = canvas.getContext('2d');
+            const padding = isMaskable ? size * 0.1 : 0;
+            const drawSize = size - (padding * 2);
+            
+            // Background
+            ctx.fillStyle = '#FAFAF9';
+            ctx.fillRect(0, 0, size, size);
+            
+            // Create gradient
+            const gradient = ctx.createLinearGradient(padding, padding, size - padding, size - padding);
+            gradient.addColorStop(0, '#6B21A8');
+            gradient.addColorStop(1, '#9333EA');
+            
+            ctx.fillStyle = gradient;
+            ctx.strokeStyle = '#581C87';
+            ctx.lineWidth = Math.max(1, size / 64);
+            
+            // Draw diamond/gem shape
+            const centerX = size / 2;
+            const centerY = size / 2;
+            const width = drawSize * 0.6;
+            const height = drawSize * 0.7;
+            
+            ctx.beginPath();
+            ctx.moveTo(centerX, padding + drawSize * 0.15); // Top
+            ctx.lineTo(centerX + width * 0.25, centerY - height * 0.2); // Right top
+            ctx.lineTo(centerX + width * 0.4, centerY + height * 0.15); // Right bottom
+            ctx.lineTo(centerX, size - padding - drawSize * 0.1); // Bottom
+            ctx.lineTo(centerX - width * 0.4, centerY + height * 0.15); // Left bottom
+            ctx.lineTo(centerX - width * 0.25, centerY - height * 0.2); // Left top
+            ctx.closePath();
+            ctx.fill();
+            ctx.stroke();
+            
+            // Draw inner circle/highlight
+            ctx.fillStyle = '#F3E8FF';
+            ctx.beginPath();
+            ctx.arc(centerX, centerY - height * 0.05, drawSize * 0.15, 0, Math.PI * 2);
+            ctx.fill();
+        }
+        
+        function downloadIcon(canvasId, filename) {
+            const canvas = document.getElementById(canvasId);
+            canvas.toBlob(function(blob) {
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = filename;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            });
+        }
+        
+        // Generate all icons
+        drawIcon(document.getElementById('icon192'), 192, false);
+        drawIcon(document.getElementById('icon512'), 512, false);
+        drawIcon(document.getElementById('maskable192'), 192, true);
+        drawIcon(document.getElementById('maskable512'), 512, true);
+    </script>
+</body>
+</html>

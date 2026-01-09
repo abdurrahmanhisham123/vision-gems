@@ -6,6 +6,7 @@ import { ModuleView } from './components/ModuleView';
 import { StatementView } from './components/StatementView';
 import { CompanyDashboard } from './components/CompanyDashboard';
 import { ChatInterface } from './components/ChatInterface';
+import { PWAInstallPrompt } from './components/PWAInstallPrompt';
 
 const Home = () => {
   return <CompanyDashboard />;
@@ -21,6 +22,7 @@ const App = () => {
           <Route path="/chat" element={<ChatInterface />} />
           <Route path="/module/:moduleId/:tabId" element={<ModuleView />} />
         </Routes>
+        <PWAInstallPrompt />
       </Layout>
     </Router>
   );

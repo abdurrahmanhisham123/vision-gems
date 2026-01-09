@@ -47,7 +47,7 @@ export const APP_MODULES: ModuleConfig[] = [
     description: 'Global inventory availability',
     icon: 'Layers',
     tabs: [
-      'Dashboard', 'All Stones'
+      'Dashboard', 'All Stones', 'Sold'
     ]
   },
   // 4. SpinelGallery (Read Only)

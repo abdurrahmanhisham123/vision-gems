@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useLayoutEffect, useMemo, useRef } from 'react';
 import { 
   Search, Plus, Download, Printer, 
   Trash2, Edit, Save, X, DollarSign, 
@@ -61,7 +61,23 @@ const exchangeRates: Record<string, number> = {
 
 const paymentMethods = ['Cash', 'Cheque', 'Bank Transfer', 'Credit Card', 'Online Payment', 'Other'];
 
-// --- Helper Function to Mark Stones as Sold ---
+// Map payment status to stone status
+const getStoneStatusFromPaymentStatus = (paymentStatus: string): string => {
+  switch (paymentStatus) {
+    case 'Paid':
+      return 'Sold';
+    case 'Partial':
+      return 'Partial';
+    case 'Pending':
+      return 'Pending';
+    case 'Overdue':
+      return 'Overdue';
+    default:
+      return 'Pending'; // Default fallback
+  }
+};
+
+// --- Helper Function to Update Stone Status Based on Payment Status ---
 const markStonesAsSold = (code: string, paymentData?: PaymentItem): number => {
   if (!code || code.trim() === '') {
     return 0;
@@ -81,12 +97,17 @@ const markStonesAsSold = (code: string, paymentData?: PaymentItem): number => {
       return 0;
     }
 
+    // Determine stone status based on payment status
+    const stoneStatus = paymentData?.status 
+      ? getStoneStatusFromPaymentStatus(paymentData.status)
+      : 'Pending'; // Default if no payment status
+
     // Update each matching stone
     let updatedCount = 0;
     matchingStones.forEach(stone => {
       const updatedStone = {
         ...stone,
-        status: 'Sold',
+        status: stoneStatus,
         // Optionally update sales-related fields from payment data
         ...(paymentData?.date && { sellDate: paymentData.date }),
         ...(paymentData?.customerName && { buyer: paymentData.customerName }),
@@ -99,10 +120,10 @@ const markStonesAsSold = (code: string, paymentData?: PaymentItem): number => {
       updatedCount++;
     });
 
-    console.log(`Marked ${updatedCount} stone(s) as Sold for code: ${code}`);
+    console.log(`Updated ${updatedCount} stone(s) to status "${stoneStatus}" for code: ${code}`);
     return updatedCount;
   } catch (error) {
-    console.error('Error marking stones as sold:', error);
+    console.error('Error updating stone status:', error);
     return 0;
   }
 };
@@ -479,24 +500,43 @@ const PaymentDetailPanel: React.FC<{
   );
 };
 
+// Normalize tabId to handle spaces and ensure consistency
+const normalizeTabId = (tabId: string): string => {
+  // #region agent log
+  const normalized = tabId.trim().replace(/\s+/g, '_').replace(/[^a-zA-Z0-9_]/g, '');
+  fetch('http://127.0.0.1:7242/ingest/71eaac38-ca19-4474-9603-a5a4029bf926',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'UnifiedPaymentLedgerTemplate.tsx:504',message:'Normalize tabId',data:{originalTabId:tabId,normalizedTabId:normalized},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+  return normalized;
+  // #endregion
+};
+
 export const UnifiedPaymentLedgerTemplate: React.FC<Props> = ({ moduleId, tabId, isReadOnly }) => {
-  // Load data from localStorage on mount
-  const [items, setItems] = useState<PaymentItem[]>(() => {
-    const storageKey = `unified_payment_ledger_outstanding_${tabId}`;
-    const saved = localStorage.getItem(storageKey);
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          return parsed;
-        }
-      } catch (e) {
-        console.error('Failed to load payment ledger data:', e);
-      }
-    }
-    return generateMockData();
-  });
+  // #region agent log
+  fetch('http://127.0.0.1:7242/ingest/71eaac38-ca19-4474-9603-a5a4029bf926',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'UnifiedPaymentLedgerTemplate.tsx:512',message:'Component render',data:{moduleId,tabId,isReadOnly},timestamp:Date.now(),sessionId:'debug-session',runId:'post-fix-v2',hypothesisId:'A,D'})}).catch(()=>{});
+  // #endregion
   
+  // Track current tabId to detect changes
+  const currentTabKeyRef = useRef<string>(`${moduleId}_${tabId}`);
+  // Track which tab the items belong to (to prevent saving stale data)
+  const itemsTabKeyRef = useRef<string>(`${moduleId}_${tabId}`);
+  const [items, setItems] = useState<PaymentItem[]>([]);
+  
+  // Clear items synchronously when tab changes (before save effect runs)
+  useLayoutEffect(() => {
+    const currentTabKey = `${moduleId}_${tabId}`;
+    if (currentTabKeyRef.current !== currentTabKey) {
+      // #region agent log
+      const prevItemsCount = items.length;
+      fetch('http://127.0.0.1:7242/ingest/71eaac38-ca19-4474-9603-a5a4029bf926',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'UnifiedPaymentLedgerTemplate.tsx:520',message:'Tab changed, clearing items synchronously',data:{oldTabKey:currentTabKeyRef.current,newTabKey:currentTabKey,itemsCount:prevItemsCount},timestamp:Date.now(),sessionId:'debug-session',runId:'post-fix-v3',hypothesisId:'F,G,H'})}).catch(()=>{});
+      // #endregion
+      currentTabKeyRef.current = currentTabKey;
+      itemsTabKeyRef.current = ''; // Clear items tab key to prevent saving stale data
+      setItems([]); // Clear items synchronously before save effect runs
+      setIsDataLoaded(false); // Reset flag
+    }
+  }, [moduleId, tabId]);
+  
+  const [isLoading, setIsLoading] = useState(false);
+  const [isDataLoaded, setIsDataLoaded] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [companyFilter, setCompanyFilter] = useState<string>('All');
   const [statusFilter, setStatusFilter] = useState<string>('All');
@@ -509,16 +549,88 @@ export const UnifiedPaymentLedgerTemplate: React.FC<Props> = ({ moduleId, tabId,
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<PaymentItem | null>(null);
 
-  // Save data to localStorage whenever items change
+  // Save data to localStorage whenever items change (but only after data is loaded for current tab)
   useEffect(() => {
-    const storageKey = `unified_payment_ledger_outstanding_${tabId}`;
+    const currentTabKey = `${moduleId}_${tabId}`;
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/71eaac38-ca19-4474-9603-a5a4029bf926',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'UnifiedPaymentLedgerTemplate.tsx:526',message:'Save effect triggered',data:{moduleId,tabId,itemsCount:items.length,isDataLoaded,currentTabKey,itemsTabKey:itemsTabKeyRef.current},timestamp:Date.now(),sessionId:'debug-session',runId:'post-fix-v3',hypothesisId:'F,G,H'})}).catch(()=>{});
+    // #endregion
+    // Don't save if items don't belong to current tab (prevents saving stale data from previous tab)
+    if (itemsTabKeyRef.current !== currentTabKey) {
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/71eaac38-ca19-4474-9603-a5a4029bf926',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'UnifiedPaymentLedgerTemplate.tsx:530',message:'Skipping save - items belong to different tab',data:{moduleId,tabId,currentTabKey,itemsTabKey:itemsTabKeyRef.current},timestamp:Date.now(),sessionId:'debug-session',runId:'post-fix-v3',hypothesisId:'F,G,H'})}).catch(()=>{});
+      // #endregion
+      return;
+    }
+    // Don't save if data hasn't been loaded for this tab yet (prevents saving stale data from previous tab)
+    if (!isDataLoaded) {
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/71eaac38-ca19-4474-9603-a5a4029bf926',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'UnifiedPaymentLedgerTemplate.tsx:530',message:'Skipping save - data not loaded yet',data:{moduleId,tabId},timestamp:Date.now(),sessionId:'debug-session',runId:'post-fix-v3',hypothesisId:'F,G,H'})}).catch(()=>{});
+      // #endregion
+      return;
+    }
+    const normalizedTabId = normalizeTabId(tabId);
+    const storageKey = `unified_payment_ledger_${moduleId}_${normalizedTabId}`;
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/71eaac38-ca19-4474-9603-a5a4029bf926',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'UnifiedPaymentLedgerTemplate.tsx:533',message:'Before save to localStorage',data:{storageKey,itemsCount:items.length,normalizedTabId},timestamp:Date.now(),sessionId:'debug-session',runId:'post-fix-v3',hypothesisId:'B,C'})}).catch(()=>{});
+    // #endregion
     try {
       localStorage.setItem(storageKey, JSON.stringify(items));
       console.log(`Saved ${items.length} items to localStorage: ${storageKey}`);
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/71eaac38-ca19-4474-9603-a5a4029bf926',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'UnifiedPaymentLedgerTemplate.tsx:537',message:'After save to localStorage',data:{storageKey,itemsCount:items.length,success:true},timestamp:Date.now(),sessionId:'debug-session',runId:'post-fix-v3',hypothesisId:'C'})}).catch(()=>{});
+      // #endregion
     } catch (e) {
       console.error('Failed to save payment ledger data:', e);
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/71eaac38-ca19-4474-9603-a5a4029bf926',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'UnifiedPaymentLedgerTemplate.tsx:540',message:'Save error',data:{storageKey,error:String(e)},timestamp:Date.now(),sessionId:'debug-session',runId:'post-fix-v3',hypothesisId:'C'})}).catch(()=>{});
+      // #endregion
     }
-  }, [items, tabId]);
+  }, [items, moduleId, tabId, isDataLoaded]);
+
+  // Reload data when tabId or moduleId changes
+  useEffect(() => {
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/71eaac38-ca19-4474-9603-a5a4029bf926',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'UnifiedPaymentLedgerTemplate.tsx:543',message:'Load effect triggered',data:{moduleId,tabId},timestamp:Date.now(),sessionId:'debug-session',runId:'post-fix',hypothesisId:'A,D'})}).catch(()=>{});
+    // #endregion
+    setIsLoading(true);
+    setIsDataLoaded(false); // Reset flag when tab changes
+    const normalizedTabId = normalizeTabId(tabId);
+    const storageKey = `unified_payment_ledger_${moduleId}_${normalizedTabId}`;
+    console.log(`Loading data for tab: ${tabId}, module: ${moduleId}, storageKey: ${storageKey}`);
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/71eaac38-ca19-4474-9603-a5a4029bf926',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'UnifiedPaymentLedgerTemplate.tsx:549',message:'Before load from localStorage',data:{storageKey,normalizedTabId},timestamp:Date.now(),sessionId:'debug-session',runId:'post-fix',hypothesisId:'A,B'})}).catch(()=>{});
+    // #endregion
+    const saved = localStorage.getItem(storageKey);
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) {
+          // #region agent log
+          fetch('http://127.0.0.1:7242/ingest/71eaac38-ca19-4474-9603-a5a4029bf926',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'UnifiedPaymentLedgerTemplate.tsx:555',message:'Setting items from loaded data',data:{storageKey,itemsCount:parsed.length,currentTabKey:`${moduleId}_${tabId}`},timestamp:Date.now(),sessionId:'debug-session',runId:'post-fix-v3',hypothesisId:'A,E'})}).catch(()=>{});
+          // #endregion
+          itemsTabKeyRef.current = `${moduleId}_${tabId}`; // Mark items as belonging to current tab
+          setItems(parsed);
+          setIsDataLoaded(true); // Mark data as loaded
+          setIsLoading(false);
+          return;
+        }
+      } catch (e) {
+        console.error('Failed to load payment ledger data:', e);
+        // #region agent log
+        fetch('http://127.0.0.1:7242/ingest/71eaac38-ca19-4474-9603-a5a4029bf926',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'UnifiedPaymentLedgerTemplate.tsx:561',message:'Load parse error',data:{storageKey,error:String(e)},timestamp:Date.now(),sessionId:'debug-session',runId:'post-fix',hypothesisId:'A'})}).catch(()=>{});
+        // #endregion
+      }
+    }
+    // If no saved data, initialize with empty array
+    itemsTabKeyRef.current = `${moduleId}_${tabId}`; // Mark items as belonging to current tab
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/71eaac38-ca19-4474-9603-a5a4029bf926',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'UnifiedPaymentLedgerTemplate.tsx:566',message:'No saved data, setting empty array',data:{storageKey,hasSavedData:!!saved,currentTabKey:`${moduleId}_${tabId}`},timestamp:Date.now(),sessionId:'debug-session',runId:'post-fix-v3',hypothesisId:'A,E'})}).catch(()=>{});
+    // #endregion
+    setItems([]);
+    setIsDataLoaded(true); // Mark data as loaded (even if empty)
+    setIsLoading(false);
+  }, [moduleId, tabId]);
 
   // --- Filter Options ---
   const uniqueCompanies = useMemo(() => {
@@ -590,6 +702,9 @@ export const UnifiedPaymentLedgerTemplate: React.FC<Props> = ({ moduleId, tabId,
   };
 
   const handleSave = (item: PaymentItem) => {
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/71eaac38-ca19-4474-9603-a5a4029bf926',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'UnifiedPaymentLedgerTemplate.tsx:645',message:'handleSave called',data:{moduleId,tabId,itemId:item.id,isEditing:!!editingItem},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C,E'})}).catch(()=>{});
+    // #endregion
     if (editingItem) {
       setItems(prev => prev.map(i => i.id === item.id ? item : i));
     } else {

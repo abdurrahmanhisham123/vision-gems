@@ -55,6 +55,30 @@ export interface ExtendedSpinelStone {
   purchasePaymentMethod: string; // Cash or Bank
   purchasePaymentStatus: string; // paid / notpaid
   inventoryCategory: string; // Total stones (Stock category)
+  purchaseSourceOfFunds?: string; // Source of Funds - where the money came from
+  
+  // Section 3a: Purchase Payment Ledger Fields (13)
+  purchaseCustomerName?: string; // Customer/Entity Name
+  purchaseDescription?: string; // Description
+  purchaseDeal?: string; // Deal
+  purchaseCurrency?: string; // Currency (USD, LKR, etc.)
+  purchaseExchangeRate?: number; // Exchange Rate
+  purchaseAmount?: number; // Base Amount (equivalent to invoiceAmount)
+  purchaseOfficePercent?: number; // OFFICE %
+  purchaseCommission?: number; // Commission (LKR)
+  purchaseFinalAmount?: number; // Final Amount in chosen currency (auto-calculated)
+  purchaseFinalAmountLKR?: number; // Final Amount in LKR (auto-calculated)
+  purchasePaidAmount?: number; // Paid Amount in chosen currency
+  purchaseOutstandingAmount?: number; // Outstanding Amount in chosen currency (auto-calculated)
+  purchaseOutstandingAmountLKR?: number; // Outstanding Amount in LKR (auto-calculated)
+  purchasePaymentDate?: string; // Payment Date
+  purchaseDueDate?: string; // Due Date
+  purchaseIsJointPurchase?: boolean; // Whether stone was bought with a partner
+  purchasePartnerName?: string; // Partner name (if joint purchase)
+  purchasePartnerPercentage?: number; // Partner's percentage share
+  purchasePartnerInvestment?: number; // Partner's investment amount
+  purchaseTripLocation?: string; // Trip/Location where stone was purchased from
+  purchaseSalesLocation?: string; // Sales location selection (Srilanka Sales, Bangkok Sales, China Sales)
 
   // Section 4: Status & Location (3)
   status: string;
@@ -91,6 +115,22 @@ export interface ExtendedSpinelStone {
   salesPaymentMethod: string; // Cash or Bank
   paymentCleared: string; // Cleared
   transactionAmount: number; // Amount
+
+  // Section 9: Certificate Information (3)
+  certificateImage?: string; // Base64 encoded certificate image (stored separately from photos)
+  certificatePrice?: number; // Price of the certificate
+
+  // Section 10: Cut & Polish Records
+  cutPolishRecords?: CutPolishRecord[]; // Array of cut & polish records
+}
+
+export interface CutPolishRecord {
+  id: string;
+  worker: string; // Worker/Cutter name
+  type: 'cut' | 'polish' | 'both';
+  description: string;
+  amount: number; // Amount in LKR
+  paymentMethod: string; // Cash or Bank
 }
 
 export interface Transaction {

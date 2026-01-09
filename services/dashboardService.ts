@@ -313,10 +313,16 @@ export const getDashboardData = async (config: DashboardConfig): Promise<Dashboa
   // --- OUTSTANDING DASHBOARD (Aggregating 35 Tabs) ---
   if (config.dataKey === "outstanding_dashboard") {
     
+    // Normalize tabId to handle spaces and ensure consistency
+    const normalizeTabId = (tabId: string): string => {
+      return tabId.trim().replace(/\s+/g, '_').replace(/[^a-zA-Z0-9_]/g, '');
+    };
+
     // Helper function to load data from localStorage
     const loadTabData = (tabId: string): any[] => {
       try {
-        const storageKey = `unified_payment_ledger_outstanding_${tabId}`;
+        const normalizedTabId = normalizeTabId(tabId);
+        const storageKey = `unified_payment_ledger_outstanding_${normalizedTabId}`;
         const saved = localStorage.getItem(storageKey);
         if (saved) {
           return JSON.parse(saved);
