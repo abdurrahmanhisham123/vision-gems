@@ -36,7 +36,7 @@ export const APP_MODULES: ModuleConfig[] = [
     icon: 'Diamond',
     tabs: [
       'DashboardGems', 'veriety', 
-      'Approval', 'Z', 'V G Old stock', 'Cut.polish'
+      'Approval In', 'Z', 'V G Old stock', 'Cut.polish'
     ]
   },
   // 3. In Stocks (New)
@@ -47,7 +47,7 @@ export const APP_MODULES: ModuleConfig[] = [
     description: 'Global inventory availability',
     icon: 'Layers',
     tabs: [
-      'Dashboard', 'All Stones', 'Sold'
+      'Dashboard', 'All Stones', 'Sold', 'Approval Out', 'Missing'
     ]
   },
   // 4. SpinelGallery (Read Only)
@@ -97,8 +97,7 @@ export const APP_MODULES: ModuleConfig[] = [
     description: 'Accounts payable',
     icon: 'TrendingDown',
     tabs: [
-      'Dashboard', 'Payment Due Date', 'Buying.Payments.Paid', 'Capital', 'BKK.Capital', 
-      'Beruwala', 'Colombo', 'Galle', 'Kisu', 'Bangkok'
+      'Dashboard', 'Payment Due Date', 'Buying.Payments.Paid', 'Outstanding Payables', 'Capital', 'BKK.Capital'
     ]
   },
   // 8. BKK - Freshly Added Navigation Menu
@@ -188,7 +187,7 @@ export const APP_MODULES: ModuleConfig[] = [
     description: 'Accounts management',
     icon: 'Wallet',
     tabs: [
-      'Shares', 'Investment'
+      'Shares', 'Transactions', 'Investment'
     ]
   }
 ];

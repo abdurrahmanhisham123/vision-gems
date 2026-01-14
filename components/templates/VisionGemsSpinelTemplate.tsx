@@ -20,7 +20,7 @@ interface Props {
 
 // --- CONSTANTS ---
 const AVAILABLE_SHAPES = ['Round', 'Oval', 'Cushion', 'Emerald', 'Pear', 'Marquise', 'Princess', 'Heart', 'Asscher', 'Radiant', 'Trillion', 'Baguette'];
-const STATUS_OPTIONS = ['In Stock', 'Export', 'Approval', 'Sold', 'Pending', 'Partial', 'Overdue', 'BKK', 'Missing'];
+const STATUS_OPTIONS = ['In Stock', 'Export', 'Approval In', 'Approval Out', 'Sold', 'Pending', 'Pending Payment', 'Partial Payment', 'Overdue Payment', 'BKK', 'Missing'];
 
 const VARIETY_OPTIONS = [
   'Spinel', 'Mahenge Spinel', 'Pink Spinel', 'Red Spinel', 'TSV', 'Ruby', 
@@ -92,6 +92,7 @@ const EMPTY_STONE: ExtendedSpinelStone = {
   color: '',
   pieces: 1,
   dimensions: '',
+  title: '',
   certificate: '',
   supplier: '',
   slCost: 0,
@@ -100,6 +101,9 @@ const EMPTY_STONE: ExtendedSpinelStone = {
   purchasePaymentMethod: 'Cash',
   purchasePaymentStatus: 'Paid',
   inventoryCategory: 'In Stock',
+  purchasePrice: 0,
+  purchaseExpectedSellingPrice: 0,
+  purchasePriceCode: '',
   status: 'In Stock',
   location: '',
   originalCategory: undefined,
@@ -149,8 +153,31 @@ const EMPTY_STONE: ExtendedSpinelStone = {
   purchasePartnerName: '',
   purchasePartnerPercentage: 0,
   purchasePartnerInvestment: 0,
+  purchaseJointPurchaseTripLocation: '',
   purchaseTripLocation: '',
-  purchaseSalesLocation: ''
+  purchaseSalesLocation: '',
+  purchasePayables: 0,
+  salesCustomerName: '',
+  salesDescription: '',
+  salesDeal: '',
+  salesCurrency: 'LKR',
+  salesExchangeRate: 1,
+  salesAmount: 0,
+  salesAmountLKR: 0,
+  salesAmountUSD: 0,
+  salesAmountTHB: 0,
+  salesAmountRMB: 0,
+  salesOfficePercent: 0,
+  salesCommission: 0,
+  salesFinalAmount: 0,
+  salesFinalAmountLKR: 0,
+  salesPaidAmount: 0,
+  salesOutstandingAmount: 0,
+  salesOutstandingAmountLKR: 0,
+  salesPaymentDate: '',
+  salesDueDate: '',
+  approvalOutTo: '',
+  approvalInFrom: ''
 };
 
 // Trip/Location options for Purchase tab
@@ -431,10 +458,85 @@ const StoneDetailPanel: React.FC<{
   const [isEditing, setIsEditing] = useState(initialIsEditing);
   const [formData, setFormData] = useState<ExtendedSpinelStone>(initialStone);
 
+  // Get unique companies from localStorage for datalist
+  const getCompanyOptions = (): string[] => {
+    try {
+      const saved = localStorage.getItem('vg_stone_persistence_registry_v2');
+      if (saved) {
+        const allStones: ExtendedSpinelStone[] = JSON.parse(saved);
+        const companies = Array.from(new Set(allStones.map(s => s.company).filter(Boolean))).sort();
+        return companies.length > 0 ? companies : ['Vision Gems', 'SpinelGallery', 'Vision Gems SL'];
+      }
+    } catch (e) {
+      console.error('Error loading companies', e);
+    }
+    return ['Vision Gems', 'SpinelGallery', 'Vision Gems SL'];
+  };
+
+  const companyOptions = useMemo(() => getCompanyOptions(), []);
+
   useEffect(() => {
+    // First set from initialStone prop
     setFormData(initialStone);
     setIsEditing(initialIsEditing);
+    
+    // Then refresh from localStorage to get latest data (especially cut and polish records)
+    try {
+      const saved = localStorage.getItem('vg_stone_persistence_registry_v2');
+      if (saved) {
+        const allStones: ExtendedSpinelStone[] = JSON.parse(saved);
+        const latestStone = allStones.find(s => s.id === initialStone.id);
+        if (latestStone) {
+          setFormData(latestStone);
+        }
+      }
+    } catch (e) {
+      console.error('Error loading latest stone data:', e);
+    }
   }, [initialStone, initialIsEditing]);
+
+  // Refresh stone data when switching to cut and polish tab to get latest synced records
+  useEffect(() => {
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/71eaac38-ca19-4474-9603-a5a4029bf926',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'VisionGemsSpinelTemplate.tsx:499',message:'cutPolish useEffect triggered',data:{activeTab,formDataId:formData?.id,hasFormData:!!formData},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+    // #endregion
+    if (activeTab === 'cutPolish') {
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/71eaac38-ca19-4474-9603-a5a4029bf926',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'VisionGemsSpinelTemplate.tsx:501',message:'Entering cutPolish refresh logic',data:{formDataId:formData?.id},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+      // #endregion
+      // Refresh stone data from localStorage to get latest cut and polish records
+      try {
+        const saved = localStorage.getItem('vg_stone_persistence_registry_v2');
+        // #region agent log
+        fetch('http://127.0.0.1:7242/ingest/71eaac38-ca19-4474-9603-a5a4029bf926',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'VisionGemsSpinelTemplate.tsx:504',message:'localStorage retrieved',data:{hasSaved:!!saved,savedLength:saved?.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
+        // #endregion
+        if (saved) {
+          const allStones: ExtendedSpinelStone[] = JSON.parse(saved);
+          // #region agent log
+          fetch('http://127.0.0.1:7242/ingest/71eaac38-ca19-4474-9603-a5a4029bf926',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'VisionGemsSpinelTemplate.tsx:507',message:'JSON parsed successfully',data:{stonesCount:allStones?.length,formDataId:formData?.id},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
+          // #endregion
+          const updatedStone = allStones.find(s => s.id === formData.id);
+          // #region agent log
+          fetch('http://127.0.0.1:7242/ingest/71eaac38-ca19-4474-9603-a5a4029bf926',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'VisionGemsSpinelTemplate.tsx:509',message:'find operation completed',data:{foundStone:!!updatedStone,updatedStoneId:updatedStone?.id,hasCutPolishRecords:!!updatedStone?.cutPolishRecords,recordsCount:updatedStone?.cutPolishRecords?.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+          // #endregion
+          if (updatedStone) {
+            // #region agent log
+            fetch('http://127.0.0.1:7242/ingest/71eaac38-ca19-4474-9603-a5a4029bf926',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'VisionGemsSpinelTemplate.tsx:511',message:'About to setFormData with updatedStone',data:{updatedStoneKeys:Object.keys(updatedStone || {})},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+            // #endregion
+            setFormData(updatedStone);
+            // #region agent log
+            fetch('http://127.0.0.1:7242/ingest/71eaac38-ca19-4474-9603-a5a4029bf926',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'VisionGemsSpinelTemplate.tsx:512',message:'setFormData called successfully',data:{},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+            // #endregion
+          }
+        }
+      } catch (e) {
+        // #region agent log
+        fetch('http://127.0.0.1:7242/ingest/71eaac38-ca19-4474-9603-a5a4029bf926',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'VisionGemsSpinelTemplate.tsx:515',message:'Error in cutPolish refresh',data:{errorMessage:e instanceof Error ? e.message : String(e),errorStack:e instanceof Error ? e.stack : undefined},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
+        // #endregion
+        console.error('Error refreshing stone data:', e);
+      }
+    }
+  }, [activeTab, formData.id]);
 
   // Auto-calculate purchase amounts with currency conversion
   useEffect(() => {
@@ -480,6 +582,53 @@ const StoneDetailPanel: React.FC<{
     }));
   }, [formData.purchaseAmount, formData.purchaseOfficePercent, formData.purchaseCommission, formData.purchasePaidAmount, formData.purchaseCurrency, formData.purchaseExchangeRate]);
 
+  // Auto-calculate sales amounts with currency conversion
+  useEffect(() => {
+    // Determine active currency based on priority
+    const { currency, amount } = getActiveSalesCurrency(formData);
+    const rate = formData.salesExchangeRate || 1;
+    const officePercent = formData.salesOfficePercent || 0;
+    const commissionLKR = formData.salesCommission || 0;
+    const paidAmount = formData.salesPaidAmount || 0;
+    
+    // Calculate Office Percentage Deduction in chosen currency
+    const officePercentageDeduction = amount && officePercent
+      ? (amount * officePercent) / 100
+      : 0;
+    
+    // Convert Commission from LKR to chosen currency (if not LKR)
+    const commissionInCurrency = currency === 'LKR' 
+      ? commissionLKR 
+      : commissionLKR / rate;
+    
+    // Calculate Final Amount in chosen currency: amount - officePercentageDeduction - commissionInCurrency
+    const finalAmount = amount - officePercentageDeduction - commissionInCurrency;
+    
+    // Calculate Final Amount in LKR
+    const finalAmountLKR = currency === 'LKR' 
+      ? finalAmount 
+      : finalAmount * rate;
+    
+    // Calculate Outstanding Amount in chosen currency: amount - paidAmount
+    const outstandingAmount = amount - paidAmount;
+    
+    // Calculate Outstanding Amount in LKR
+    const outstandingAmountLKR = currency === 'LKR' 
+      ? outstandingAmount 
+      : outstandingAmount * rate;
+    
+    setFormData(prev => ({
+      ...prev,
+      salesCurrency: currency,
+      salesAmount: amount,
+      salesFinalAmount: finalAmount,
+      salesFinalAmountLKR: finalAmountLKR,
+      salesOutstandingAmount: outstandingAmount,
+      salesOutstandingAmountLKR: outstandingAmountLKR
+    }));
+  }, [formData.salesAmountLKR, formData.salesAmountUSD, formData.salesAmountTHB, formData.salesAmountRMB, formData.salesOfficePercent, formData.salesCommission, formData.salesPaidAmount, formData.salesExchangeRate]);
+
+
   const handleInputChange = (key: keyof ExtendedSpinelStone, value: any) => {
     setFormData(prev => ({ ...prev, [key]: value }));
   };
@@ -490,6 +639,34 @@ const StoneDetailPanel: React.FC<{
       ...prev,
       purchaseCurrency: currency,
       purchaseExchangeRate: rate
+    }));
+  };
+
+  // Helper function to determine active currency based on priority (LKR > USD > THB > RMB)
+  const getActiveSalesCurrency = (data: ExtendedSpinelStone): { currency: string; amount: number } => {
+    // Priority order: LKR > USD > THB > RMB
+    if (data.salesAmountLKR && data.salesAmountLKR > 0) {
+      return { currency: 'LKR', amount: data.salesAmountLKR };
+    }
+    if (data.salesAmountUSD && data.salesAmountUSD > 0) {
+      return { currency: 'USD', amount: data.salesAmountUSD };
+    }
+    if (data.salesAmountTHB && data.salesAmountTHB > 0) {
+      return { currency: 'THB', amount: data.salesAmountTHB };
+    }
+    if (data.salesAmountRMB && data.salesAmountRMB > 0) {
+      return { currency: 'RMB', amount: data.salesAmountRMB };
+    }
+    // Default to LKR with 0 amount
+    return { currency: 'LKR', amount: 0 };
+  };
+
+  const handleSalesCurrencyChange = (currency: string) => {
+    const rate = PURCHASE_EXCHANGE_RATES[currency] || 1;
+    setFormData(prev => ({
+      ...prev,
+      salesCurrency: currency,
+      salesExchangeRate: rate
     }));
   };
 
@@ -625,17 +802,24 @@ const StoneDetailPanel: React.FC<{
               <div className="bg-white p-4 md:p-5 rounded-3xl border border-stone-200 shadow-sm">
                 <h3 className="text-[10px] font-bold text-stone-400 uppercase tracking-widest mb-4 flex items-center gap-2"><Gem size={14} className="text-purple-500" /> Identification</h3>
                 <div className="grid grid-cols-2 gap-x-4 md:gap-x-6">
+                  <Field label="Company" value={formData.company || ''} field="company" isEditing={isEditing} onInputChange={handleInputChange} useDatalist options={companyOptions} />
                   <Field label="Code No." value={formData.codeNo} field="codeNo" isEditing={isEditing} onInputChange={handleInputChange} highlight />
+                  <Field label="Title" value={formData.title || ''} field="title" isEditing={isEditing} onInputChange={handleInputChange} />
                   <Field label="Variety" value={formData.variety} field="variety" isEditing={isEditing} onInputChange={handleInputChange} useDatalist options={VARIETY_OPTIONS} />
                   <Field label="C & P Weight" value={formData.weight} field="weight" isEditing={isEditing} onInputChange={handleInputChange} type="number" />
                   <Field label="Colour" value={formData.color} field="color" isEditing={isEditing} onInputChange={handleInputChange} useDatalist options={COLOR_OPTIONS} />
                   <Field label="N/H (Treatment)" value={formData.treatment} field="treatment" isEditing={isEditing} onInputChange={handleInputChange} />
                   <Field label="Pieces" value={formData.pieces} field="pieces" isEditing={isEditing} onInputChange={handleInputChange} type="number" />
                   <Field label="Dimension" value={formData.dimensions} field="dimensions" isEditing={isEditing} onInputChange={handleInputChange} />
-                  <Field label="Certificate" value={formData.certificate} field="certificate" isEditing={isEditing} onInputChange={handleInputChange} />
                   <Field label="Stones In (Location)" value={formData.location} field="location" isEditing={isEditing} onInputChange={handleInputChange} />
                   <Field label="Stone with (Holder)" value={formData.holder} field="holder" isEditing={isEditing} onInputChange={handleInputChange} />
                   <Field label="Status" value={formData.status} field="status" isEditing={isEditing} onInputChange={handleInputChange} options={STATUS_OPTIONS} />
+                  {formData.status === 'Approval Out' && (
+                    <Field label="To Whom" value={formData.approvalOutTo || ''} field="approvalOutTo" isEditing={isEditing} onInputChange={handleInputChange} />
+                  )}
+                  {formData.status === 'Approval In' && (
+                    <Field label="From Whom" value={formData.approvalInFrom || ''} field="approvalInFrom" isEditing={isEditing} onInputChange={handleInputChange} />
+                  )}
                   <div className="col-span-2 py-2 border-b border-stone-50 min-h-[50px]">
                      <span className="text-[9px] font-bold text-stone-400 uppercase tracking-wider mb-2 block">Shape Selection</span>
                      {isEditing ? (
@@ -661,108 +845,16 @@ const StoneDetailPanel: React.FC<{
           
           {activeTab === 'purchase' && (
             <div className="space-y-4 md:space-y-6 animate-in fade-in zoom-in-95 duration-200">
-              {/* Payment Ledger Fields */}
-              <div className="bg-white p-4 md:p-5 rounded-3xl border border-stone-200 shadow-sm">
-                <h3 className="text-[10px] font-bold text-stone-400 uppercase tracking-widest mb-4 flex items-center gap-2"><ShoppingBag size={14} className="text-emerald-500" /> Payment Information</h3>
-                <div className="grid grid-cols-2 gap-x-4 md:gap-x-6">
-                  <Field label="Supplier" value={formData.purchaseCustomerName || ''} field="purchaseCustomerName" isEditing={isEditing} onInputChange={handleInputChange} />
-                  <Field label="Description" value={formData.purchaseDescription || ''} field="purchaseDescription" isEditing={isEditing} onInputChange={handleInputChange} />
-                  <Field label="Deal" value={formData.purchaseDeal || ''} field="purchaseDeal" isEditing={isEditing} onInputChange={handleInputChange} />
-                  <div className="flex flex-col py-2 border-b border-stone-100 last:border-0 min-h-[50px] justify-center">
-                    <span className="text-[9px] font-bold text-stone-400 uppercase tracking-wider mb-0.5">Currency</span>
-                    {isEditing ? (
-                      <select
-                        value={formData.purchaseCurrency || 'LKR'}
-                        onChange={(e) => handlePurchaseCurrencyChange(e.target.value)}
-                        className="w-full p-2 bg-stone-50 border border-stone-200 rounded-lg text-sm outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/10"
-                      >
-                        {PURCHASE_CURRENCIES.map(c => <option key={c} value={c}>{c}</option>)}
-                      </select>
-                    ) : (
-                      <span className="text-sm font-medium text-stone-700">{formData.purchaseCurrency || 'LKR'}</span>
-                    )}
-                  </div>
-                  <Field label="Amount" value={formData.purchaseAmount || 0} field="purchaseAmount" isEditing={isEditing} onInputChange={handleInputChange} type="number" highlight isCurrency />
-                  {formData.purchaseCurrency && formData.purchaseCurrency !== 'LKR' && (
-                    <Field label="Rate" value={formData.purchaseExchangeRate || 1} field="purchaseExchangeRate" isEditing={isEditing} onInputChange={handleInputChange} type="number" />
-                  )}
-                  <div className="flex flex-col py-2 border-b border-stone-100 last:border-0 min-h-[50px] justify-center">
-                    <span className="text-[9px] font-bold text-stone-400 uppercase tracking-wider mb-0.5">OFFICE %</span>
-                    {isEditing ? (
-                      <div className="flex items-center gap-2">
-                        <input 
-                          type="number" 
-                          value={formData.purchaseOfficePercent === undefined || formData.purchaseOfficePercent === null ? '' : formData.purchaseOfficePercent.toString()} 
-                          onChange={(e) => handleInputChange('purchaseOfficePercent', Number(e.target.value) || 0)} 
-                          onFocus={(e) => {
-                            if (formData.purchaseOfficePercent === 0 || formData.purchaseOfficePercent === undefined) {
-                              e.target.select();
-                            }
-                          }}
-                          className="w-24 p-2 bg-stone-50 border border-stone-200 rounded-lg text-sm outline-none transition-all focus:border-violet-500 focus:ring-2 focus:ring-violet-500/10" 
-                          placeholder="%"
-                        />
-                        {formData.purchaseOfficePercent && formData.purchaseAmount ? (
-                          <span className="text-sm font-mono font-bold text-red-600 bg-red-50 px-3 py-2 rounded-lg border-2 border-red-200 whitespace-nowrap">
-                            -{((formData.purchaseAmount * formData.purchaseOfficePercent) / 100).toLocaleString(undefined, { maximumFractionDigits: 2 })} {formData.purchaseCurrency || 'LKR'}
-                          </span>
-                        ) : null}
-                      </div>
-                    ) : (
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm font-medium text-stone-700">
-                          {formData.purchaseOfficePercent === undefined || formData.purchaseOfficePercent === null || formData.purchaseOfficePercent === 0 ? '-' : `${formData.purchaseOfficePercent}%`}
-                        </span>
-                        {formData.purchaseOfficePercent && formData.purchaseAmount ? (
-                          <span className="text-sm font-mono font-bold text-red-600 bg-red-50 px-3 py-2 rounded-lg border-2 border-red-200">
-                            -{((formData.purchaseAmount * formData.purchaseOfficePercent) / 100).toLocaleString(undefined, { maximumFractionDigits: 2 })} {formData.purchaseCurrency || 'LKR'}
-                          </span>
-                        ) : null}
-                      </div>
-                    )}
-                  </div>
-                  <Field label="Commission (LKR)" value={formData.purchaseCommission || 0} field="purchaseCommission" isEditing={isEditing} onInputChange={handleInputChange} type="number" highlight isCurrency />
-                  <div className="flex flex-col py-2 border-b border-stone-100 last:border-0 min-h-[50px] justify-center">
-                    <span className="text-[9px] font-bold text-stone-400 uppercase tracking-wider mb-0.5">Final Amount</span>
-                    <div className="space-y-1">
-                      <div className="text-sm font-mono font-bold text-purple-700">
-                        {formatCurrency(formData.purchaseFinalAmount || 0, formData.purchaseCurrency || 'LKR')}
-                      </div>
-                      {formData.purchaseCurrency && formData.purchaseCurrency !== 'LKR' && (
-                        <div className="text-xs font-mono text-stone-600">
-                          {formatCurrency(formData.purchaseFinalAmountLKR || 0, 'LKR')}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                  <Field label="Paid Amount" value={formData.purchasePaidAmount || 0} field="purchasePaidAmount" isEditing={isEditing} onInputChange={handleInputChange} type="number" highlight isCurrency />
-                  <div className="flex flex-col py-2 border-b border-stone-100 last:border-0 min-h-[50px] justify-center">
-                    <span className="text-[9px] font-bold text-stone-400 uppercase tracking-wider mb-0.5">Outstanding Amount</span>
-                    <div className="space-y-1">
-                      <div className="text-sm font-mono font-bold text-purple-700">
-                        {formatCurrency(formData.purchaseOutstandingAmount || 0, formData.purchaseCurrency || 'LKR')}
-                      </div>
-                      {formData.purchaseCurrency && formData.purchaseCurrency !== 'LKR' && (
-                        <div className="text-xs font-mono text-stone-600">
-                          {formatCurrency(formData.purchaseOutstandingAmountLKR || 0, 'LKR')}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                  <Field label="Payment Date" value={formData.purchasePaymentDate || ''} field="purchasePaymentDate" isEditing={isEditing} onInputChange={handleInputChange} type="date" />
-                  <Field label="Due Date" value={formData.purchaseDueDate || ''} field="purchaseDueDate" isEditing={isEditing} onInputChange={handleInputChange} type="date" />
-                </div>
-              </div>
-              
               {/* Existing Acquisition Fields */}
-              <div className="bg-white p-4 md:p-5 rounded-3xl border border-stone-200 shadow-sm">
+               <div className="bg-white p-4 md:p-5 rounded-3xl border border-stone-200 shadow-sm">
                 <h3 className="text-[10px] font-bold text-stone-400 uppercase tracking-widest mb-4 flex items-center gap-2"><ShoppingBag size={14} className="text-emerald-500" /> Acquisition</h3>
                 <div className="grid grid-cols-2 gap-x-4 md:gap-x-6">
-                  <Field label="Purchase Date" value={formData.purchaseDate} field="purchaseDate" isEditing={isEditing} onInputChange={handleInputChange} type="date" />
-                  <Field label="Cash or Bank" value={formData.purchasePaymentMethod} field="purchasePaymentMethod" isEditing={isEditing} onInputChange={handleInputChange} options={['Cash', 'Bank']} />
+                  <Field label="Purchase Price" value={formData.purchasePrice || 0} field="purchasePrice" isEditing={isEditing} onInputChange={handleInputChange} type="number" highlight isCurrency />
+                  <Field label="Expected Selling Price" value={formData.purchaseExpectedSellingPrice || 0} field="purchaseExpectedSellingPrice" isEditing={isEditing} onInputChange={handleInputChange} type="number" highlight isCurrency />
+                  <Field label="Price Code" value={formData.purchasePriceCode || ''} field="purchasePriceCode" isEditing={isEditing} onInputChange={handleInputChange} />
                   <Field label="Source of Funds" value={formData.purchaseSourceOfFunds || ''} field="purchaseSourceOfFunds" isEditing={isEditing} onInputChange={handleInputChange} />
                   <Field label="Trip/Location" value={formData.purchaseTripLocation || ''} field="purchaseTripLocation" isEditing={isEditing} onInputChange={handleInputChange} options={TRIP_LOCATION_OPTIONS} />
-                  <Field label="Sales Location" value={formData.purchaseSalesLocation || ''} field="purchaseSalesLocation" isEditing={isEditing} onInputChange={handleInputChange} options={['', 'Srilanka Sales', 'Bangkok Sales', 'China Sales']} />
+                  <Field label="Payables (LKR)" value={formData.purchasePayables || 0} field="purchasePayables" isEditing={isEditing} onInputChange={handleInputChange} type="number" highlight isCurrency />
                   <div className="flex flex-col py-2 border-b border-stone-100 last:border-0 min-h-[50px] justify-center">
                     <span className="text-[9px] font-bold text-stone-400 uppercase tracking-wider mb-0.5">Joint Purchase</span>
                     {isEditing ? (
@@ -786,8 +878,165 @@ const StoneDetailPanel: React.FC<{
                       <Field label="Partner Name" value={formData.purchasePartnerName || ''} field="purchasePartnerName" isEditing={isEditing} onInputChange={handleInputChange} />
                       <Field label="Partner Share (%)" value={formData.purchasePartnerPercentage || 0} field="purchasePartnerPercentage" isEditing={isEditing} onInputChange={handleInputChange} type="number" />
                       <Field label="Partner Investment" value={formData.purchasePartnerInvestment || 0} field="purchasePartnerInvestment" isEditing={isEditing} onInputChange={handleInputChange} type="number" highlight isCurrency />
+                      <Field label="Trip Location (Shares)" value={formData.purchaseJointPurchaseTripLocation || ''} field="purchaseJointPurchaseTripLocation" isEditing={isEditing} onInputChange={handleInputChange} options={TRIP_LOCATION_OPTIONS} />
                     </>
                   )}
+                </div>
+              </div>
+
+              {/* Payment Information Fields - Duplicated from Sales tab */}
+               <div className="bg-white p-4 md:p-5 rounded-3xl border border-stone-200 shadow-sm">
+                <h3 className="text-[10px] font-bold text-stone-400 uppercase tracking-widest mb-4 flex items-center gap-2"><ShoppingBag size={14} className="text-emerald-500" /> Payment Information</h3>
+                <div className="grid grid-cols-2 gap-x-4 md:gap-x-6">
+                  <Field label="Purchase Date" value={formData.purchaseDate} field="purchaseDate" isEditing={isEditing} onInputChange={handleInputChange} type="date" />
+                  <Field label="Supplier" value={formData.salesCustomerName || ''} field="salesCustomerName" isEditing={isEditing} onInputChange={handleInputChange} />
+                  <Field label="Description" value={formData.salesDescription || ''} field="salesDescription" isEditing={isEditing} onInputChange={handleInputChange} />
+                  <Field label="Deal" value={formData.salesDeal || ''} field="salesDeal" isEditing={isEditing} onInputChange={handleInputChange} />
+                  <Field label="LKR Amount" value={formData.salesAmountLKR || 0} field="salesAmountLKR" isEditing={isEditing} onInputChange={handleInputChange} type="number" highlight isCurrency />
+                  <Field label="USD Amount" value={formData.salesAmountUSD || 0} field="salesAmountUSD" isEditing={isEditing} onInputChange={handleInputChange} type="number" highlight isCurrency />
+                  <Field label="THB Amount" value={formData.salesAmountTHB || 0} field="salesAmountTHB" isEditing={isEditing} onInputChange={handleInputChange} type="number" highlight isCurrency />
+                  <Field label="Tanzania Currency" value={formData.salesAmountRMB || 0} field="salesAmountRMB" isEditing={isEditing} onInputChange={handleInputChange} type="number" highlight isCurrency />
+                  <Field label="Rate" value={formData.salesExchangeRate || 1} field="salesExchangeRate" isEditing={isEditing} onInputChange={handleInputChange} type="number" />
+                  <Field label="Cash or Bank" value={formData.purchasePaymentMethod} field="purchasePaymentMethod" isEditing={isEditing} onInputChange={handleInputChange} options={['Cash', 'Bank', 'NDB', 'NTB']} />
+                  <div className="flex flex-col py-2 border-b border-stone-100 last:border-0 min-h-[50px] justify-center">
+                    <span className="text-[9px] font-bold text-stone-400 uppercase tracking-wider mb-0.5">OFFICE %</span>
+                    {isEditing ? (
+                      <div className="flex items-center gap-2">
+                        <input 
+                          type="number" 
+                          value={formData.salesOfficePercent === undefined || formData.salesOfficePercent === null ? '' : formData.salesOfficePercent.toString()} 
+                          onChange={(e) => handleInputChange('salesOfficePercent', Number(e.target.value) || 0)} 
+                          onFocus={(e) => {
+                            if (formData.salesOfficePercent === 0 || formData.salesOfficePercent === undefined) {
+                              e.target.select();
+                            }
+                          }}
+                          className="w-24 p-2 bg-stone-50 border border-stone-200 rounded-lg text-sm outline-none transition-all focus:border-violet-500 focus:ring-2 focus:ring-violet-500/10" 
+                          placeholder="%"
+                        />
+                        {(() => {
+                          const { currency, amount } = getActiveSalesCurrency(formData);
+                          if (formData.salesOfficePercent && amount) {
+                            const officePercentageAddition = (amount * formData.salesOfficePercent) / 100;
+                            return (
+                              <span className="text-sm font-mono font-bold text-green-600 bg-green-50 px-3 py-2 rounded-lg border-2 border-green-200 whitespace-nowrap">
+                                +{officePercentageAddition.toLocaleString(undefined, { maximumFractionDigits: 2 })} {currency}
+                              </span>
+                            );
+                          }
+                          return null;
+                        })()}
+                </div>
+                    ) : (
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-medium text-stone-700">
+                          {formData.salesOfficePercent === undefined || formData.salesOfficePercent === null || formData.salesOfficePercent === 0 ? '-' : `${formData.salesOfficePercent}%`}
+                        </span>
+                        {(() => {
+                          const { currency, amount } = getActiveSalesCurrency(formData);
+                          if (formData.salesOfficePercent && amount) {
+                            const officePercentageAddition = (amount * formData.salesOfficePercent) / 100;
+                            return (
+                              <span className="text-sm font-mono font-bold text-green-600 bg-green-50 px-3 py-2 rounded-lg border-2 border-green-200">
+                                +{officePercentageAddition.toLocaleString(undefined, { maximumFractionDigits: 2 })} {currency}
+                              </span>
+                            );
+                          }
+                          return null;
+                        })()}
+              </div>
+                    )}
+                  </div>
+                  <Field label="Commission (LKR)" value={formData.salesCommission || 0} field="salesCommission" isEditing={isEditing} onInputChange={handleInputChange} type="number" highlight isCurrency />
+                  <div className="flex flex-col py-2 border-b border-stone-100 last:border-0 min-h-[50px] justify-center">
+                    <span className="text-[9px] font-bold text-stone-400 uppercase tracking-wider mb-0.5">Final Amount</span>
+                    <div className="space-y-1">
+                      {(() => {
+                        const { currency, amount } = getActiveSalesCurrency(formData);
+                        const rate = formData.salesExchangeRate || 1;
+                        const officePercent = formData.salesOfficePercent || 0;
+                        const commissionLKR = formData.salesCommission || 0;
+                        
+                        // Calculate Office Percentage Addition in chosen currency
+                        const officePercentageAddition = amount && officePercent
+                          ? (amount * officePercent) / 100
+                          : 0;
+                        
+                        // Convert Commission from LKR to chosen currency (if not LKR)
+                        const commissionInCurrency = currency === 'LKR' 
+                          ? commissionLKR 
+                          : commissionLKR / rate;
+                        
+                        // Calculate Final Amount in chosen currency: amount + officePercentageAddition + commissionInCurrency
+                        const finalAmount = amount + officePercentageAddition + commissionInCurrency;
+                        
+                        // Calculate Final Amount in LKR
+                        const finalAmountLKR = currency === 'LKR' 
+                          ? finalAmount 
+                          : finalAmount * rate;
+                        
+                        return (
+                          <>
+                            <div className="text-sm font-mono font-bold text-purple-700">
+                              {formatCurrency(finalAmount, currency)}
+                            </div>
+                            {currency !== 'LKR' && (
+                              <div className="text-xs font-mono text-stone-600">
+                                {formatCurrency(finalAmountLKR, 'LKR')}
+                              </div>
+                            )}
+                          </>
+                        );
+                      })()}
+                    </div>
+                  </div>
+                  <Field label="Paid Amount" value={formData.salesPaidAmount || 0} field="salesPaidAmount" isEditing={isEditing} onInputChange={handleInputChange} type="number" highlight isCurrency />
+                  <div className="flex flex-col py-2 border-b border-stone-100 last:border-0 min-h-[50px] justify-center">
+                    <span className="text-[9px] font-bold text-stone-400 uppercase tracking-wider mb-0.5">Outstanding Amount</span>
+                    <div className="space-y-1">
+                      {(() => {
+                        const { currency, amount } = getActiveSalesCurrency(formData);
+                        const rate = formData.salesExchangeRate || 1;
+                        const officePercent = formData.salesOfficePercent || 0;
+                        const commissionLKR = formData.salesCommission || 0;
+                        const paidAmount = formData.salesPaidAmount || 0;
+                        
+                        // Calculate Office Percentage Addition in chosen currency
+                        const officePercentageAddition = amount && officePercent
+                          ? (amount * officePercent) / 100
+                          : 0;
+                        
+                        // Convert Commission from LKR to chosen currency (if not LKR)
+                        const commissionInCurrency = currency === 'LKR' 
+                          ? commissionLKR 
+                          : commissionLKR / rate;
+                        
+                        // Calculate Final Amount in chosen currency: amount + officePercentageAddition + commissionInCurrency
+                        const finalAmount = amount + officePercentageAddition + commissionInCurrency;
+                        
+                        // Calculate Outstanding Amount in chosen currency: finalAmount - paidAmount
+                        const outstandingAmount = finalAmount - paidAmount;
+                        
+                        // Calculate Outstanding Amount in LKR
+                        const outstandingAmountLKR = currency === 'LKR' 
+                          ? outstandingAmount 
+                          : outstandingAmount * rate;
+                        
+                        return (
+                          <>
+                            <div className="text-sm font-mono font-bold text-purple-700">
+                              {formatCurrency(outstandingAmount, currency)}
+                            </div>
+                            {currency !== 'LKR' && (
+                              <div className="text-xs font-mono text-stone-600">
+                                {formatCurrency(outstandingAmountLKR, 'LKR')}
+                              </div>
+                            )}
+                          </>
+                        );
+                      })()}
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -795,43 +1044,116 @@ const StoneDetailPanel: React.FC<{
 
           {activeTab === 'sales' && (
             <div className="space-y-4 md:space-y-6 animate-in fade-in zoom-in-95 duration-200">
+              {/* Payment Information Fields */}
                <div className="bg-white p-4 md:p-5 rounded-3xl border border-stone-200 shadow-sm">
-                <h3 className="text-[10px] font-bold text-stone-400 uppercase tracking-widest mb-4 flex items-center gap-2"><User size={14} className="text-blue-500" /> Sales Information</h3>
+                <h3 className="text-[10px] font-bold text-stone-400 uppercase tracking-widest mb-4 flex items-center gap-2"><ShoppingBag size={14} className="text-emerald-500" /> Payment Information</h3>
                 <div className="grid grid-cols-2 gap-x-4 md:gap-x-6">
                   <Field label="Date (Selling)" value={formData.sellDate} field="sellDate" isEditing={isEditing} onInputChange={handleInputChange} type="date" />
-                  <Field label="Buyer" value={formData.buyer} field="buyer" isEditing={isEditing} onInputChange={handleInputChange} />
-                  <Field label="Sold by" value={formData.soldBy} field="soldBy" isEditing={isEditing} onInputChange={handleInputChange} />
-                  <Field label="Selling Price" value={formData.sellingPrice} field="sellingPrice" isEditing={isEditing} onInputChange={handleInputChange} type="number" highlight isCurrency />
+                  <Field label="Purchase Date" value={formData.purchaseDate} field="purchaseDate" isEditing={isEditing} onInputChange={handleInputChange} type="date" />
+                  <Field label="BUYER" value={formData.salesCustomerName || ''} field="salesCustomerName" isEditing={isEditing} onInputChange={handleInputChange} />
+                  <Field label="Description" value={formData.salesDescription || ''} field="salesDescription" isEditing={isEditing} onInputChange={handleInputChange} />
+                  <Field label="Deal" value={formData.salesDeal || ''} field="salesDeal" isEditing={isEditing} onInputChange={handleInputChange} />
+                  <Field label="LKR Amount" value={formData.salesAmountLKR || 0} field="salesAmountLKR" isEditing={isEditing} onInputChange={handleInputChange} type="number" highlight isCurrency />
+                  <Field label="USD Amount" value={formData.salesAmountUSD || 0} field="salesAmountUSD" isEditing={isEditing} onInputChange={handleInputChange} type="number" highlight isCurrency />
+                  <Field label="THB Amount" value={formData.salesAmountTHB || 0} field="salesAmountTHB" isEditing={isEditing} onInputChange={handleInputChange} type="number" highlight isCurrency />
+                  <Field label="RMB Amount" value={formData.salesAmountRMB || 0} field="salesAmountRMB" isEditing={isEditing} onInputChange={handleInputChange} type="number" highlight isCurrency />
+                  <Field label="Rate" value={formData.salesExchangeRate || 1} field="salesExchangeRate" isEditing={isEditing} onInputChange={handleInputChange} type="number" />
+                  <div className="flex flex-col py-2 border-b border-stone-100 last:border-0 min-h-[50px] justify-center">
+                    <span className="text-[9px] font-bold text-stone-400 uppercase tracking-wider mb-0.5">OFFICE %</span>
+                    {isEditing ? (
+                      <div className="flex items-center gap-2">
+                        <input 
+                          type="number" 
+                          value={formData.salesOfficePercent === undefined || formData.salesOfficePercent === null ? '' : formData.salesOfficePercent.toString()} 
+                          onChange={(e) => handleInputChange('salesOfficePercent', Number(e.target.value) || 0)} 
+                          onFocus={(e) => {
+                            if (formData.salesOfficePercent === 0 || formData.salesOfficePercent === undefined) {
+                              e.target.select();
+                            }
+                          }}
+                          className="w-24 p-2 bg-stone-50 border border-stone-200 rounded-lg text-sm outline-none transition-all focus:border-violet-500 focus:ring-2 focus:ring-violet-500/10" 
+                          placeholder="%"
+                        />
+                        {formData.salesOfficePercent && formData.salesAmount ? (
+                          <span className="text-sm font-mono font-bold text-red-600 bg-red-50 px-3 py-2 rounded-lg border-2 border-red-200 whitespace-nowrap">
+                            -{((formData.salesAmount * formData.salesOfficePercent) / 100).toLocaleString(undefined, { maximumFractionDigits: 2 })} {formData.salesCurrency || 'LKR'}
+                          </span>
+                        ) : null}
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-medium text-stone-700">
+                          {formData.salesOfficePercent === undefined || formData.salesOfficePercent === null || formData.salesOfficePercent === 0 ? '-' : `${formData.salesOfficePercent}%`}
+                        </span>
+                        {formData.salesOfficePercent && formData.salesAmount ? (
+                          <span className="text-sm font-mono font-bold text-red-600 bg-red-50 px-3 py-2 rounded-lg border-2 border-red-200">
+                            -{((formData.salesAmount * formData.salesOfficePercent) / 100).toLocaleString(undefined, { maximumFractionDigits: 2 })} {formData.salesCurrency || 'LKR'}
+                          </span>
+                        ) : null}
+                      </div>
+                    )}
+                  </div>
+                  <Field label="Commission (LKR)" value={formData.salesCommission || 0} field="salesCommission" isEditing={isEditing} onInputChange={handleInputChange} type="number" highlight isCurrency />
+                  <div className="flex flex-col py-2 border-b border-stone-100 last:border-0 min-h-[50px] justify-center">
+                    <span className="text-[9px] font-bold text-stone-400 uppercase tracking-wider mb-0.5">Final Amount</span>
+                    <div className="space-y-1">
+                      <div className="text-sm font-mono font-bold text-purple-700">
+                        {formatCurrency(formData.salesFinalAmount || 0, formData.salesCurrency || 'LKR')}
+                      </div>
+                      {formData.salesCurrency && formData.salesCurrency !== 'LKR' && (
+                        <div className="text-xs font-mono text-stone-600">
+                          {formatCurrency(formData.salesFinalAmountLKR || 0, 'LKR')}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  <Field label="Paid Amount" value={formData.salesPaidAmount || 0} field="salesPaidAmount" isEditing={isEditing} onInputChange={handleInputChange} type="number" highlight isCurrency />
+                  <div className="flex flex-col py-2 border-b border-stone-100 last:border-0 min-h-[50px] justify-center">
+                    <span className="text-[9px] font-bold text-stone-400 uppercase tracking-wider mb-0.5">Outstanding Amount</span>
+                    <div className="space-y-1">
+                      <div className="text-sm font-mono font-bold text-purple-700">
+                        {formatCurrency(formData.salesOutstandingAmount || 0, formData.salesCurrency || 'LKR')}
+                      </div>
+                      {formData.salesCurrency && formData.salesCurrency !== 'LKR' && (
+                        <div className="text-xs font-mono text-stone-600">
+                          {formatCurrency(formData.salesOutstandingAmountLKR || 0, 'LKR')}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              {/* Existing Sales Information Fields */}
+              <div className="bg-white p-4 md:p-5 rounded-3xl border border-stone-200 shadow-sm">
+                <h3 className="text-[10px] font-bold text-stone-400 uppercase tracking-widest mb-4 flex items-center gap-2"><User size={14} className="text-blue-500" /> Sales Information</h3>
+                <div className="grid grid-cols-2 gap-x-4 md:gap-x-6">
+                  <Field label="Sales Location" value={formData.purchaseSalesLocation || ''} field="purchaseSalesLocation" isEditing={isEditing} onInputChange={handleInputChange} options={['', 'Srilanka Sales', 'Bangkok Sales', 'China Sales']} />
                   <Field label="Outstanding Names" value={formData.outstandingName} field="outstandingName" isEditing={isEditing} onInputChange={handleInputChange} />
                   <Field label="Payment Due Date" value={formData.paymentDueDate} field="paymentDueDate" isEditing={isEditing} onInputChange={handleInputChange} type="date" />
                   <Field label="Paid/Not Paid" value={formData.salesPaymentStatus} field="salesPaymentStatus" isEditing={isEditing} onInputChange={handleInputChange} options={['Paid', 'Not Paid', 'Partial']} />
-                  <Field label="Payment paid Date" value={formData.paymentReceivedDate} field="paymentReceivedDate" isEditing={isEditing} onInputChange={handleInputChange} type="date" />
-                  <Field label="Cash or Bank (Sales)" value={formData.salesPaymentMethod} field="salesPaymentMethod" isEditing={isEditing} onInputChange={handleInputChange} options={['Cash', 'Bank']} />
+                  <Field label="Payment method" value={formData.salesPaymentMethod} field="salesPaymentMethod" isEditing={isEditing} onInputChange={handleInputChange} options={['Cash', 'Credit', 'Slip', 'Cheque']} />
                   <Field label="Cleared" value={formData.paymentCleared} field="paymentCleared" isEditing={isEditing} onInputChange={handleInputChange} options={['Yes', 'No']} />
                 </div>
               </div>
+
+              {/* Paid Information Card */}
+               <div className="bg-white p-4 md:p-5 rounded-3xl border border-stone-200 shadow-sm">
+                <h3 className="text-[10px] font-bold text-stone-400 uppercase tracking-widest mb-4 flex items-center gap-2"><CreditCard size={14} className="text-green-500" /> Paid Information</h3>
+                <div className="grid grid-cols-2 gap-x-4 md:gap-x-6">
+                  <Field label="Payment paid Date" value={formData.paymentReceivedDate} field="paymentReceivedDate" isEditing={isEditing} onInputChange={handleInputChange} type="date" />
+                  <Field label="Cash or Bank" value={formData.salesPaymentMethod} field="salesPaymentMethod" isEditing={isEditing} onInputChange={handleInputChange} options={['Cash', 'Bank', 'NDB', 'NTB']} />
+                </div>
+              </div>
+
             </div>
           )}
 
           {activeTab === 'financial' && (
             <div className="space-y-4 md:space-y-6 animate-in fade-in zoom-in-95 duration-200">
-               <div className="bg-white p-4 md:p-5 rounded-3xl border border-stone-200 shadow-sm">
-                <h3 className="text-[10px] font-bold text-purple-600 uppercase tracking-widest mb-4 flex items-center gap-2"><DollarSign size={14} /> Currency & Valuation</h3>
-                <div className="grid grid-cols-2 gap-x-4 md:gap-x-6">
-                  <Field label="RMB Currency" value={formData.priceRMB} field="priceRMB" isEditing={isEditing} onInputChange={handleInputChange} type="number" isCurrency />
-                  <Field label="Bath Currency" value={formData.priceTHB} field="priceTHB" isEditing={isEditing} onInputChange={handleInputChange} type="number" isCurrency />
-                  <Field label="$ Currency" value={formData.priceUSD} field="priceUSD" isEditing={isEditing} onInputChange={handleInputChange} type="number" isCurrency />
-                  <Field label="Rate" value={formData.exchangeRate} field="exchangeRate" isEditing={isEditing} onInputChange={handleInputChange} type="number" />
-                </div>
-              </div>
-
               <div className="bg-white p-4 md:p-5 rounded-3xl border border-stone-200 shadow-sm">
                 <h3 className="text-[10px] font-bold text-purple-600 uppercase tracking-widest mb-4 flex items-center gap-2"><Calculator size={14} /> Profit & Share</h3>
                 <div className="grid grid-cols-2 gap-x-4 md:gap-x-6">
-                  <Field label="RS Amount" value={formData.amountLKR} field="amountLKR" isEditing={isEditing} onInputChange={handleInputChange} type="number" highlight isCurrency />
-                  <Field label="%" value={formData.margin} field="margin" isEditing={isEditing} onInputChange={handleInputChange} type="number" />
-                  <Field label="Commission" value={formData.commission} field="commission" isEditing={isEditing} onInputChange={handleInputChange} type="number" isCurrency />
-                  <Field label="Final Amount" value={formData.finalPrice} field="finalPrice" isEditing={isEditing} onInputChange={handleInputChange} type="number" highlight isCurrency />
                   <Field label="Profit / Loss" value={formData.profit} field="profit" isEditing={isEditing} onInputChange={handleInputChange} type="number" isCurrency />
                   <Field label="Each Share Amount" value={formData.shareAmount} field="shareAmount" isEditing={isEditing} onInputChange={handleInputChange} type="number" isCurrency />
                   <Field label="Each Profit" value={formData.shareProfit} field="shareProfit" isEditing={isEditing} onInputChange={handleInputChange} type="number" isCurrency />
@@ -839,6 +1161,41 @@ const StoneDetailPanel: React.FC<{
                   <Field label="Total stones" value={formData.inventoryCategory} field="inventoryCategory" isEditing={isEditing} onInputChange={handleInputChange} />
                 </div>
               </div>
+
+              {/* Partner Share Section - Only show if Joint Purchase is enabled */}
+              {formData.purchaseIsJointPurchase && (
+                <div className="bg-white p-4 md:p-5 rounded-3xl border border-stone-200 shadow-sm">
+                  <h3 className="text-[10px] font-bold text-purple-600 uppercase tracking-widest mb-4 flex items-center gap-2"><User size={14} /> Partner Share</h3>
+                  <div className="grid grid-cols-2 gap-x-4 md:gap-x-6">
+                    <div className="flex flex-col py-2 border-b border-stone-100 last:border-0 min-h-[50px] justify-center">
+                      <span className="text-[9px] font-bold text-stone-400 uppercase tracking-wider mb-0.5">Partner Name</span>
+                      <span className="text-sm font-medium text-stone-700">
+                        {formData.purchasePartnerName || '-'}
+                      </span>
+                    </div>
+                    <div className="flex flex-col py-2 border-b border-stone-100 last:border-0 min-h-[50px] justify-center">
+                      <span className="text-[9px] font-bold text-stone-400 uppercase tracking-wider mb-0.5">Partner Share</span>
+                      <span className="text-sm font-medium text-stone-700">
+                        {formData.purchasePartnerPercentage ? `${formData.purchasePartnerPercentage}%` : '-'}
+                      </span>
+                    </div>
+                    <div className="flex flex-col py-2 border-b border-stone-100 last:border-0 min-h-[50px] justify-center col-span-2">
+                      <span className="text-[9px] font-bold text-stone-400 uppercase tracking-wider mb-0.5">Partner Amount (from Expected Selling Price)</span>
+                      <span className="text-sm font-mono font-bold text-purple-700">
+                        {(() => {
+                          const expectedSellingPrice = formData.purchaseExpectedSellingPrice || 0;
+                          const partnerPercentage = formData.purchasePartnerPercentage || 0;
+                          if (expectedSellingPrice > 0 && partnerPercentage > 0) {
+                            const partnerAmount = expectedSellingPrice * (partnerPercentage / 100);
+                            return `${partnerAmount.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })} LKR`;
+                          }
+                          return '-';
+                        })()}
+                      </span>
+                </div>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
@@ -894,6 +1251,9 @@ const StoneDetailPanel: React.FC<{
 
           {activeTab === 'cutPolish' && (
             <div className="space-y-4 md:space-y-6 animate-in fade-in zoom-in-95 duration-200">
+              {/* #region agent log */}
+              {(() => { fetch('http://127.0.0.1:7242/ingest/71eaac38-ca19-4474-9603-a5a4029bf926',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'VisionGemsSpinelTemplate.tsx:1252',message:'cutPolish tab rendering',data:{hasFormData:!!formData,formDataId:formData?.id,hasCutPolishRecords:!!formData?.cutPolishRecords,recordsCount:formData?.cutPolishRecords?.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{}); return null; })()}
+              {/* #endregion */}
               <div className="bg-white p-4 md:p-5 rounded-3xl border border-stone-200 shadow-sm">
                 <div className="flex justify-between items-center mb-4">
                   <h3 className="text-[10px] font-bold text-stone-400 uppercase tracking-widest flex items-center gap-2"><Scissors size={14} className="text-purple-500" /> Cut & Polish Records</h3>
@@ -989,6 +1349,8 @@ export const VisionGemsSpinelTemplate: React.FC<Props> = ({ moduleId, tabId, isR
   const [filterCompany, setFilterCompany] = useState('All');
   const [filterVariety, setFilterVariety] = useState('All');
   const [filterHolder, setFilterHolder] = useState('All');
+  const [filterTitle, setFilterTitle] = useState('All');
+  const [filterSalesLocation, setFilterSalesLocation] = useState('All');
   const [selectedStone, setSelectedStone] = useState<ExtendedSpinelStone | null>(null);
 
   const loadData = () => {
@@ -1009,6 +1371,8 @@ export const VisionGemsSpinelTemplate: React.FC<Props> = ({ moduleId, tabId, isR
   const uniqueCompanies = useMemo(() => Array.from(new Set(stones.map(s => s.company).filter(Boolean))).sort(), [stones]);
   const uniqueVarieties = useMemo(() => Array.from(new Set(stones.map(s => s.variety).filter(Boolean))).sort(), [stones]);
   const uniqueHolders = useMemo(() => Array.from(new Set(stones.map(s => s.holder).filter(Boolean))).sort(), [stones]);
+  const uniqueTitles = useMemo(() => Array.from(new Set(stones.map(s => s.title).filter(Boolean))).sort(), [stones]);
+  const uniqueSalesLocations = useMemo(() => Array.from(new Set(stones.map(s => s.purchaseSalesLocation).filter(Boolean))).sort(), [stones]);
 
   const filteredStones = useMemo(() => {
     return stones.filter(stone => {
@@ -1019,6 +1383,8 @@ export const VisionGemsSpinelTemplate: React.FC<Props> = ({ moduleId, tabId, isR
       const matchesCompany = filterCompany === 'All' || stone.company === filterCompany;
       const matchesVariety = filterVariety === 'All' || stone.variety === filterVariety;
       const matchesHolder = filterHolder === 'All' || stone.holder === filterHolder;
+      const matchesTitle = filterTitle === 'All' || stone.title === filterTitle;
+      const matchesSalesLocation = filterSalesLocation === 'All' || stone.purchaseSalesLocation === filterSalesLocation;
       
       let matchesWeight = true;
       if (filterWeight !== 'All') {
@@ -1031,9 +1397,9 @@ export const VisionGemsSpinelTemplate: React.FC<Props> = ({ moduleId, tabId, isR
         else if (filterWeight === '5-10') matchesWeight = w >= 5 && w < 10;
         else if (filterWeight === '10+') matchesWeight = w >= 10;
       }
-      return matchesSearch && matchesColor && matchesWeight && matchesStatus && matchesCompany && matchesVariety && matchesHolder;
+      return matchesSearch && matchesColor && matchesWeight && matchesStatus && matchesCompany && matchesVariety && matchesHolder && matchesTitle && matchesSalesLocation;
     });
-  }, [stones, searchQuery, filterColor, filterWeight, filterStatus, filterCompany, filterVariety, filterHolder]);
+  }, [stones, searchQuery, filterColor, filterWeight, filterStatus, filterCompany, filterVariety, filterHolder, filterTitle, filterSalesLocation]);
 
   const handleSaveStone = (updatedStone: ExtendedSpinelStone) => {
     let newLocation = updatedStone.location;
@@ -1055,7 +1421,7 @@ export const VisionGemsSpinelTemplate: React.FC<Props> = ({ moduleId, tabId, isR
       newLocation = 'Export';
     } else if (status === 'BKK') {
       newLocation = 'BKK';
-    } else if (status === 'In Stock' || status === 'Approval' || status === 'Sold') {
+    } else if (status === 'In Stock' || status === 'Approval In' || status === 'Approval Out' || status === 'Sold') {
       if (newLocation === 'Export' || newLocation === 'BKK' || !newLocation) {
         // If we have an originalCategory, use it; otherwise fall back to variety
         newLocation = preservedOriginalCategory || updatedStone.variety || 'Spinel';
@@ -1276,6 +1642,10 @@ export const VisionGemsSpinelTemplate: React.FC<Props> = ({ moduleId, tabId, isR
                <div className="flex items-center bg-stone-50 border border-stone-100 rounded-[20px] px-3 shrink-0"><Scale size={14} className="text-stone-300" /><select value={filterWeight} onChange={(e) => setFilterWeight(e.target.value)} className="px-2 py-2.5 bg-transparent text-xs text-stone-600 font-bold focus:outline-none min-w-[100px]"><option value="All">Weight</option><option value="0-0.5">0-0.5ct</option><option value="0.5-1">0.5-1ct</option><option value="1-1.5">1-1.5ct</option><option value="1.5-2">1.5-2ct</option><option value="2-5">2-5ct</option><option value="5-10">5-10ct</option><option value="10+">10+ct</option></select></div>
                <div className="flex items-center bg-stone-50 border border-stone-100 rounded-[20px] px-3 shrink-0"><Tag size={14} className="text-stone-300" /><select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} className="px-2 py-2.5 bg-transparent text-xs text-stone-600 font-bold focus:outline-none min-w-[100px]"><option value="All">Status</option>{uniqueStatuses.map(s => <option key={s} value={s}>{s}</option>)}</select></div>
                <div className="flex items-center bg-stone-50 border border-stone-100 rounded-[20px] px-3 shrink-0"><User size={14} className="text-stone-300" /><select value={filterHolder} onChange={(e) => setFilterHolder(e.target.value)} className="px-2 py-2.5 bg-transparent text-xs text-stone-600 font-bold focus:outline-none min-w-[100px]"><option value="All">Holder</option>{uniqueHolders.map(h => <option key={h} value={h}>{h}</option>)}</select></div>
+               <div className="flex items-center bg-stone-50 border border-stone-100 rounded-[20px] px-3 shrink-0"><FileText size={14} className="text-stone-300" /><select value={filterTitle} onChange={(e) => setFilterTitle(e.target.value)} className="px-2 py-2.5 bg-transparent text-xs text-stone-600 font-bold focus:outline-none min-w-[100px]"><option value="All">Title</option>{uniqueTitles.map(t => <option key={t} value={t}>{t}</option>)}</select></div>
+               {tabId && tabId.toLowerCase().trim() === 'outstanding receivables' && (
+                 <div className="flex items-center bg-stone-50 border border-stone-100 rounded-[20px] px-3 shrink-0"><MapPin size={14} className="text-stone-300" /><select value={filterSalesLocation} onChange={(e) => setFilterSalesLocation(e.target.value)} className="px-2 py-2.5 bg-transparent text-xs text-stone-600 font-bold focus:outline-none min-w-[100px]"><option value="All">Country</option>{uniqueSalesLocations.map(loc => <option key={loc} value={loc}>{loc}</option>)}</select></div>
+               )}
             </div>
          </div>
       </div>

@@ -33,7 +33,7 @@ export interface ExtendedSpinelStone {
   // Section 0: Company Info
   company: string; // Added as requested
 
-  // Section 1: Stone Identification (9)
+  // Section 1: Stone Identification (10)
   codeNo: string;
   weight: number; // C & P Weight
   shape: string;
@@ -43,6 +43,7 @@ export interface ExtendedSpinelStone {
   color: string; // Colour
   pieces: number;
   dimensions: string;
+  title?: string; // Title
 
   // Section 2: Documentation (2)
   certificate: string;
@@ -56,6 +57,9 @@ export interface ExtendedSpinelStone {
   purchasePaymentStatus: string; // paid / notpaid
   inventoryCategory: string; // Total stones (Stock category)
   purchaseSourceOfFunds?: string; // Source of Funds - where the money came from
+  purchasePrice?: number; // Purchase Price
+  purchaseExpectedSellingPrice?: number; // Expected Selling Price
+  purchasePriceCode?: string; // Price Code
   
   // Section 3a: Purchase Payment Ledger Fields (13)
   purchaseCustomerName?: string; // Customer/Entity Name
@@ -77,14 +81,18 @@ export interface ExtendedSpinelStone {
   purchasePartnerName?: string; // Partner name (if joint purchase)
   purchasePartnerPercentage?: number; // Partner's percentage share
   purchasePartnerInvestment?: number; // Partner's investment amount
+  purchaseJointPurchaseTripLocation?: string; // Trip location for joint purchase shares
   purchaseTripLocation?: string; // Trip/Location where stone was purchased from
   purchaseSalesLocation?: string; // Sales location selection (Srilanka Sales, Bangkok Sales, China Sales)
+  purchasePayables?: number; // Payables amount in LKR
 
-  // Section 4: Status & Location (3)
+  // Section 4: Status & Location (5)
   status: string;
   location: string; // Stones in
   holder: string; // Stone with
   originalCategory?: string; // Original tab where stone was added (for filtering)
+  approvalOutTo?: string; // To whom (when status is Approval Out)
+  approvalInFrom?: string; // From whom (when status is Approval In)
 
   // Section 5: Sales Information (8)
   outstandingName: string; // Outstanding Names
@@ -95,12 +103,34 @@ export interface ExtendedSpinelStone {
   salesPaymentStatus: string; // Paid/Not Paid
   paymentReceivedDate: string; // Payment paid Date
   sellingPrice?: number; // Selling Price
+  
+  // Section 5a: Sales Payment Ledger Fields (13)
+  salesCustomerName?: string; // Customer/Entity Name
+  salesDescription?: string; // Description
+  salesDeal?: string; // Deal
+  salesCurrency?: string; // Currency (USD, LKR, etc.) - auto-determined from priority
+  salesExchangeRate?: number; // Exchange Rate (applies to USD, THB, RMB)
+  salesAmount?: number; // Base Amount - auto-determined from priority
+  salesAmountLKR?: number; // LKR Amount
+  salesAmountUSD?: number; // USD Amount
+  salesAmountTHB?: number; // THB Amount
+  salesAmountRMB?: number; // RMB Amount
+  salesOfficePercent?: number; // OFFICE %
+  salesCommission?: number; // Commission (LKR)
+  salesFinalAmount?: number; // Final Amount in chosen currency (auto-calculated)
+  salesFinalAmountLKR?: number; // Final Amount in LKR (auto-calculated)
+  salesPaidAmount?: number; // Paid Amount in chosen currency
+  salesOutstandingAmount?: number; // Outstanding Amount in chosen currency (auto-calculated)
+  salesOutstandingAmountLKR?: number; // Outstanding Amount in LKR (auto-calculated)
+  salesPaymentDate?: string; // Payment Date
+  salesDueDate?: string; // Due Date
 
-  // Section 6: Multi-Currency Pricing (4)
+  // Section 6: Multi-Currency Pricing (5)
   priceRMB: number; // RMB Currency
   priceTHB: number; // Bath Currency
   priceUSD: number; // $ Currency
   exchangeRate: number; // Rate
+  currencyValuationLKR?: number; // LKR Amount (auto-calculated from currency × rate)
 
   // Section 7: Financial Calculations (7)
   amountLKR: number; // RS Amount

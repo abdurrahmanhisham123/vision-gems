@@ -2,8 +2,13 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { 
   Search, Plus, Download, Printer, Calendar, 
   Trash2, Edit, Save, X, DollarSign, 
-  FileText, Scale, Scissors, Sparkles, Wallet, User
+  FileText, Scale, Scissors, Sparkles, Wallet, User, AlertCircle
 } from 'lucide-react';
+import { 
+  convertExpenseItemToRecord, 
+  syncCutPolishRecordToStones, 
+  removeCutPolishRecordFromStones 
+} from '../../services/cutPolishSyncService';
 
 // --- Types ---
 interface CutPolishExpenseItem {
@@ -219,6 +224,7 @@ export const CutPolishExpensesTemplate: React.FC<Props> = ({ moduleId, tabId, is
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<CutPolishExpenseItem | null>(null);
   const [selectedItem, setSelectedItem] = useState<CutPolishExpenseItem | null>(null);
+  const [syncWarning, setSyncWarning] = useState<{ message: string; code: string } | null>(null);
 
   // Check if this is the mother tab (all-expenses / Cut.polish)
   const isMotherTab = moduleId === 'all-expenses' && tabId.toLowerCase() === 'cut.polish';
@@ -452,6 +458,11 @@ export const CutPolishExpensesTemplate: React.FC<Props> = ({ moduleId, tabId, is
     e?.stopPropagation();
     const item = items.find(i => i.id === id);
     if (confirm('Are you sure you want to delete this expense?')) {
+      // Remove from stones if code is provided
+      if (item?.code && item.code.trim() !== '') {
+        removeCutPolishRecordFromStones(item.code, id);
+      }
+      
       if (isMotherTab && item) {
         deleteItemFromStorage(id, item.sourceModule, item.sourceTab);
       } else {
@@ -476,6 +487,26 @@ export const CutPolishExpensesTemplate: React.FC<Props> = ({ moduleId, tabId, is
     // Auto-calculate per-carat cost
     if (item.weight > 0 && item.amount > 0) {
       item.perCaratCost = Number((item.amount / item.weight).toFixed(2));
+    }
+    
+    // Sync to stones if code is provided
+    if (item.code && item.code.trim() !== '') {
+      const record = convertExpenseItemToRecord(item);
+      const oldItem = editingItem || items.find(i => i.id === item.id);
+      const oldCode = oldItem?.code;
+      const result = syncCutPolishRecordToStones(item.code, record, oldCode);
+      
+      if (result.notFound) {
+        setSyncWarning({
+          message: `Stone with code '${item.code}' not found in All Stones. Record saved but not synced.`,
+          code: item.code
+        });
+        // Auto-dismiss warning after 5 seconds
+        setTimeout(() => setSyncWarning(null), 5000);
+      } else if (result.updated > 0) {
+        // Successfully synced - clear any previous warnings
+        setSyncWarning(null);
+      }
     }
     
     if (isMotherTab) {
@@ -567,6 +598,26 @@ export const CutPolishExpensesTemplate: React.FC<Props> = ({ moduleId, tabId, is
       item.perCaratCost = Number((item.amount / item.weight).toFixed(2));
     }
     
+    // Sync to stones if code is provided
+    if (item.code && item.code.trim() !== '') {
+      const record = convertExpenseItemToRecord(item);
+      const oldItem = items.find(i => i.id === item.id);
+      const oldCode = oldItem?.code;
+      const result = syncCutPolishRecordToStones(item.code, record, oldCode);
+      
+      if (result.notFound) {
+        setSyncWarning({
+          message: `Stone with code '${item.code}' not found in All Stones. Record saved but not synced.`,
+          code: item.code
+        });
+        // Auto-dismiss warning after 5 seconds
+        setTimeout(() => setSyncWarning(null), 5000);
+      } else if (result.updated > 0) {
+        // Successfully synced - clear any previous warnings
+        setSyncWarning(null);
+      }
+    }
+    
     if (isMotherTab) {
       // Check if this is a new item (no source) or existing item
       const existingItem = items.find(i => i.id === item.id);
@@ -645,6 +696,12 @@ export const CutPolishExpensesTemplate: React.FC<Props> = ({ moduleId, tabId, is
 
   const handleDeleteFromPanel = (id: string) => {
     const item = items.find(i => i.id === id);
+    
+    // Remove from stones if code is provided
+    if (item?.code && item.code.trim() !== '') {
+      removeCutPolishRecordFromStones(item.code, id);
+    }
+    
     if (isMotherTab && item) {
       deleteItemFromStorage(id, item.sourceModule, item.sourceTab);
     } else {
@@ -806,6 +863,24 @@ export const CutPolishExpensesTemplate: React.FC<Props> = ({ moduleId, tabId, is
 
   return (
     <div className="p-4 md:p-8 max-w-[1920px] mx-auto min-h-screen bg-stone-50/20 pb-32 md:pb-8">
+      {/* Sync Warning Notification */}
+      {syncWarning && (
+        <div className="fixed top-4 right-4 z-50 bg-amber-50 border-2 border-amber-200 rounded-2xl shadow-lg p-4 max-w-md animate-in slide-in-from-right">
+          <div className="flex items-start gap-3">
+            <AlertCircle className="text-amber-600 flex-shrink-0 mt-0.5" size={20} />
+            <div className="flex-1">
+              <div className="font-bold text-amber-900 text-sm mb-1">Sync Warning</div>
+              <div className="text-amber-700 text-xs">{syncWarning.message}</div>
+            </div>
+            <button
+              onClick={() => setSyncWarning(null)}
+              className="text-amber-600 hover:text-amber-800 flex-shrink-0"
+            >
+              <X size={16} />
+            </button>
+          </div>
+        </div>
+      )}
       
       {/* Header Section - More Modern */}
       <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6 mb-8">

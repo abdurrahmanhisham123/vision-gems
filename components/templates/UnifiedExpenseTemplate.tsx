@@ -236,6 +236,9 @@ const ExpenseDetailPanel: React.FC<{
                 <Field label="Description" value={formData.description} field="description" isEditing={isEditing} onInputChange={handleInputChange} />
                 <Field label="Currency *" value={formData.currency} field="currency" isEditing={isEditing} onInputChange={handleCurrencyChange} type="select" options={currencies} />
                 <Field label="Amount *" value={formData.amount} field="amount" isEditing={isEditing} onInputChange={handleAmountChange} type="number" highlight isCurrency />
+                {formData.currency === 'LKR' && (
+                  <Field label="Final Amount (LKR)" value={formData.amount} field="amount" isEditing={isEditing} onInputChange={handleAmountChange} type="number" highlight isCurrency />
+                )}
                 {formData.currency !== 'LKR' && (
                   <>
                     <Field label="Exchange Rate" value={formData.exchangeRate} field="exchangeRate" isEditing={isEditing} onInputChange={handleExchangeRateChange} type="number" />
@@ -1247,6 +1250,23 @@ const ExpenseForm: React.FC<{
                 </div>
              </div>
 
+             {formData.currency === 'LKR' && (
+                <div>
+                   <label className="block text-xs font-bold text-stone-500 uppercase mb-1.5 ml-1">Final Amount (LKR)</label>
+                   <input 
+                      type="number" 
+                      value={formData.amount} 
+                      onChange={e => handleAmountChange(Number(e.target.value))}
+                      onFocus={(e) => {
+                        if (formData.amount === 0 || formData.amount === null || formData.amount === undefined) {
+                          e.target.select();
+                        }
+                      }}
+                      className="w-full p-2.5 bg-stone-50 border border-stone-200 rounded-xl text-sm font-bold focus:ring-2 focus:ring-red-500/20 focus:border-red-500 outline-none" 
+                      placeholder="0.00"
+                   />
+                </div>
+             )}
              {formData.currency !== 'LKR' && (
                 <div className="grid grid-cols-2 gap-4">
                    <div>

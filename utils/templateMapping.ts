@@ -142,7 +142,13 @@ export const getTemplateForTab = (moduleId: string, tabId: string): TemplateType
     return 'UnifiedPaymentLedger';
   }
   if (moduleId === 'payable' && tabNormal === 'buying.payments.paid') {
-    return 'UnifiedPaymentLedger';
+    return 'VisionGemsSpinel';
+  }
+  if (moduleId === 'payable' && tabNormal === 'outstanding payables') {
+    return 'VisionGemsSpinel';
+  }
+  if (moduleId === 'payable' && tabNormal === 'payment due date') {
+    return 'VisionGemsSpinel';
   }
 
   // --- BKK FRESH MAPPING ---
@@ -323,6 +329,9 @@ export const getTemplateForTab = (moduleId: string, tabId: string): TemplateType
     if (tabNormal === 'shares') {
       return 'VisionGemsSpinel'; // Rich Inventory Template
     }
+    if (tabNormal === 'transactions') {
+      return 'VisionGemsSpinel'; // Rich Inventory Template
+    }
     if (tabNormal === 'investment') {
       return 'UnifiedExpense';
     }
@@ -358,6 +367,12 @@ export const getTemplateForTab = (moduleId: string, tabId: string): TemplateType
     if (tabNormal === 'sold') {
       return 'VisionGemsSpinel';
     }
+    if (tabNormal === 'approval out') {
+      return 'VisionGemsSpinel';
+    }
+    if (tabNormal === 'missing') {
+      return 'VisionGemsSpinel';
+    }
   }
 
   if (moduleId === 'vision-gems') {
@@ -367,7 +382,7 @@ export const getTemplateForTab = (moduleId: string, tabId: string): TemplateType
     if (tabNormal === 'cut.polish') {
       return 'CutPolishExpenses';
     }
-    if (tabNormal === 'approval') {
+    if (tabNormal === 'approval in' || tabNormal === 'approval') {
       return 'VisionGemsSpinel';
     }
     const excludedTabs = ['dashboardgems', 'z', 'stone shape'];

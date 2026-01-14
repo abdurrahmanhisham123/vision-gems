@@ -67,13 +67,13 @@ const getStoneStatusFromPaymentStatus = (paymentStatus: string): string => {
     case 'Paid':
       return 'Sold';
     case 'Partial':
-      return 'Partial';
+      return 'Partial Payment';
     case 'Pending':
-      return 'Pending';
+      return 'Pending Payment';
     case 'Overdue':
-      return 'Overdue';
+      return 'Overdue Payment';
     default:
-      return 'Pending'; // Default fallback
+      return 'Pending Payment'; // Default fallback
   }
 };
 
@@ -100,7 +100,7 @@ const markStonesAsSold = (code: string, paymentData?: PaymentItem): number => {
     // Determine stone status based on payment status
     const stoneStatus = paymentData?.status 
       ? getStoneStatusFromPaymentStatus(paymentData.status)
-      : 'Pending'; // Default if no payment status
+      : 'Pending Payment'; // Default if no payment status
 
     // Update each matching stone
     let updatedCount = 0;

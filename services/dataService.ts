@@ -174,6 +174,16 @@ export const getExportedStones = (tabId?: string): ExtendedSpinelStone[] => {
       return allStones.filter(s => s.status === 'Sold');
     }
 
+    // 2b. FUNCTIONAL VIEW: Approval Out tab only shows stones with 'Approval Out' status
+    if (normalizedTab === 'approval out') {
+      return allStones.filter(s => s.status === 'Approval Out');
+    }
+
+    // 2c. FUNCTIONAL VIEW: Missing tab only shows stones with 'Missing' status
+    if (normalizedTab === 'missing') {
+      return allStones.filter(s => s.status === 'Missing');
+    }
+
     // 2a. FUNCTIONAL VIEW: Payment Received tab (outstanding module) shows all sold stones
     if (normalizedTab === 'payment received') {
       return allStones.filter(s => s.status === 'Sold');
@@ -189,10 +199,10 @@ export const getExportedStones = (tabId?: string): ExtendedSpinelStone[] => {
       return allStones.filter(s => s.status === 'BKK');
     }
 
-    // 5. FUNCTIONAL VIEW: Approval tab shows all stones with Approval status
-    // This allows stones from any tab to appear in Approval tab when their status is Approval
-    if (normalizedTab === 'approval') {
-      return allStones.filter(s => s.status === 'Approval');
+    // 5. FUNCTIONAL VIEW: Approval In tab shows all stones with Approval In status
+    // This allows stones from any tab to appear in Approval In tab when their status is Approval In
+    if (normalizedTab === 'approval in' || normalizedTab === 'approval') {
+      return allStones.filter(s => s.status === 'Approval In');
     }
 
     // 6. FUNCTIONAL VIEW: Shares tab (accounts module) shows only stones purchased with a partner
@@ -201,17 +211,146 @@ export const getExportedStones = (tabId?: string): ExtendedSpinelStone[] => {
     }
 
     // 7. FUNCTIONAL VIEW: Sales location tabs (outstanding module) show stones by sales location
+    // Exclude stones with "Sold" status from these tabs
     if (normalizedTab === 'srilanka sales') {
-      return allStones.filter(s => s.purchaseSalesLocation === 'Srilanka Sales');
+      return allStones.filter(s => s.purchaseSalesLocation === 'Srilanka Sales' && s.status !== 'Sold');
     }
     if (normalizedTab === 'bangkoksales') {
-      return allStones.filter(s => s.purchaseSalesLocation === 'Bangkok Sales');
+      return allStones.filter(s => s.purchaseSalesLocation === 'Bangkok Sales' && s.status !== 'Sold');
     }
     if (normalizedTab === 'chinasales') {
-      return allStones.filter(s => s.purchaseSalesLocation === 'China Sales');
+      return allStones.filter(s => s.purchaseSalesLocation === 'China Sales' && s.status !== 'Sold');
     }
 
-    // 8. CATEGORY VIEW: Variety tabs (e.g. Spinel) show stones based on originalCategory
+    // 8. FUNCTIONAL VIEW: Outstanding Receivables tab shows stones with payment-related statuses OR outstanding amount > 0
+    if (normalizedTab === 'outstanding receivables') {
+      return allStones.filter(s => {
+        // First check by status (existing logic)
+        const matchesStatus = s.status === 'Pending Payment' || 
+                             s.status === 'Partial Payment' || 
+                             s.status === 'Overdue Payment';
+        
+        // Also check if there's an outstanding amount in sales tab
+        // Helper function to get active currency and amount (priority: LKR > USD > THB > RMB)
+        const getActiveCurrency = (stone: ExtendedSpinelStone): { currency: string; amount: number } => {
+          if ((stone.salesAmountLKR || 0) > 0) return { currency: 'LKR', amount: stone.salesAmountLKR || 0 };
+          if ((stone.salesAmountUSD || 0) > 0) return { currency: 'USD', amount: stone.salesAmountUSD || 0 };
+          if ((stone.salesAmountTHB || 0) > 0) return { currency: 'THB', amount: stone.salesAmountTHB || 0 };
+          if ((stone.salesAmountRMB || 0) > 0) return { currency: 'RMB', amount: stone.salesAmountRMB || 0 };
+          return { currency: 'LKR', amount: 0 };
+        };
+
+        const { currency, amount } = getActiveCurrency(s);
+        
+        // If no amount is filled, only check status
+        if (amount <= 0) {
+          return matchesStatus;
+        }
+
+        // Calculate outstanding amount using Sales tab logic
+        const rate = s.salesExchangeRate || 1;
+        const officePercent = s.salesOfficePercent || 0;
+        const commissionLKR = s.salesCommission || 0;
+        const paidAmount = s.salesPaidAmount || 0;
+
+        // Calculate Office Percentage Addition in chosen currency
+        const officePercentageAddition = amount && officePercent
+          ? (amount * officePercent) / 100
+          : 0;
+
+        // Convert Commission from LKR to chosen currency (if not LKR)
+        const commissionInCurrency = currency === 'LKR' 
+          ? commissionLKR 
+          : commissionLKR / rate;
+
+        // Calculate Final Amount in chosen currency: amount + officePercentageAddition + commissionInCurrency
+        const finalAmount = amount + officePercentageAddition + commissionInCurrency;
+
+        // Calculate Outstanding Amount: finalAmount - paidAmount
+        const outstandingAmount = finalAmount - paidAmount;
+
+        // Show if status matches OR if outstanding amount > 0
+        return matchesStatus || outstandingAmount > 0;
+      });
+    }
+
+    // 9. FUNCTIONAL VIEW: Outstanding Payables tab (payable module) shows stones with payables amount > 0
+    if (normalizedTab === 'outstanding payables') {
+      return allStones.filter(s => (s.purchasePayables || 0) > 0);
+    }
+
+    // 10. FUNCTIONAL VIEW: Transactions tab (accounts module) shows stones with Purchase Price OR BUYER filled
+    if (normalizedTab === 'transactions') {
+      return allStones.filter(s => 
+        (s.purchasePrice && s.purchasePrice > 0) ||
+        (s.salesCustomerName && s.salesCustomerName.trim() !== '')
+      );
+    }
+
+    // 11. FUNCTIONAL VIEW: Investment tab (accounts module) shows stones with Purchase Price OR BUYER filled
+    if (normalizedTab === 'investment') {
+      return allStones.filter(s => 
+        (s.purchasePrice && s.purchasePrice > 0) ||
+        (s.salesCustomerName && s.salesCustomerName.trim() !== '')
+      );
+    }
+
+    // 12. FUNCTIONAL VIEW: Payment Due Date tab (payable module) shows stones with outstanding amounts from Purchase tab's Payment Information
+    if (normalizedTab === 'payment due date') {
+      return allStones.filter(s => {
+        // Helper function to get active currency and amount (priority: LKR > USD > THB > RMB)
+        const getActiveCurrency = (stone: ExtendedSpinelStone): { currency: string; amount: number } => {
+          if (stone.salesAmountLKR && stone.salesAmountLKR > 0) {
+            return { currency: 'LKR', amount: stone.salesAmountLKR };
+          }
+          if (stone.salesAmountUSD && stone.salesAmountUSD > 0) {
+            return { currency: 'USD', amount: stone.salesAmountUSD };
+          }
+          if (stone.salesAmountTHB && stone.salesAmountTHB > 0) {
+            return { currency: 'THB', amount: stone.salesAmountTHB };
+          }
+          if (stone.salesAmountRMB && stone.salesAmountRMB > 0) {
+            return { currency: 'RMB', amount: stone.salesAmountRMB };
+          }
+          return { currency: 'LKR', amount: 0 };
+        };
+
+        // Get active currency and amount
+        const { currency, amount } = getActiveCurrency(s);
+        
+        // If no amount is filled, don't show this stone
+        if (amount <= 0) {
+          return false;
+        }
+
+        // Calculate outstanding amount using Purchase tab logic (addition)
+        const rate = s.salesExchangeRate || 1;
+        const officePercent = s.salesOfficePercent || 0;
+        const commissionLKR = s.salesCommission || 0;
+        const paidAmount = s.salesPaidAmount || 0;
+
+        // Calculate Office Percentage Addition in chosen currency
+        const officePercentageAddition = amount && officePercent
+          ? (amount * officePercent) / 100
+          : 0;
+
+        // Convert Commission from LKR to chosen currency (if not LKR)
+        const commissionInCurrency = currency === 'LKR' 
+          ? commissionLKR 
+          : commissionLKR / rate;
+
+        // Calculate Final Amount in chosen currency: amount + officePercentageAddition + commissionInCurrency
+        const finalAmount = amount + officePercentageAddition + commissionInCurrency;
+
+        // Calculate Outstanding Amount: finalAmount - paidAmount
+        const outstandingAmount = finalAmount - paidAmount;
+
+        // Show stone if outstanding amount > 0
+        return outstandingAmount > 0;
+      });
+    }
+
+    // 13. CATEGORY VIEW: Variety tabs (e.g. Spinel) show stones based on originalCategory
     // This allows stones to remain visible in their original tab regardless of status
     return allStones.filter(s => {
       const stoneOriginalCategory = s.originalCategory?.toLowerCase().trim();
