@@ -427,6 +427,10 @@ export const getTemplateForTab = (moduleId: string, tabId: string): TemplateType
     return 'UnifiedDashboard';
   }
 
+  if (moduleId === 'vg-tanzania' && tabNormal === 'vg.t dashboard') {
+    return 'UnifiedDashboard';
+  }
+
   if (moduleId === 'madagascar' && tabNormal === 'mdashboard') {
     return 'UnifiedDashboard';
   }

@@ -25,7 +25,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
   const currentModule = APP_MODULES.find(m => m.id === currentModuleId);
 
   // Group modules for sidebar
-  const tripIds = ['kenya', 'vgtz', 'madagascar', 'dada', 'vg-ramazan', 'vision-gems'];
+  const tripIds = ['kenya', 'vgtz', 'madagascar', 'dada', 'vg-ramazan', 'vision-gems', 'vg-tanzania'];
   
   const mainModules = APP_MODULES.filter(m => !tripIds.includes(m.id));
   const tripModules = APP_MODULES.filter(m => tripIds.includes(m.id));

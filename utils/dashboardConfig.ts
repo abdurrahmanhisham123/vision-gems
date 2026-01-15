@@ -77,6 +77,25 @@ export const DASHBOARD_CONFIGS: DashboardConfig[] = [
     ]
   },
   {
+    tabName: "VG.T Dashboard",
+    module: "vg-tanzania",
+    dashboardType: "inventory",
+    themeColor: "#7C3AED",
+    location: "Tanzania",
+    dataKey: "vg_tanzania_dashboard",
+    hasInventoryMetrics: true,
+    hasExpenseBreakdown: true,
+    hasMultiCurrency: true,
+    hasProfitCalculation: true,
+    kpiCards: [
+      { title: "In Stock Cost", key: "inStockCost", sourceTab: "VG.T.Instock" },
+      { title: "Total Sales", key: "totalSales", sourceTab: "Sold" },
+      { title: "Outstanding", key: "outstanding", sourceTab: "Outstanding" },
+      { title: "Payment Received", key: "received", sourceTab: "Payment" },
+      { title: "Net Profit", key: "netProfit", currency: "LKR", trend: "auto" }
+    ]
+  },
+  {
     tabName: "KDashboard",
     module: "kenya",
     dashboardType: "inventory",

@@ -17,6 +17,7 @@ interface TicketsVisaItem {
   airline?: string;
   ticketType?: 'One-way' | 'Round-trip' | 'Multi-city';
   category?: string; // Classic Travel, Online Ticket, Personal Ticket Visa
+  recordType?: 'Ticket' | 'Visa' | 'Both';
   amount: number;
   currency: string; // "LKR", "TZS", "USD", etc.
   convertedAmount?: number; // Amount in LKR if foreign currency
@@ -70,18 +71,21 @@ const TicketsVisaDetailPanel: React.FC<{
     setFormData(prev => {
       const updated = { ...prev, [key]: value };
       
-      // Auto-calculate converted amount for foreign currencies
+      // Calculate converted amount for foreign currencies based on manually entered exchange rate
       if (key === 'currency' || key === 'amount' || key === 'exchangeRate') {
         const currency = key === 'currency' ? value : updated.currency;
         const amount = key === 'amount' ? value : updated.amount;
         const exchangeRate = key === 'exchangeRate' ? value : updated.exchangeRate;
         
-        if (currency && currency !== 'LKR' && amount) {
-          const rate = exchangeRates[currency] || exchangeRate || 1;
-          const converted = Math.floor(amount * rate);
-          return { ...updated, convertedAmount: converted, exchangeRate: rate };
+        if (currency && currency !== 'LKR' && amount && exchangeRate) {
+          // Use manually entered exchange rate to calculate LKR equivalent
+          const converted = Math.floor(amount * exchangeRate);
+          return { ...updated, convertedAmount: converted };
         } else if (currency === 'LKR') {
           return { ...updated, convertedAmount: undefined, exchangeRate: undefined };
+        } else if (currency && currency !== 'LKR' && (!amount || !exchangeRate)) {
+          // Clear converted amount if amount or exchange rate is missing
+          return { ...updated, convertedAmount: undefined };
         }
       }
       
@@ -164,7 +168,7 @@ const TicketsVisaDetailPanel: React.FC<{
             <div className="min-w-0">
               <div className="flex items-center gap-1.5 mb-1 flex-wrap">
                 <span className="px-2 py-0.5 rounded-full text-[9px] font-extrabold uppercase border bg-emerald-50 text-emerald-700 border-emerald-100">
-                  {formData.ticketType || 'Ticket'}
+                  {formData.recordType || formData.ticketType || 'Ticket'}
                 </span>
                 <span className="text-[10px] font-mono text-stone-400 bg-stone-50 px-1.5 py-0.5 rounded truncate">{formData.code || 'N/A'}</span>
               </div>
@@ -196,6 +200,14 @@ const TicketsVisaDetailPanel: React.FC<{
               <div className="grid grid-cols-2 gap-x-4 md:gap-x-6">
                 <Field label="Date" value={formData.date} field="date" isEditing={isEditing} onInputChange={handleInputChange} type="date" />
                 <Field label="Code" value={formData.code} field="code" isEditing={isEditing} onInputChange={handleInputChange} highlight />
+                <Field 
+                  label="Type" 
+                  value={formData.recordType || ''} 
+                  field="recordType" 
+                  isEditing={isEditing} 
+                  onInputChange={handleInputChange} 
+                  options={['Ticket', 'Visa', 'Both']}
+                />
                 <Field label="Company" value={formData.company} field="company" isEditing={isEditing} onInputChange={handleInputChange} />
                 <Field label="Location" value={formData.location} field="location" isEditing={isEditing} onInputChange={handleInputChange} />
                 <Field label="Passenger Name" value={formData.passengerName} field="passengerName" isEditing={isEditing} onInputChange={handleInputChange} />
@@ -1160,6 +1172,7 @@ const TicketsVisaForm: React.FC<{
     airline: initialData?.airline || '',
     ticketType: initialData?.ticketType || 'One-way',
     category: initialData?.category || '',
+    recordType: initialData?.recordType || '',
     amount: initialData?.amount || 0,
     currency: initialData?.currency || 'LKR',
     location: initialData?.location || '',
@@ -1170,18 +1183,21 @@ const TicketsVisaForm: React.FC<{
     convertedAmount: initialData?.convertedAmount,
   });
 
-  // Auto-calculate converted amount
+  // Calculate converted amount based on manually entered exchange rate
   useEffect(() => {
-    if (formData.currency && formData.amount && formData.currency !== 'LKR') {
-      const rate = exchangeRates[formData.currency] || formData.exchangeRate || 1;
-      const converted = Math.floor(formData.amount * rate);
+    if (formData.currency && formData.amount && formData.currency !== 'LKR' && formData.exchangeRate) {
+      // Only calculate if exchange rate is manually entered
+      const converted = Math.floor(formData.amount * formData.exchangeRate);
       if (converted !== formData.convertedAmount) {
-        setFormData(prev => ({...prev, convertedAmount: converted, exchangeRate: rate}));
+        setFormData(prev => ({...prev, convertedAmount: converted}));
       }
     } else if (formData.currency === 'LKR') {
       setFormData(prev => ({...prev, convertedAmount: undefined, exchangeRate: undefined}));
+    } else if (formData.currency && formData.currency !== 'LKR' && (!formData.exchangeRate || !formData.amount)) {
+      // Clear converted amount if exchange rate or amount is missing
+      setFormData(prev => ({...prev, convertedAmount: undefined}));
     }
-  }, [formData.amount, formData.currency, exchangeRates]);
+  }, [formData.amount, formData.currency, formData.exchangeRate]);
 
   const handleSubmit = () => {
     if (!formData.passengerName || !formData.amount) {
@@ -1198,6 +1214,7 @@ const TicketsVisaForm: React.FC<{
       airline: formData.airline,
       ticketType: formData.ticketType,
       category: formData.category,
+      recordType: formData.recordType as 'Ticket' | 'Visa' | 'Both' | undefined,
       amount: Number(formData.amount),
       currency: formData.currency || 'LKR',
       convertedAmount: formData.convertedAmount,
@@ -1238,6 +1255,20 @@ const TicketsVisaForm: React.FC<{
                       placeholder="TKT-001"
                    />
                 </div>
+             </div>
+
+             <div>
+                <label className="block text-xs font-bold text-stone-500 uppercase mb-1.5 ml-1">Type *</label>
+                <select 
+                   value={formData.recordType || ''} 
+                   onChange={e => setFormData({...formData, recordType: e.target.value as 'Ticket' | 'Visa' | 'Both'})}
+                   className="w-full p-2.5 bg-stone-50 border border-stone-200 rounded-xl text-sm focus:ring-2 focus:ring-cyan-500/20 focus:border-cyan-500 outline-none"
+                >
+                   <option value="">Select type</option>
+                   <option value="Ticket">Ticket</option>
+                   <option value="Visa">Visa</option>
+                   <option value="Both">Both</option>
+                </select>
              </div>
 
              <div>
@@ -1340,27 +1371,32 @@ const TicketsVisaForm: React.FC<{
                 </div>
              </div>
 
-             {formData.currency !== 'LKR' && formData.convertedAmount && (
+             {formData.currency !== 'LKR' && (
                 <div className="p-4 bg-cyan-50 rounded-xl border border-cyan-100">
                    <div className="text-xs font-bold text-cyan-600 uppercase mb-2">Currency Conversion</div>
                    <div className="grid grid-cols-2 gap-4">
                       <div>
-                         <label className="block text-xs text-stone-500 mb-1">Exchange Rate</label>
+                         <label className="block text-xs text-stone-500 mb-1">Exchange Rate *</label>
                          <input 
                             type="number" 
                             step="0.0001" 
-                            value={formData.exchangeRate} 
-                            onChange={e => setFormData({...formData, exchangeRate: Number(e.target.value)})}
+                            value={formData.exchangeRate || ''} 
+                            onChange={e => {
+                              const rate = e.target.value ? Number(e.target.value) : undefined;
+                              setFormData({...formData, exchangeRate: rate});
+                            }}
                             className="w-full p-2 border rounded-lg bg-white text-sm" 
+                            placeholder="Enter exchange rate"
                          />
                       </div>
                       <div>
                          <label className="block text-xs text-stone-500 mb-1">LKR Equivalent</label>
                          <input 
                             type="number" 
-                            value={formData.convertedAmount} 
+                            value={formData.convertedAmount || ''} 
                             disabled 
                             className="w-full p-2 border rounded-lg bg-stone-100 text-stone-500 text-sm" 
+                            placeholder={formData.exchangeRate && formData.amount ? 'Auto-calculated' : 'Enter exchange rate first'}
                          />
                       </div>
                    </div>

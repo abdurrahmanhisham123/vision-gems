@@ -1351,6 +1351,8 @@ export const VisionGemsSpinelTemplate: React.FC<Props> = ({ moduleId, tabId, isR
   const [filterHolder, setFilterHolder] = useState('All');
   const [filterTitle, setFilterTitle] = useState('All');
   const [filterSalesLocation, setFilterSalesLocation] = useState('All');
+  const [filterApprovalOutTo, setFilterApprovalOutTo] = useState('All');
+  const [filterApprovalInFrom, setFilterApprovalInFrom] = useState('All');
   const [selectedStone, setSelectedStone] = useState<ExtendedSpinelStone | null>(null);
 
   const loadData = () => {
@@ -1373,6 +1375,8 @@ export const VisionGemsSpinelTemplate: React.FC<Props> = ({ moduleId, tabId, isR
   const uniqueHolders = useMemo(() => Array.from(new Set(stones.map(s => s.holder).filter(Boolean))).sort(), [stones]);
   const uniqueTitles = useMemo(() => Array.from(new Set(stones.map(s => s.title).filter(Boolean))).sort(), [stones]);
   const uniqueSalesLocations = useMemo(() => Array.from(new Set(stones.map(s => s.purchaseSalesLocation).filter(Boolean))).sort(), [stones]);
+  const uniqueApprovalOutTo = useMemo(() => Array.from(new Set(stones.map(s => s.approvalOutTo).filter(Boolean))).sort(), [stones]);
+  const uniqueApprovalInFrom = useMemo(() => Array.from(new Set(stones.map(s => s.approvalInFrom).filter(Boolean))).sort(), [stones]);
 
   const filteredStones = useMemo(() => {
     return stones.filter(stone => {
@@ -1385,6 +1389,8 @@ export const VisionGemsSpinelTemplate: React.FC<Props> = ({ moduleId, tabId, isR
       const matchesHolder = filterHolder === 'All' || stone.holder === filterHolder;
       const matchesTitle = filterTitle === 'All' || stone.title === filterTitle;
       const matchesSalesLocation = filterSalesLocation === 'All' || stone.purchaseSalesLocation === filterSalesLocation;
+      const matchesApprovalOutTo = filterApprovalOutTo === 'All' || stone.approvalOutTo === filterApprovalOutTo;
+      const matchesApprovalInFrom = filterApprovalInFrom === 'All' || stone.approvalInFrom === filterApprovalInFrom;
       
       let matchesWeight = true;
       if (filterWeight !== 'All') {
@@ -1397,9 +1403,9 @@ export const VisionGemsSpinelTemplate: React.FC<Props> = ({ moduleId, tabId, isR
         else if (filterWeight === '5-10') matchesWeight = w >= 5 && w < 10;
         else if (filterWeight === '10+') matchesWeight = w >= 10;
       }
-      return matchesSearch && matchesColor && matchesWeight && matchesStatus && matchesCompany && matchesVariety && matchesHolder && matchesTitle && matchesSalesLocation;
+      return matchesSearch && matchesColor && matchesWeight && matchesStatus && matchesCompany && matchesVariety && matchesHolder && matchesTitle && matchesSalesLocation && matchesApprovalOutTo && matchesApprovalInFrom;
     });
-  }, [stones, searchQuery, filterColor, filterWeight, filterStatus, filterCompany, filterVariety, filterHolder, filterTitle, filterSalesLocation]);
+  }, [stones, searchQuery, filterColor, filterWeight, filterStatus, filterCompany, filterVariety, filterHolder, filterTitle, filterSalesLocation, filterApprovalOutTo, filterApprovalInFrom]);
 
   const handleSaveStone = (updatedStone: ExtendedSpinelStone) => {
     let newLocation = updatedStone.location;
@@ -1645,6 +1651,12 @@ export const VisionGemsSpinelTemplate: React.FC<Props> = ({ moduleId, tabId, isR
                <div className="flex items-center bg-stone-50 border border-stone-100 rounded-[20px] px-3 shrink-0"><FileText size={14} className="text-stone-300" /><select value={filterTitle} onChange={(e) => setFilterTitle(e.target.value)} className="px-2 py-2.5 bg-transparent text-xs text-stone-600 font-bold focus:outline-none min-w-[100px]"><option value="All">Title</option>{uniqueTitles.map(t => <option key={t} value={t}>{t}</option>)}</select></div>
                {tabId && tabId.toLowerCase().trim() === 'outstanding receivables' && (
                  <div className="flex items-center bg-stone-50 border border-stone-100 rounded-[20px] px-3 shrink-0"><MapPin size={14} className="text-stone-300" /><select value={filterSalesLocation} onChange={(e) => setFilterSalesLocation(e.target.value)} className="px-2 py-2.5 bg-transparent text-xs text-stone-600 font-bold focus:outline-none min-w-[100px]"><option value="All">Country</option>{uniqueSalesLocations.map(loc => <option key={loc} value={loc}>{loc}</option>)}</select></div>
+               )}
+               {tabId && tabId.toLowerCase().trim() === 'approval out' && (
+                 <div className="flex items-center bg-stone-50 border border-stone-100 rounded-[20px] px-3 shrink-0"><User size={14} className="text-stone-300" /><select value={filterApprovalOutTo} onChange={(e) => setFilterApprovalOutTo(e.target.value)} className="px-2 py-2.5 bg-transparent text-xs text-stone-600 font-bold focus:outline-none min-w-[100px]"><option value="All">To Whom</option>{uniqueApprovalOutTo.map(to => <option key={to} value={to}>{to}</option>)}</select></div>
+               )}
+               {tabId && (tabId.toLowerCase().trim() === 'approval in' || tabId.toLowerCase().trim() === 'approval') && (
+                 <div className="flex items-center bg-stone-50 border border-stone-100 rounded-[20px] px-3 shrink-0"><User size={14} className="text-stone-300" /><select value={filterApprovalInFrom} onChange={(e) => setFilterApprovalInFrom(e.target.value)} className="px-2 py-2.5 bg-transparent text-xs text-stone-600 font-bold focus:outline-none min-w-[100px]"><option value="All">From Whom</option>{uniqueApprovalInFrom.map(from => <option key={from} value={from}>{from}</option>)}</select></div>
                )}
             </div>
          </div>

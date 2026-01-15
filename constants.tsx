@@ -189,6 +189,17 @@ export const APP_MODULES: ModuleConfig[] = [
     tabs: [
       'Shares', 'Transactions', 'Investment'
     ]
+  },
+  // 15. VG Tanzania
+  {
+    id: 'vg-tanzania',
+    name: 'VG Tanzania',
+    type: 'mixed',
+    description: 'VG Tanzania Operations',
+    icon: 'MapPin',
+    tabs: [
+      'VG.T Dashboard'
+    ]
   }
 ];
 

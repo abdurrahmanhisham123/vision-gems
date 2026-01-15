@@ -279,6 +279,53 @@ export const getExportedStones = (tabId?: string): ExtendedSpinelStone[] => {
       return allStones.filter(s => (s.purchasePayables || 0) > 0);
     }
 
+    // 9a. FUNCTIONAL VIEW: Buying Payments Paid tab (payable module) shows fully paid stones from Purchase tab
+    if (normalizedTab === 'buying.payments.paid') {
+      return allStones.filter(s => {
+        // Helper function to get active currency and amount from Purchase tab's Payment Information
+        // Uses Sales fields (salesAmountLKR, salesAmountUSD, etc.) as per Purchase tab implementation
+        const getActivePurchaseCurrency = (stone: ExtendedSpinelStone): { currency: string; amount: number } => {
+          if ((stone.salesAmountLKR || 0) > 0) return { currency: 'LKR', amount: stone.salesAmountLKR || 0 };
+          if ((stone.salesAmountUSD || 0) > 0) return { currency: 'USD', amount: stone.salesAmountUSD || 0 };
+          if ((stone.salesAmountTHB || 0) > 0) return { currency: 'THB', amount: stone.salesAmountTHB || 0 };
+          if ((stone.salesAmountRMB || 0) > 0) return { currency: 'RMB', amount: stone.salesAmountRMB || 0 };
+          return { currency: 'LKR', amount: 0 };
+        };
+
+        const { currency, amount } = getActivePurchaseCurrency(s);
+        
+        // If no amount is filled, don't show this stone
+        if (amount <= 0) {
+          return false;
+        }
+
+        // Calculate using Purchase tab's Payment Information logic (addition)
+        const rate = s.salesExchangeRate || 1;
+        const officePercent = s.salesOfficePercent || 0;
+        const commissionLKR = s.salesCommission || 0;
+        const paidAmount = s.salesPaidAmount || 0;
+
+        // Calculate Office Percentage Addition in chosen currency
+        const officePercentageAddition = amount && officePercent
+          ? (amount * officePercent) / 100
+          : 0;
+
+        // Convert Commission from LKR to chosen currency (if not LKR)
+        const commissionInCurrency = currency === 'LKR' 
+          ? commissionLKR 
+          : commissionLKR / rate;
+
+        // Calculate Final Amount in chosen currency: amount + officePercentageAddition + commissionInCurrency
+        const finalAmount = amount + officePercentageAddition + commissionInCurrency;
+
+        // Calculate Outstanding Amount: finalAmount - paidAmount
+        const outstandingAmount = finalAmount - paidAmount;
+
+        // Show stone if finalAmount > 0 AND outstandingAmount === 0 (fully paid)
+        return finalAmount > 0 && outstandingAmount === 0;
+      });
+    }
+
     // 10. FUNCTIONAL VIEW: Transactions tab (accounts module) shows stones with Purchase Price OR BUYER filled
     if (normalizedTab === 'transactions') {
       return allStones.filter(s => 
