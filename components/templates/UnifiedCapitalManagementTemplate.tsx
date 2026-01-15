@@ -1,8 +1,9 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { 
   Search, Plus, Download, Printer, 
   Trash2, Edit, Save, X, DollarSign, 
-  FileText, Globe, Building2, TrendingUp, Wallet, Coins, Calendar, Filter
+  FileText, Globe, Building2, TrendingUp, Wallet, Coins, Calendar, Filter,
+  ShoppingBag, RefreshCw, Users
 } from 'lucide-react';
 import { APP_MODULES } from '../../constants';
 
@@ -14,9 +15,11 @@ interface CapitalItem {
   transactionType: 'purchased' | 'exchange' | 'shares'; // Transaction type
   vendorName: string; // Vendor/Entity Name
   currency: string; // USD, LKR, etc.
-  amount: number;
+  amount: number; // Amount for Purchased tab
+  exchangeAmount?: number; // Amount for Exchanged tab (separate from purchased amount)
   exchangeRate: number;
-  convertedAmount: number; // Amount in LKR
+  convertedAmount: number; // Amount in LKR for Purchased tab
+  exchangeConvertedAmount?: number; // Amount in LKR for Exchanged tab (separate from purchased converted amount)
   location?: string; // Optional location
   company?: string; // Optional company
   description?: string; // Optional description
@@ -24,6 +27,15 @@ interface CapitalItem {
   notes?: string;
   sourceModule?: string; // For aggregated data: which module this came from
   sourceTab?: string; // For aggregated data: which tab this came from
+  // For Exchanged tab
+  exchangeName?: string; // Exchange Name
+  tanzaniaRate?: number; // Tanzania Rate
+  tShiling?: number; // T Shiling
+  dividedTSL?: number; // Devided T / SL
+  // For Shares tab
+  dollarEachAmount?: number; // $ Each Amount
+  rsEachAmount?: number; // Rs Each Amount
+  shiEachAmount?: number; // Shi Each Amount
 }
 
 interface Props {
@@ -51,6 +63,112 @@ const exchangeRates: Record<string, number> = {
 // Payment method options
 const paymentMethods = ['Cash', 'Card', 'Bank Transfer', 'Cheque', 'Online Payment', 'Other'];
 
+// --- TabButton Component ---
+const TabButton: React.FC<{ 
+  id: string, 
+  activeTab: string, 
+  label: string, 
+  icon: any, 
+  onClick: (id: any) => void 
+}> = ({ id, activeTab, label, icon: Icon, onClick }) => (
+  <button 
+    onClick={() => onClick(id)} 
+    className={`flex-1 flex flex-col items-center justify-center py-3 px-1 transition-all border-b-2 ${activeTab === id ? 'border-indigo-600 text-indigo-700 bg-indigo-50/50' : 'border-transparent text-stone-400 hover:text-stone-600 hover:bg-stone-50'}`}
+  >
+    <Icon size={18} className="mb-1" />
+    <span className="text-[9px] font-bold uppercase tracking-wide">{label}</span>
+  </button>
+);
+
+// --- Field Component (moved outside to prevent recreation on every render) ---
+const Field: React.FC<{ 
+  label: string, 
+  value: any, 
+  field: keyof CapitalItem, 
+  isEditing: boolean, 
+  onInputChange: (key: keyof CapitalItem, value: any) => void,
+  type?: 'text' | 'number' | 'date' | 'select', 
+  highlight?: boolean, 
+  isCurrency?: boolean,
+  options?: string[]
+}> = React.memo(({ label, value, field, isEditing, onInputChange, type = 'text', highlight = false, isCurrency = false, options }) => {
+  const inputRef = useRef<HTMLInputElement | HTMLSelectElement>(null);
+  const wasFocused = useRef(false);
+  const cursorPosition = useRef<number | null>(null);
+  
+  useEffect(() => {
+    // Restore focus if it was previously focused
+    if (wasFocused.current && inputRef.current && document.activeElement !== inputRef.current) {
+      inputRef.current.focus();
+      // For text inputs, restore cursor position
+      if (inputRef.current instanceof HTMLInputElement && inputRef.current.type !== 'number' && cursorPosition.current !== null) {
+        inputRef.current.setSelectionRange(cursorPosition.current, cursorPosition.current);
+      }
+    }
+  });
+  
+  return (
+    <div className="flex flex-col py-2 border-b border-stone-100 last:border-0 min-h-[50px] justify-center">
+      <span className="text-[9px] font-bold text-stone-400 uppercase tracking-wider mb-0.5">{label}</span>
+      {isEditing ? (
+        type === 'select' && options ? (
+          <select
+            ref={inputRef as React.RefObject<HTMLSelectElement>}
+            value={value === undefined || value === null ? '' : value.toString()}
+            onChange={(e) => onInputChange(field, e.target.value)}
+            onFocus={() => { wasFocused.current = true; }}
+            onBlur={() => { wasFocused.current = false; }}
+            className="w-full p-3 md:p-2 py-3 md:py-2 min-h-[44px] md:min-h-0 text-base md:text-sm bg-stone-50 border border-stone-200 rounded-lg outline-none transition-all focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/10 appearance-none"
+          >
+            {options.map(opt => (
+              <option key={opt} value={opt}>{opt}</option>
+            ))}
+          </select>
+        ) : (
+          <input 
+            ref={inputRef as React.RefObject<HTMLInputElement>}
+            type={type} 
+            value={value === undefined || value === null ? '' : value.toString()} 
+            onChange={(e) => {
+              if (e.target instanceof HTMLInputElement) {
+                cursorPosition.current = e.target.selectionStart;
+              }
+              onInputChange(field, type === 'number' ? Number(e.target.value) : e.target.value);
+            }} 
+            onFocus={(e) => {
+              wasFocused.current = true;
+              if (type === 'number' && (value === 0 || value === '0' || value === '')) {
+                e.target.select();
+              } else if (e.target instanceof HTMLInputElement) {
+                cursorPosition.current = e.target.selectionStart;
+              }
+            }}
+            onBlur={() => { wasFocused.current = false; }}
+            className="w-full p-2 bg-stone-50 border border-stone-200 rounded-lg text-sm outline-none transition-all focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/10" 
+          />
+        )
+      ) : (
+        <span className={`text-sm ${highlight ? 'font-bold text-indigo-700' : 'font-medium text-stone-700'} ${isCurrency ? 'font-mono' : ''}`}>
+          {value === undefined || value === null || value === '' ? '-' : (typeof value === 'number' ? value.toLocaleString() : value)}
+        </span>
+      )}
+    </div>
+  );
+}, (prevProps, nextProps) => {
+  // Custom comparison: only re-render if props actually changed
+  return (
+    prevProps.label === nextProps.label &&
+    prevProps.value === nextProps.value &&
+    prevProps.field === nextProps.field &&
+    prevProps.isEditing === nextProps.isEditing &&
+    prevProps.type === nextProps.type &&
+    prevProps.highlight === nextProps.highlight &&
+    prevProps.isCurrency === nextProps.isCurrency &&
+    prevProps.onInputChange === nextProps.onInputChange &&
+    JSON.stringify(prevProps.options) === JSON.stringify(nextProps.options)
+  );
+});
+
 // --- Side Panel Component ---
 const CapitalDetailPanel: React.FC<{
   item: CapitalItem;
@@ -59,51 +177,124 @@ const CapitalDetailPanel: React.FC<{
   onSave: (item: CapitalItem) => void;
   onDelete: (id: string) => void;
   isReadOnly?: boolean;
-}> = ({ item: initialItem, initialIsEditing = false, onClose, onSave, onDelete, isReadOnly }) => {
+}> = React.memo(({ item: initialItem, initialIsEditing = false, onClose, onSave, onDelete, isReadOnly }) => {
   
   const [isEditing, setIsEditing] = useState(initialIsEditing);
   const [formData, setFormData] = useState<CapitalItem>(initialItem);
+  const [activeTab, setActiveTab] = useState<'purchased' | 'exchange' | 'shares'>(
+    initialItem.transactionType || 'purchased'
+  );
 
   useEffect(() => {
-    setFormData(initialItem);
-    setIsEditing(initialIsEditing);
-  }, [initialItem, initialIsEditing]);
-
-  useEffect(() => {
-    if (formData.currency && formData.amount && formData.exchangeRate) {
-      const converted = formData.amount * formData.exchangeRate;
-      setFormData(prev => ({ ...prev, convertedAmount: converted }));
+    // Only update formData if the item ID actually changed (not just object reference)
+    if (initialItem.id !== formData.id) {
+      setFormData(initialItem);
+      setActiveTab(initialItem.transactionType || 'purchased');
     }
-  }, [formData.amount, formData.exchangeRate, formData.currency]);
+    setIsEditing(initialIsEditing);
+  }, [initialItem.id, initialIsEditing]);
 
-  const handleInputChange = (key: keyof CapitalItem, value: any) => {
+  useEffect(() => {
+    setActiveTab(formData.transactionType || 'purchased');
+  }, [formData.transactionType]);
+
+  // Removed useEffect for convertedAmount - handleAmountChange and handleExchangeRateChange handle it directly
+  // This prevents double updates that cause re-renders and focus loss
+
+  const handleInputChange = useCallback((key: keyof CapitalItem, value: any) => {
     setFormData(prev => ({ ...prev, [key]: value }));
-  };
+  }, []);
 
   const handleCurrencyChange = (currency: string) => {
     const rate = exchangeRates[currency] || 1;
-    const converted = formData.amount * rate;
-    setFormData(prev => ({ 
-      ...prev, 
-      currency, 
-      exchangeRate: rate,
-      convertedAmount: converted 
-    }));
+    setFormData(prev => {
+      // Use the appropriate amount field based on active tab
+      const amount = activeTab === 'exchange' ? (prev.exchangeAmount || 0) : (prev.amount || 0);
+      const converted = amount * rate;
+      // Update the appropriate converted amount field based on active tab
+      if (activeTab === 'exchange') {
+        return { 
+          ...prev, 
+          currency, 
+          exchangeRate: rate,
+          exchangeConvertedAmount: converted 
+        };
+      } else {
+        return { 
+          ...prev, 
+          currency, 
+          exchangeRate: rate,
+          convertedAmount: converted 
+        };
+      }
+    });
   };
 
-  const handleAmountChange = (amount: number) => {
-    const converted = amount * formData.exchangeRate;
-    setFormData(prev => ({ ...prev, amount, convertedAmount: converted }));
-  };
+  const handleAmountChange = useCallback((key: keyof CapitalItem, value: any) => {
+    const amount = typeof value === 'number' ? value : (value === '' ? 0 : Number(value) || 0);
+    setFormData(prev => {
+      const exchangeRate = prev.exchangeRate || 1;
+      const converted = amount * exchangeRate;
+      // Use the appropriate fields based on active tab
+      if (activeTab === 'exchange') {
+        // Calculate T Shiling = exchangeAmount × tanzaniaRate
+        const tShiling = amount * (prev.tanzaniaRate || 0);
+        // Calculate $ Each Amount for Shares tab = exchangeAmount ÷ 2
+        const dollarEachAmount = amount / 2;
+        // Calculate Rs Each Amount for Shares tab = exchangeConvertedAmount ÷ 2
+        const rsEachAmount = converted / 2;
+        // Calculate Shi Each Amount for Shares tab = tShiling ÷ 2
+        const shiEachAmount = tShiling / 2;
+        return { ...prev, exchangeAmount: amount, exchangeConvertedAmount: converted, tShiling, dollarEachAmount, rsEachAmount, shiEachAmount };
+      } else {
+        return { ...prev, amount, convertedAmount: converted };
+      }
+    });
+  }, [activeTab]);
 
-  const handleExchangeRateChange = (rate: number) => {
-    const converted = formData.amount * rate;
-    setFormData(prev => ({ ...prev, exchangeRate: rate, convertedAmount: converted }));
-  };
+  const handleExchangeRateChange = useCallback((key: keyof CapitalItem, value: any) => {
+    const rate = typeof value === 'number' ? value : (value === '' ? 0 : Number(value) || 0);
+    setFormData(prev => {
+      // Use the appropriate amount field based on active tab
+      const amount = activeTab === 'exchange' ? (prev.exchangeAmount || 0) : (prev.amount || 0);
+      const converted = amount * rate;
+      // Update the appropriate converted amount field based on active tab
+      if (activeTab === 'exchange') {
+        // Calculate Divided T / SL = $ SL Rate ÷ Tanzania Rate
+        const tanzaniaRate = prev.tanzaniaRate || 0;
+        const dividedTSL = tanzaniaRate > 0 ? rate / tanzaniaRate : 0;
+        // Calculate Rs Each Amount for Shares tab = exchangeConvertedAmount ÷ 2
+        const rsEachAmount = converted / 2;
+        return { ...prev, exchangeRate: rate, exchangeConvertedAmount: converted, dividedTSL, rsEachAmount };
+      } else {
+        return { ...prev, exchangeRate: rate, convertedAmount: converted };
+      }
+    });
+  }, [activeTab]);
+
+  const handleTanzaniaRateChange = useCallback((key: keyof CapitalItem, value: any) => {
+    const tanzaniaRate = typeof value === 'number' ? value : (value === '' ? 0 : Number(value) || 0);
+    setFormData(prev => {
+      // Calculate T Shiling = exchangeAmount × tanzaniaRate
+      const exchangeAmount = prev.exchangeAmount || 0;
+      const tShiling = exchangeAmount * tanzaniaRate;
+      // Calculate Divided T / SL = $ SL Rate ÷ Tanzania Rate
+      const exchangeRate = prev.exchangeRate || 0;
+      const dividedTSL = tanzaniaRate > 0 ? exchangeRate / tanzaniaRate : 0;
+      return { ...prev, tanzaniaRate, tShiling, dividedTSL };
+    });
+  }, []);
 
   const handleSave = () => {
-    if (!formData.vendorName || !formData.amount || !formData.currency || !formData.transactionType) {
-      return alert('Vendor Name, Amount, Currency, and Transaction Type are required');
+    // Validate based on active tab
+    if (activeTab === 'exchange') {
+      if (!formData.vendorName || (formData.exchangeAmount === undefined || formData.exchangeAmount === null) || !formData.currency || !formData.transactionType) {
+        return alert('Vendor Name, Amount, Currency, and Transaction Type are required');
+      }
+    } else {
+      if (!formData.vendorName || !formData.amount || !formData.currency || !formData.transactionType) {
+        return alert('Vendor Name, Amount, Currency, and Transaction Type are required');
+      }
     }
     onSave(formData);
   };
@@ -116,53 +307,6 @@ const CapitalDetailPanel: React.FC<{
 
   const formatCurrency = (amount: number, currency: string) => {
     return `${currency} ${amount.toLocaleString()}`;
-  };
-
-  const Field: React.FC<{ 
-    label: string, 
-    value: any, 
-    field: keyof CapitalItem, 
-    isEditing: boolean, 
-    onInputChange: (key: keyof CapitalItem, value: any) => void,
-    type?: 'text' | 'number' | 'date' | 'select', 
-    highlight?: boolean, 
-    isCurrency?: boolean,
-    options?: string[]
-  }> = ({ label, value, field, isEditing, onInputChange, type = 'text', highlight = false, isCurrency = false, options }) => {
-    return (
-      <div className="flex flex-col py-2 border-b border-stone-100 last:border-0 min-h-[50px] justify-center">
-        <span className="text-[9px] font-bold text-stone-400 uppercase tracking-wider mb-0.5">{label}</span>
-        {isEditing ? (
-          type === 'select' && options ? (
-            <select
-              value={value === undefined || value === null ? '' : value.toString()}
-              onChange={(e) => onInputChange(field, e.target.value)}
-              className="w-full p-3 md:p-2 py-3 md:py-2 min-h-[44px] md:min-h-0 text-base md:text-sm bg-stone-50 border border-stone-200 rounded-lg outline-none transition-all focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/10 appearance-none"
-            >
-              {options.map(opt => (
-                <option key={opt} value={opt}>{opt}</option>
-              ))}
-            </select>
-          ) : (
-            <input 
-              type={type} 
-              value={value === undefined || value === null ? '' : value.toString()} 
-              onChange={(e) => onInputChange(field, type === 'number' ? Number(e.target.value) : e.target.value)} 
-              onFocus={(e) => {
-                if (type === 'number' && (value === 0 || value === '0' || value === '')) {
-                  e.target.select();
-                }
-              }}
-              className="w-full p-2 bg-stone-50 border border-stone-200 rounded-lg text-sm outline-none transition-all focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/10" 
-            />
-          )
-        ) : (
-          <span className={`text-sm ${highlight ? 'font-bold text-indigo-700' : 'font-medium text-stone-700'} ${isCurrency ? 'font-mono' : ''}`}>
-            {value === undefined || value === null || value === '' ? '-' : (typeof value === 'number' ? value.toLocaleString() : value)}
-          </span>
-        )}
-      </div>
-    );
   };
 
   return (
@@ -203,33 +347,62 @@ const CapitalDetailPanel: React.FC<{
               )}
               <div className="flex items-center gap-1.5 mt-0.5 text-stone-500 font-medium text-xs md:text-sm">
                 <Coins size={14} className="text-stone-400" />
-                <p className="truncate">{formatCurrency(formData.amount, formData.currency)} • LKR {formData.convertedAmount.toLocaleString()}</p>
+                <p className="truncate">{formatCurrency(activeTab === 'exchange' ? (formData.exchangeAmount || 0) : formData.amount, formData.currency)} • LKR {(activeTab === 'exchange' ? (formData.exchangeConvertedAmount || 0) : formData.convertedAmount).toLocaleString()}</p>
               </div>
             </div>
           </div>
           <button onClick={onClose} className="p-2 bg-stone-50 hover:bg-stone-100 text-stone-400 rounded-full transition-colors shrink-0 ml-2"><X size={20} /></button>
         </div>
 
+        <div className="flex border-b border-stone-200 bg-white shrink-0 overflow-x-auto hide-scrollbar">
+          <TabButton id="purchased" activeTab={activeTab} label="Purchased" icon={ShoppingBag} onClick={(id) => { setActiveTab(id as any); if (isEditing) handleInputChange('transactionType', id); }} />
+          <TabButton id="exchange" activeTab={activeTab} label="Exchanged" icon={RefreshCw} onClick={(id) => { setActiveTab(id as any); if (isEditing) handleInputChange('transactionType', id); }} />
+          <TabButton id="shares" activeTab={activeTab} label="Shares" icon={Users} onClick={(id) => { setActiveTab(id as any); if (isEditing) handleInputChange('transactionType', id); }} />
+        </div>
+
         <div className="flex-1 overflow-y-auto p-4 md:p-6 custom-scrollbar bg-stone-50/20">
           <div className="space-y-4 md:space-y-6 animate-in fade-in zoom-in-95 duration-200">
-            <div className="bg-white p-4 md:p-5 rounded-3xl border border-stone-200 shadow-sm">
-              <h3 className="text-[10px] font-bold text-stone-400 uppercase tracking-widest mb-4 flex items-center gap-2"><TrendingUp size={14} className="text-indigo-500" /> Capital Details</h3>
-              <div className="grid grid-cols-2 gap-x-4 md:gap-x-6">
-                <Field label="Date" value={formData.date} field="date" isEditing={isEditing} onInputChange={handleInputChange} type="date" />
-                <Field label="Code" value={formData.code} field="code" isEditing={isEditing} onInputChange={handleInputChange} highlight />
-                <Field label="Transaction Type *" value={formData.transactionType} field="transactionType" isEditing={isEditing} onInputChange={handleInputChange} type="select" options={['purchased', 'exchange', 'shares']} highlight />
-                <Field label="Vendor/Entity Name *" value={formData.vendorName} field="vendorName" isEditing={isEditing} onInputChange={handleInputChange} />
-                <Field label="Currency *" value={formData.currency} field="currency" isEditing={isEditing} onInputChange={handleCurrencyChange} type="select" options={currencies} />
-                <Field label="Amount *" value={formData.amount} field="amount" isEditing={isEditing} onInputChange={handleAmountChange} type="number" highlight isCurrency />
-                <Field label="Exchange Rate" value={formData.exchangeRate} field="exchangeRate" isEditing={isEditing} onInputChange={handleExchangeRateChange} type="number" />
-                <Field label="Converted Amount (LKR)" value={formData.convertedAmount} field="convertedAmount" isEditing={false} onInputChange={handleInputChange} highlight isCurrency />
-                <Field label="Location" value={formData.location} field="location" isEditing={isEditing} onInputChange={handleInputChange} />
-                <Field label="Company" value={formData.company} field="company" isEditing={isEditing} onInputChange={handleInputChange} />
-                <Field label="Payment Method" value={formData.paymentMethod} field="paymentMethod" isEditing={isEditing} onInputChange={handleInputChange} type="select" options={paymentMethods} />
-                <Field label="Description" value={formData.description} field="description" isEditing={isEditing} onInputChange={handleInputChange} />
-                <Field label="Notes" value={formData.notes} field="notes" isEditing={isEditing} onInputChange={handleInputChange} />
+            {activeTab === 'purchased' && (
+              <div className="bg-white p-4 md:p-5 rounded-3xl border border-stone-200 shadow-sm">
+                <h3 className="text-[10px] font-bold text-stone-400 uppercase tracking-widest mb-4 flex items-center gap-2"><ShoppingBag size={14} className="text-indigo-500" /> Purchased Details</h3>
+                <div className="grid grid-cols-2 gap-x-4 md:gap-x-6">
+                  <Field label="Company" value={formData.company} field="company" isEditing={isEditing} onInputChange={handleInputChange} />
+                  <Field label="Date" value={formData.date} field="date" isEditing={isEditing} onInputChange={handleInputChange} type="date" />
+                  <Field label="$/U" value={formData.currency} field="currency" isEditing={isEditing} onInputChange={handleInputChange} />
+                  <Field label="Name" value={formData.vendorName} field="vendorName" isEditing={isEditing} onInputChange={handleInputChange} />
+                  <Field label="$ amount" value={formData.amount} field="amount" isEditing={isEditing} onInputChange={handleAmountChange} type="number" highlight isCurrency />
+                  <Field label="$ SL Rate" value={formData.exchangeRate} field="exchangeRate" isEditing={isEditing} onInputChange={handleExchangeRateChange} type="number" />
+                  <Field label="Rs amount" value={formData.convertedAmount} field="convertedAmount" isEditing={false} onInputChange={handleInputChange} highlight isCurrency />
+                  <Field label="Payment Method" value={formData.paymentMethod} field="paymentMethod" isEditing={isEditing} onInputChange={handleInputChange} type="select" options={paymentMethods} />
+                </div>
               </div>
-            </div>
+            )}
+            {activeTab === 'exchange' && (
+              <div className="bg-white p-4 md:p-5 rounded-3xl border border-stone-200 shadow-sm">
+                <h3 className="text-[10px] font-bold text-stone-400 uppercase tracking-widest mb-4 flex items-center gap-2"><RefreshCw size={14} className="text-indigo-500" /> Exchange Details</h3>
+                <div className="grid grid-cols-2 gap-x-4 md:gap-x-6">
+                  <Field label="Date" value={formData.date} field="date" isEditing={isEditing} onInputChange={handleInputChange} type="date" />
+                  <Field label="Description" value={formData.description} field="description" isEditing={isEditing} onInputChange={handleInputChange} />
+                  <Field label="Exchange Name" value={formData.exchangeName} field="exchangeName" isEditing={isEditing} onInputChange={handleInputChange} />
+                  <Field label="$ amount" value={formData.exchangeAmount || 0} field="exchangeAmount" isEditing={isEditing} onInputChange={handleAmountChange} type="number" highlight isCurrency />
+                  <Field label="$ SL Rate" value={formData.exchangeRate} field="exchangeRate" isEditing={isEditing} onInputChange={handleExchangeRateChange} type="number" />
+                  <Field label="Rs amount" value={formData.exchangeConvertedAmount || 0} field="exchangeConvertedAmount" isEditing={false} onInputChange={handleInputChange} highlight isCurrency />
+                  <Field label="Tanzania Rate" value={formData.tanzaniaRate} field="tanzaniaRate" isEditing={isEditing} onInputChange={handleTanzaniaRateChange} type="number" />
+                  <Field label="T Shiling" value={formData.tShiling || 0} field="tShiling" isEditing={false} onInputChange={handleInputChange} highlight isCurrency />
+                  <Field label="Devided T / SL" value={formData.dividedTSL || 0} field="dividedTSL" isEditing={false} onInputChange={handleInputChange} highlight />
+                </div>
+              </div>
+            )}
+            {activeTab === 'shares' && (
+              <div className="bg-white p-4 md:p-5 rounded-3xl border border-stone-200 shadow-sm">
+                <h3 className="text-[10px] font-bold text-stone-400 uppercase tracking-widest mb-4 flex items-center gap-2"><Users size={14} className="text-indigo-500" /> Shares Details</h3>
+                <div className="grid grid-cols-2 gap-x-4 md:gap-x-6">
+                  <Field label="$ Each Amount" value={formData.dollarEachAmount || 0} field="dollarEachAmount" isEditing={false} onInputChange={handleInputChange} highlight isCurrency />
+                  <Field label="Rs Each Amount" value={formData.rsEachAmount || 0} field="rsEachAmount" isEditing={false} onInputChange={handleInputChange} highlight isCurrency />
+                  <Field label="Shi Each Amount" value={formData.shiEachAmount} field="shiEachAmount" isEditing={isEditing} onInputChange={handleInputChange} type="number" highlight isCurrency />
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
@@ -262,7 +435,17 @@ const CapitalDetailPanel: React.FC<{
       </div>
     </div>
   );
-};
+}, (prevProps, nextProps) => {
+  // Only re-render if the item ID or editing state actually changed
+  return (
+    prevProps.item.id === nextProps.item.id &&
+    prevProps.initialIsEditing === nextProps.initialIsEditing &&
+    prevProps.isReadOnly === nextProps.isReadOnly &&
+    prevProps.onClose === nextProps.onClose &&
+    prevProps.onSave === nextProps.onSave &&
+    prevProps.onDelete === nextProps.onDelete
+  );
+});
 
 export const UnifiedCapitalManagementTemplate: React.FC<Props> = ({ moduleId, tabId, isReadOnly }) => {
   const [items, setItems] = useState<CapitalItem[]>(generateMockData());
@@ -582,17 +765,26 @@ export const UnifiedCapitalManagementTemplate: React.FC<Props> = ({ moduleId, ta
   };
 
   const handleSaveFromPanel = (item: CapitalItem) => {
+    const isNew = item.id.startsWith('new-');
+    
+    // Generate a proper ID for new items
+    const finalItem = isNew ? { ...item, id: `capital-${Date.now()}` } : item;
+    
     // If in mother tab and item has source info, save to source location
-    if (isMotherTab && item.sourceModule && item.sourceTab) {
-      saveItemToStorage(item, false);
+    if (isMotherTab && finalItem.sourceModule && finalItem.sourceTab) {
+      saveItemToStorage(finalItem, isNew);
     } else if (!isMotherTab) {
-      // Regular tab, update normally
-      setItems(prev => prev.map(i => i.id === item.id ? item : i));
+      // Regular tab, save normally
+      if (isNew) {
+        setItems(prev => [finalItem, ...prev]);
+      } else {
+        setItems(prev => prev.map(i => i.id === finalItem.id ? finalItem : i));
+      }
     } else {
       // Mother tab, item without source - save to mother tab
-      saveItemToStorage({ ...item, sourceModule: moduleId, sourceTab: tabId }, false);
+      saveItemToStorage({ ...finalItem, sourceModule: moduleId, sourceTab: tabId }, isNew);
     }
-    setSelectedItem(item);
+    setSelectedItem(finalItem);
   };
 
   const handleDeleteFromPanel = (id: string) => {
@@ -781,7 +973,34 @@ export const UnifiedCapitalManagementTemplate: React.FC<Props> = ({ moduleId, ta
            </button>
            {!isReadOnly && (
              <button 
-               onClick={() => { setEditingItem(null); setIsFormOpen(true); }}
+               onClick={() => {
+                 const newItem: CapitalItem = {
+                   id: `new-${Date.now()}`,
+                   date: new Date().toISOString().split('T')[0],
+                   code: '',
+                   transactionType: 'purchased',
+                   vendorName: '',
+                   currency: 'USD',
+                   amount: 0,
+                   exchangeAmount: 0,
+                   exchangeRate: exchangeRates['USD'],
+                   convertedAmount: 0,
+                   exchangeConvertedAmount: 0,
+                   location: '',
+                   company: '',
+                   description: '',
+                   paymentMethod: '',
+                   notes: '',
+                   exchangeName: '',
+                   tanzaniaRate: 0,
+                   tShiling: 0,
+                   dividedTSL: 0,
+                   dollarEachAmount: 0,
+                   rsEachAmount: 0,
+                   shiEachAmount: 0
+                 };
+                 setSelectedItem(newItem);
+               }}
                className="flex-1 lg:flex-none flex items-center justify-center gap-2 px-6 py-3 bg-indigo-600 text-white rounded-xl text-xs font-bold shadow-lg shadow-indigo-900/20 hover:bg-indigo-700 active:scale-95 whitespace-nowrap"
              >
                <Plus size={18} /> Add Entry
@@ -1129,15 +1348,6 @@ export const UnifiedCapitalManagementTemplate: React.FC<Props> = ({ moduleId, ta
             onSave={handleSaveFromPanel} 
             onDelete={handleDeleteFromPanel}
             isReadOnly={isReadOnly}
-         />
-      )}
-
-      {/* Form Modal */}
-      {isFormOpen && (
-         <CapitalForm 
-            initialData={editingItem}
-            onSave={handleSave}
-            onCancel={() => setIsFormOpen(false)}
          />
       )}
     </div>
